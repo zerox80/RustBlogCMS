@@ -45,7 +45,7 @@ html-escape = "0.2"
 version = "=0.5.12"
 
 [dependencies.base64ct]
-version = "=1.8.0"
+version = "=1.8.1"
 default-features = false
 features = ["alloc"]
 
