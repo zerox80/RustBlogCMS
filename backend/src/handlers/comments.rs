@@ -301,7 +301,12 @@ async fn create_comment_internal(
     let comment_content = sanitize_comment_content(&payload.content)?;
 
     let (author, rate_limit_key) = if let Some(ref c) = claims {
-        (c.sub.clone(), c.sub.clone())
+        let display_name = if c.role == "admin" {
+            "Administrator".to_string()
+        } else {
+            c.sub.clone()
+        };
+        (display_name, c.sub.clone())
     } else {
         // Guest comment
         match payload.author {
@@ -315,24 +320,27 @@ async fn create_comment_internal(
                         }),
                     ));
                 }
-                // Check if name conflicts with registered user
-                let user_exists = repositories::users::check_user_exists_by_name(&pool, trimmed)
-                    .await
-                    .map_err(|e| {
-                        tracing::error!("Database error checking user existence: {}", e);
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Json(ErrorResponse {
-                                error: "Failed to validate guest name".to_string(),
-                            }),
-                        )
-                    })?;
-
-                if user_exists {
-                    return Err((
+                
+                // Enforce strict name validation (alphanumeric and spaces)
+                let name_regex = regex::Regex::new(r"^[a-zA-Z0-9 ]+$").unwrap();
+                if !name_regex.is_match(trimmed) {
+                     return Err((
                         StatusCode::BAD_REQUEST,
                         Json(ErrorResponse {
-                            error: "Guest name cannot match a registered user".to_string(),
+                            error: "Name can only contain letters, numbers, and spaces".to_string(),
+                        }),
+                    ));
+                }
+
+                // Prevent using "Administrator" or "Admin" as guest name
+                if trimmed.eq_ignore_ascii_case("admin") 
+                    || trimmed.eq_ignore_ascii_case("administrator") 
+                    || trimmed.eq_ignore_ascii_case("root") 
+                {
+                     return Err((
+                        StatusCode::BAD_REQUEST,
+                        Json(ErrorResponse {
+                            error: "This name is reserved".to_string(),
                         }),
                     ));
                 }

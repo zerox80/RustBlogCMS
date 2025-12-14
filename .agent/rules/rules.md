@@ -1,6 +1,5 @@
 ---
-trigger: manual
+trigger: always_on
 ---
 
-Don't run cargo, npm, mvnw, python commands
-
+Den Code nicht testen

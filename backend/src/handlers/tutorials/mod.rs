@@ -103,10 +103,14 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     const MAX_SEGMENT_LEN: usize = 32;
 
     fn validate_segment(segment: &str, prefix: &str) -> bool {
-        if !segment.starts_with(prefix) {
+        // Handle modifiers (e.g., dark:from-..., md:hover:to-...)
+        // We look at the last part after ':' or the whole string if no ':'
+        let base_class = segment.split(':').last().unwrap_or(segment);
+        
+        if !base_class.starts_with(prefix) {
             return false;
         }
-        let suffix = &segment[prefix.len()..];
+        let suffix = &base_class[prefix.len()..];
         !suffix.is_empty()
             && suffix.len() <= MAX_SEGMENT_LEN
             && suffix
@@ -115,6 +119,10 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     }
 
     let segments: Vec<&str> = color.split_whitespace().collect();
+    // Allow more complex gradients but ensure we have at least from and to
+    // Typically 2 or 3 parts: from-... [via-...] to-...
+    // But could be more with responsive? No, typically "from-X to-Y" is the base structure.
+    // We stick to 2 or 3 segments for simplicity of storage/validation as per original design.
     if !(segments.len() == 2 || segments.len() == 3) {
         return Err(
             "Invalid color gradient. Expected Tailwind style 'from-… [via-…] to-…' format."
@@ -122,23 +130,29 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
         );
     }
 
+    // Note: The logic below assumes the order is always (modifiers:)?from -> (modifiers:)?via -> (modifiers:)?to
+    // This might be too strict if user writes "to-red-500 from-blue-500", but Tailwind usually encourages ordered.
+    // The original code enforced order segments[0]=from, segments[1]=via/to. We keep this but allow modifiers.
+
     if !validate_segment(segments[0], "from-") {
-        return Err("Invalid color gradient: 'from-*' segment malformed or too long.".to_string());
+        return Err("Invalid color gradient: 'from-*' segment malformed, too long, or missing.".to_string());
     }
 
     if segments.len() == 3 {
+        // Validation for middle segment - check if it is 'via-' or 'to-'?
+        // Original code expected: 0=from, 1=via, 2=to.
         if !validate_segment(segments[1], "via-") {
-            return Err(
-                "Invalid color gradient: 'via-*' segment malformed or too long.".to_string(),
+             return Err(
+                "Invalid color gradient: Middle segment must be 'via-*' in a 3-part gradient.".to_string(),
             );
         }
         if !validate_segment(segments[2], "to-") {
             return Err(
-                "Invalid color gradient: 'to-*' segment malformed or too long.".to_string(),
+                "Invalid color gradient: Last segment must be 'to-*'.".to_string(),
             );
         }
     } else if !validate_segment(segments[1], "to-") {
-        return Err("Invalid color gradient: 'to-*' segment malformed or too long.".to_string());
+        return Err("Invalid color gradient: Last segment must be 'to-*'.".to_string());
     }
 
     Ok(())

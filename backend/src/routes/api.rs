@@ -6,7 +6,11 @@ use crate::db::DbPool;
 use std::sync::Arc;
 use governor::middleware::NoOpMiddleware;
 
-pub fn routes(upload_dir: String, admin_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>) -> Router<DbPool> {
+pub fn routes(
+    upload_dir: String,
+    admin_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
+    public_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
+) -> Router<DbPool> {
     Router::new()
         .route("/api/auth/me", get(auth::me))
         .route("/api/tutorials", get(tutorials::list_tutorials))
@@ -35,7 +39,7 @@ pub fn routes(upload_dir: String, admin_rate_limit_config: Arc<GovernorConfig<Sm
             "/api/posts/{id}/comments",
             get(comments::list_post_comments)
                 .post(comments::create_post_comment)
-                .route_layer(GovernorLayer::new(admin_rate_limit_config)),
+                .route_layer(GovernorLayer::new(public_rate_limit_config)),
         )
         .route(
             "/api/comments/{id}/vote",

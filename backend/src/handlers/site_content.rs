@@ -59,6 +59,8 @@ fn validate_content_structure(
         "header" => validate_header_structure(content),
         "footer" => validate_footer_structure(content),
         "settings" => validate_settings_structure(content),
+        "site_meta" => validate_site_meta_structure(content),
+        "game_config" => Ok(()), // Legacy/Future use
         "stats" => Ok(()),
         "cta_section" => Ok(()),
         "login" => validate_login_structure(content),
@@ -73,6 +75,23 @@ fn validate_content_structure(
             }),
         )
     })
+}
+
+fn validate_site_meta_structure(content: &Value) -> Result<(), &'static str> {
+    let obj = content.as_object().ok_or("Expected JSON object")?;
+    if !obj.contains_key("title") {
+        return Err("Missing required field 'title'");
+    }
+    if !obj.contains_key("description") {
+        return Err("Missing required field 'description'");
+    }
+    // keywords is optional but often good to check type if present
+    if let Some(kw) = obj.get("keywords") {
+        if !kw.is_string() {
+             return Err("Field 'keywords' must be a string");
+        }
+    }
+    Ok(())
 }
 
 fn validate_hero_structure(content: &Value) -> Result<(), &'static str> {

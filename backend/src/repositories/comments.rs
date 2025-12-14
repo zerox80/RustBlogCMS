@@ -140,16 +140,20 @@ pub async fn check_vote_exists(
 }
 
 pub async fn add_vote(pool: &DbPool, comment_id: &str, voter_id: &str) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+
     sqlx::query("INSERT INTO comment_votes (comment_id, voter_id) VALUES (?, ?)")
         .bind(comment_id)
         .bind(voter_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
 
     sqlx::query("UPDATE comments SET votes = votes + 1 WHERE id = ?")
         .bind(comment_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+
+    tx.commit().await?;
 
     Ok(())
 }

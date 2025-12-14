@@ -17,9 +17,18 @@ pub fn create_routes(pool: DbPool, upload_dir: String) -> Router<DbPool> {
             .expect("Failed to build governor config for write routes"),
     );
 
+    let public_rate_limit_config = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(5)
+            .burst_size(10)
+            .key_extractor(SmartIpKeyExtractor)
+            .finish()
+            .expect("Failed to build governor config for public routes"),
+    );
+
     let login_router = auth::routes();
     let admin_router = admin::routes(pool.clone(), admin_rate_limit_config.clone());
-    let api_router = api::routes(upload_dir, admin_rate_limit_config);
+    let api_router = api::routes(upload_dir, admin_rate_limit_config, public_rate_limit_config);
 
     Router::new()
         .merge(login_router)

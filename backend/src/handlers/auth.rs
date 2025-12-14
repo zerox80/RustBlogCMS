@@ -189,12 +189,25 @@ fn validate_username(username: &str) -> Result<(), String> {
 /// - Not empty
 /// - Length ≤ 128 characters (prevents DoS via bcrypt)
 fn validate_password(password: &str) -> Result<(), String> {
-    if password.is_empty() {
-        return Err("Password cannot be empty".to_string());
+    if password.len() < 12 {
+        return Err("Password must be at least 12 characters long".to_string());
     }
     if password.len() > 128 {
         return Err("Password too long".to_string());
     }
+
+    let has_uppercase = password.chars().any(|c| c.is_uppercase());
+    let has_lowercase = password.chars().any(|c| c.is_lowercase());
+    let has_digit = password.chars().any(|c| c.is_numeric());
+    let has_special = password.chars().any(|c| !c.is_alphanumeric());
+
+    if !has_uppercase || !has_lowercase || !has_digit || !has_special {
+        return Err(
+            "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+                .to_string(),
+        );
+    }
+
     Ok(())
 }
 

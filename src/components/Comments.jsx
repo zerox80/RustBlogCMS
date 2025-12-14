@@ -77,7 +77,12 @@ const Comments = ({ tutorialId, postId }) => {
 
       const newComments = Array.isArray(data) ? data : [];
 
-      setComments(prev => shouldReset ? newComments : [...prev, ...newComments]);
+      setComments(prev => {
+        if (shouldReset) return newComments;
+        const existingIds = new Set(prev.map(c => c.id));
+        const uniqueNewComments = newComments.filter(c => !existingIds.has(c.id));
+        return [...prev, ...uniqueNewComments];
+      });
       setOffset(prev => shouldReset ? newComments.length : prev + newComments.length);
       setHasMore(newComments.length === COMMENTS_PER_PAGE);
 
