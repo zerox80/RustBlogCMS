@@ -30,7 +30,7 @@ use axum::{
 };
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use sha2::{Digest, Sha256};
-use sqlx::{self, FromRow};
+use sqlx;
 use std::{env, sync::OnceLock, time::Duration};
 
 /// Global salt for hashing login attempt identifiers.

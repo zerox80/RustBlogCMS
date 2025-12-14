@@ -26,7 +26,7 @@ use axum::{
         request::Parts,
         HeaderMap, HeaderValue, StatusCode,
     },
-    Json,
+
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use chrono::{Duration, Utc};
@@ -38,7 +38,7 @@ use std::sync::LazyLock;
 use std::sync::OnceLock;
 use time::{Duration as TimeDuration, OffsetDateTime};
 
-use crate::db::{self, DbPool};
+use crate::db::DbPool;
 
 /// Global storage for the JWT secret key.
 /// Initialized once at application startup via init_jwt_secret().

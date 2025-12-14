@@ -3,7 +3,7 @@ use crate::{
     models::{ErrorResponse, UploadResponse},
 };
 use axum::{
-    extract::{Multipart, State},
+    extract::Multipart,
     http::StatusCode,
     Json,
 };
@@ -159,16 +159,26 @@ pub async fn upload_image(
 
             let mut total_size = first_chunk.len();
 
-            while let Some(chunk) = field.chunk().await.map_err(|err| {
-                tracing::error!("Failed to read chunk: {}", err);
-                let _ = tokio::fs::remove_file(&filepath).await;
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: format!("Failed to read file: {}", err),
-                    }),
-                )
-            })? {
+            loop {
+                let chunk_option = match field.chunk().await {
+                    Ok(opt) => opt,
+                    Err(err) => {
+                        tracing::error!("Failed to read chunk: {}", err);
+                        let _ = tokio::fs::remove_file(&filepath).await;
+                         return Err((
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(ErrorResponse {
+                                error: format!("Failed to read file: {}", err),
+                            }),
+                        ));
+                    }
+                };
+
+                let chunk = match chunk_option {
+                    Some(c) => c,
+                    None => break,
+                };
+
                 total_size += chunk.len();
                 if total_size > MAX_FILE_SIZE {
                     let _ = tokio::fs::remove_file(&filepath).await;
