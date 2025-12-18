@@ -73,8 +73,10 @@ export const DEFAULT_CONTENT = {
       icon: 'Terminal',
     },
     navItems: [
-      { id: 'home', label: 'Home', type: 'section' },
+      { id: 'features', label: 'Features', type: 'section', value: 'features' },
+      { id: 'tutorial', label: 'Tutorial', type: 'route', path: '/tutorial/getting-started' },
       { id: 'blog', label: 'Blog', type: 'route', path: '/blog' },
+      { id: 'about', label: 'Über', type: 'route', path: '/about' },
     ],
     cta: {
       guestLabel: 'Login',

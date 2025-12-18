@@ -21,20 +21,23 @@ const Header = () => {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
-    // Combine static hardcoded links with dynamic navigation from API
-    const baseLinks = [
-        { name: t('nav.features'), path: '/#features' },
-        { name: t('nav.tutorial'), path: '/tutorial/getting-started' },
-        { name: t('nav.blog'), path: '/blog' },
-        { name: t('nav.about'), path: '/about' },
-    ]
+    // Use centralized navigation data from ContentContext (CMS + Dynamic Pages)
+    // This allows the user to edit ALL menu items via the Admin Panel
+    const navLinks = (navigation?.items || []).map(item => {
+        let path = item.path || '/'
 
-    const dynamicLinks = navigation?.dynamic?.map(item => ({
-        name: item.label,
-        path: item.path
-    })) || []
+        // Handle anchor/section links
+        if (item.type === 'section') {
+            const sectionId = item.value || item.id
+            path = `/#${sectionId}`
+        }
 
-    const navLinks = [...baseLinks, ...dynamicLinks]
+        return {
+            name: item.label, // Translation can be handled here if keys are used in CMS
+            path: path,
+            isActive: location.pathname === path
+        }
+    })
 
     return (
         <header
