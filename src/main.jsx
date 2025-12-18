@@ -24,6 +24,7 @@ import App from './App.jsx'
 
 // Import global CSS styles - Tailwind CSS and custom application styles
 import './index.css'
+import './i18n/config'
 
 // Import syntax highlighting theme - GitHub Dark theme for code blocks
 import 'highlight.js/styles/github-dark.css'

@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, Github, Moon, Sun } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { useTheme } from '../../context/ThemeContext'
+import { useContent } from '../../context/ContentContext'
 
 const Header = () => {
     const { t } = useTranslation()
     const { isDarkMode, toggleTheme } = useTheme()
+    const { navigation } = useContent()
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const location = useLocation()
@@ -19,12 +16,20 @@ const Header = () => {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
-    const navLinks = [
+    // Combine static hardcoded links with dynamic navigation from API
+    const baseLinks = [
         { name: t('nav.features'), path: '/#features' },
         { name: t('nav.tutorial'), path: '/tutorial/getting-started' },
         { name: t('nav.blog'), path: '/blog' },
         { name: t('nav.about'), path: '/about' },
     ]
+
+    const dynamicLinks = navigation?.dynamic?.map(item => ({
+        name: item.label,
+        path: item.path
+    })) || []
+
+    const navLinks = [...baseLinks, ...dynamicLinks]
 
     return (
         <header

@@ -24,7 +24,7 @@ const LandingHero = ({ content }) => {
             <div className="container relative z-10 px-6 mx-auto">
                 <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
                     {/* Badge */}
-                    <div className="animate-fade-in opacity-0 [animation-delay:200ms] mb-6">
+                    <div className="animate-fade-in [animation-delay:200ms] mb-6">
                         <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 backdrop-blur-md text-sm text-slate-300 font-medium hover:border-slate-500 transition-colors">
                             <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse"></span>
                             v2.0 is now live
@@ -32,7 +32,7 @@ const LandingHero = ({ content }) => {
                     </div>
 
                     {/* Hero Title */}
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-extrabold tracking-tight mb-8 animate-slide-up opacity-0 [animation-delay:400ms]">
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-extrabold tracking-tight mb-8 animate-slide-up [animation-delay:400ms]">
                         Publish Stories
                         <span className="block mt-2 gradient-text-aurora">
                             That Matter
@@ -40,12 +40,12 @@ const LandingHero = ({ content }) => {
                     </h1>
 
                     {/* Subtitle */}
-                    <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up opacity-0 [animation-delay:600ms]">
+                    <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up [animation-delay:600ms]">
                         {content?.subtitle || "The modern, high-performance content management system designed for creators, developers, and teams who care about speed and aesthetics."}
                     </p>
 
                     {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 animate-slide-up opacity-0 [animation-delay:800ms]">
+                    <div className="flex flex-col sm:flex-row gap-4 animate-slide-up [animation-delay:800ms]">
                         <Link to="/tutorial/getting-started" className="btn-primary group">
                             Start Writing
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -57,7 +57,7 @@ const LandingHero = ({ content }) => {
                 </div>
 
                 {/* Floating Glass Cards Visualization */}
-                <div className="relative mt-20 h-64 md:h-96 w-full max-w-6xl mx-auto perspective-1000 hidden md:block animate-fade-in opacity-0 [animation-delay:1000ms]">
+                <div className="relative mt-20 h-64 md:h-96 w-full max-w-6xl mx-auto perspective-1000 hidden md:block animate-fade-in [animation-delay:1000ms]">
 
                     {/* Central Dashboard Mockup */}
                     <div
