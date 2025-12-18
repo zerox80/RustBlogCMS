@@ -424,6 +424,42 @@ const HeroContentForm = ({ content, onFieldChange }) => {
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Einstellungen</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Hero Bild URL</label>
+            <input
+              type="text"
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              value={heroContent.heroImage || ''}
+              onChange={handleChange(['heroImage'])}
+              placeholder="/hero-dashboard-v2.png"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Primary Button Label</label>
+              <input
+                type="text"
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                value={heroContent.primaryCta?.label || ''}
+                onChange={handleChange(['primaryCta', 'label'])}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Secondary Button Label</label>
+              <input
+                type="text"
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                value={heroContent.secondaryCta?.label || ''}
+                onChange={handleChange(['secondaryCta', 'label'])}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
         <FeaturesEditor
           features={heroContent.features}
           onChange={(newFeatures) => onFieldChange(['features'], newFeatures)}
