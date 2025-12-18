@@ -69,7 +69,7 @@ const LandingHero = ({ content }) => {
                 </div>
 
                 {/* Hero Image / Dashboard Mockup */}
-                <div className="relative mt-20 w-full max-w-4xl mx-auto hidden md:block animate-fade-in [animation-delay:1000ms]">
+                <div className="relative mt-20 w-full max-w-3xl mx-auto hidden md:block animate-fade-in [animation-delay:1000ms]">
 
                     {/* Glowing effect behind the image */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan/20 to-neon-violet/20 rounded-2xl blur-2xl opacity-50"></div>
@@ -82,7 +82,7 @@ const LandingHero = ({ content }) => {
                         <img
                             src={heroImage}
                             alt="Dashboard Preview"
-                            className="w-full h-auto object-cover rounded-2xl"
+                            className="w-full h-auto max-h-[60vh] object-contain rounded-2xl"
                             onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = "/hero-dashboard-v2.png"; // Fallback
