@@ -22,7 +22,7 @@ const Header = () => {
     // Use refs for scroll tracking to avoid re-renders/dependency loops
     const lastScrollY = React.useRef(0)
     const scrollUpAccumulator = React.useRef(0)
-    const SCROLL_UP_THRESHOLD = 75 // Pixels to scroll up before showing header
+    const SCROLL_UP_THRESHOLD = 200 // Pixels to scroll up before showing header
 
     const location = useLocation()
 
