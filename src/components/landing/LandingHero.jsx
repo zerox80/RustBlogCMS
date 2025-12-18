@@ -42,9 +42,12 @@ const LandingHero = ({ content }) => {
                     {/* Hero Title */}
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-extrabold tracking-tight mb-8 animate-slide-up [animation-delay:400ms]">
                         <EditableText section="hero" field="title.line1" value={titleLine1} />
-                        <span className="block mt-2 gradient-text-aurora">
-                            <EditableText section="hero" field="title.line2" value={titleLine2} />
-                        </span>
+                        <EditableText
+                            section="hero"
+                            field="title.line2"
+                            value={titleLine2}
+                            className="block mt-2 gradient-text-aurora"
+                        />
                     </h1>
 
                     {/* Subtitle */}
