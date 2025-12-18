@@ -17,29 +17,50 @@ const Header = () => {
     )
     const [isScrolled, setIsScrolled] = useState(false)
     const [isVisible, setIsVisible] = useState(true)
-    const [lastScrollY, setLastScrollY] = useState(0)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+    // Use refs for scroll tracking to avoid re-renders/dependency loops
+    const lastScrollY = React.useRef(0)
+    const scrollUpAccumulator = React.useRef(0)
+    const SCROLL_UP_THRESHOLD = 75 // Pixels to scroll up before showing header
+
     const location = useLocation()
 
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY
+            const lastY = lastScrollY.current
+            const scrollDelta = lastY - currentScrollY // Positive when scrolling up
 
-            // Show header if at the very top, otherwise hide on scroll down and show on scroll up
+            // 1. Detect if at top or scrolled deeply
+            setIsScrolled(currentScrollY > 20)
+
+            // 2. Determine Visibility
             if (currentScrollY < 10) {
+                // Always show at the very top
                 setIsVisible(true)
-            } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+                scrollUpAccumulator.current = 0
+            } else if (currentScrollY > lastY) {
+                // Scrolling DOWN
                 setIsVisible(false)
-            } else if (currentScrollY < lastScrollY) {
-                setIsVisible(true)
+                // Reset accumulator when changing direction to down
+                scrollUpAccumulator.current = 0
+            } else if (currentScrollY < lastY) {
+                // Scrolling UP
+                scrollUpAccumulator.current += scrollDelta
+
+                if (scrollUpAccumulator.current > SCROLL_UP_THRESHOLD) {
+                    setIsVisible(true)
+                    // No need to reset accumulator here, we want it to stay visible
+                }
             }
 
-            setLastScrollY(currentScrollY)
-            setIsScrolled(currentScrollY > 20)
+            lastScrollY.current = currentScrollY
         }
-        window.addEventListener('scroll', handleScroll)
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
         return () => window.removeEventListener('scroll', handleScroll)
-    }, [lastScrollY])
+    }, [])
 
     // Use centralized navigation data from ContentContext (CMS + Dynamic Pages)
     // This allows the user to edit ALL menu items via the Admin Panel
