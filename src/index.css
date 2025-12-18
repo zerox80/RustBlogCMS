@@ -25,6 +25,7 @@
   --shadow-glass-premium: 0 20px 40px -5px rgba(0, 0, 0, 0.3), 0 0 15px -3px rgba(139, 92, 246, 0.1);
   --shadow-neon-cyan: 0 0 20px rgba(6, 182, 212, 0.3);
   --shadow-neon-violet: 0 0 20px rgba(139, 92, 246, 0.3);
+  --shadow-glow-cyan: 0 0 10px rgba(34, 211, 238, 0.5);
 
   /* Animations */
   --animate-gradient: gradientShift 8s linear infinite;
@@ -108,7 +109,7 @@
 
   .nav-link::after {
     content: '';
-    @apply absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 shadow-[0_0_10px_rgba(34, 211, 238, 0.5)];
+    @apply absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 shadow-glow-cyan;
   }
 
   .nav-link:hover::after {
