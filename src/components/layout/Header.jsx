@@ -16,16 +16,30 @@ const Header = () => {
         [headerContent?.brand?.icon]
     )
     const [isScrolled, setIsScrolled] = useState(false)
+    const [isVisible, setIsVisible] = useState(true)
+    const [lastScrollY, setLastScrollY] = useState(0)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const location = useLocation()
 
     useEffect(() => {
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20)
+            const currentScrollY = window.scrollY
+
+            // Show header if at the very top, otherwise hide on scroll down and show on scroll up
+            if (currentScrollY < 10) {
+                setIsVisible(true)
+            } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+                setIsVisible(false)
+            } else if (currentScrollY < lastScrollY) {
+                setIsVisible(true)
+            }
+
+            setLastScrollY(currentScrollY)
+            setIsScrolled(currentScrollY > 20)
         }
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
+    }, [lastScrollY])
 
     // Use centralized navigation data from ContentContext (CMS + Dynamic Pages)
     // This allows the user to edit ALL menu items via the Admin Panel
@@ -48,8 +62,9 @@ const Header = () => {
     return (
         <header
             className={`
-                fixed top-0 left-0 right-0 z-50 transition-all duration-300 flex justify-center px-4
+                fixed top-0 left-0 right-0 z-50 transition-all duration-500 flex justify-center px-4
                 ${isScrolled ? 'pt-4' : 'pt-6'}
+                ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}
             `}
         >
             <nav
