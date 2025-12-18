@@ -7,12 +7,12 @@ import {
 } from '../../context/ContentContext'
 
 const sectionLabels = {
-  hero: 'Hero-Bereich (Startseite)',
-  stats: 'Statistiken (Startseite)',
-  cta_section: 'CTA-Bereich (Startseite)',
+  hero: 'Startseite: Hauptbereich (Hero)',
+  stats: 'Startseite: Statistiken',
+  cta_section: 'Startseite: Aufruf (CTA)',
   header: 'Navigation & Header',
   footer: 'Footer',
-  site_meta: 'Seitentitel & Beschreibung',
+  site_meta: 'globale Meta-Daten (SEO)',
   login: 'Login Seite',
 }
 

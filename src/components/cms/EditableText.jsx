@@ -55,7 +55,7 @@ const EditableText = ({
                         value={internalValue}
                         onChange={(e) => setInternalValue(e.target.value)}
                         onBlur={handleBlur}
-                        className="w-full bg-slate-800/50 border border-neon-cyan/50 text-white rounded p-1 outline-none focus:ring-2 focus:ring-neon-cyan/50 min-h-[1.5em]"
+                        className="w-full bg-slate-800 text-white border border-neon-cyan/50 rounded p-1 outline-none focus:ring-2 focus:ring-neon-cyan/50 min-h-[1.5em] placeholder-slate-400"
                     />
                 ) : (
                     <input
@@ -63,7 +63,7 @@ const EditableText = ({
                         value={internalValue}
                         onChange={(e) => setInternalValue(e.target.value)}
                         onBlur={handleBlur}
-                        className="w-full bg-slate-800/50 border border-neon-cyan/50 text-white rounded px-1 outline-none focus:ring-2 focus:ring-neon-cyan/50 min-w-[5ch]"
+                        className="w-full bg-slate-800 text-white border border-neon-cyan/50 rounded px-1 outline-none focus:ring-2 focus:ring-neon-cyan/50 min-w-[5ch] placeholder-slate-400"
                         style={{ width: `${Math.max(internalValue.length, 5)}ch` }}
                     />
                 )
