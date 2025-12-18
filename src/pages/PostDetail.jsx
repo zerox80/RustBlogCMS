@@ -3,11 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
 import { formatDate } from '../utils/postUtils'
 import { Helmet } from 'react-helmet-async'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
-import rehypeHighlight from 'rehype-highlight'
+import MarkdownRenderer from '../components/markdown/MarkdownRenderer'
 import { Calendar, Clock, User, ArrowLeft, Share2, Bookmark } from 'lucide-react'
 
 const PostDetail = () => {
@@ -115,21 +111,11 @@ const PostDetail = () => {
 
         {/* Main Content */}
         <main className="lg:col-span-8 lg:col-start-4">
-          <article className="prose prose-invert prose-lg max-w-none 
-                        prose-headings:font-serif prose-headings:font-bold prose-headings:tracking-tight 
-                        prose-p:text-slate-300 prose-p:leading-8
-                        prose-a:text-neon-cyan prose-a:no-underline hover:prose-a:underline
-                        prose-blockquote:border-l-neon-violet prose-blockquote:bg-slate-900/50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg
-                        prose-code:text-neon-cyan prose-code:bg-slate-900/50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-                        prose-img:rounded-2xl prose-img:shadow-2xl">
-
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex, rehypeHighlight]}
-              className="markdown-renderer"
-            >
-              {post.content_markdown}
-            </ReactMarkdown>
+          <article className="max-w-none">
+            <MarkdownRenderer
+              content={post.content_markdown}
+              withBreaks
+            />
           </article>
 
           {/* Footer / Comments Area */}

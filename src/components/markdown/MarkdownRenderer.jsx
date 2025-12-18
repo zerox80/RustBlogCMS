@@ -10,12 +10,12 @@ import CodeBlock from '../ui/CodeBlock'
 import remarkMergeInlineParagraphs from '../../utils/remarkMergeInlineParagraphs'
 const mergeClassNames = (...classes) => classes.filter(Boolean).join(' ')
 const headingClasses = {
-  1: 'text-3xl sm:text-4xl font-bold text-gray-900 dark:text-slate-100 tracking-tight mt-10 first:mt-0',
-  2: 'text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-slate-100 mt-8 first:mt-0',
-  3: 'text-xl sm:text-2xl font-semibold text-gray-900 dark:text-slate-100 mt-6 first:mt-0',
-  4: 'text-lg font-semibold text-gray-900 dark:text-slate-100 mt-5 first:mt-0',
-  5: 'text-base font-semibold text-gray-800 dark:text-slate-300 mt-4 first:mt-0 uppercase tracking-wide',
-  6: 'text-sm font-semibold text-gray-700 dark:text-slate-400 mt-4 first:mt-0 uppercase tracking-wider',
+  1: 'text-4xl sm:text-5xl font-bold text-gray-900 dark:text-slate-100 tracking-tight mt-16 first:mt-0 mb-8',
+  2: 'text-3xl sm:text-4xl font-bold text-gray-900 dark:text-slate-100 mt-14 first:mt-0 mb-6',
+  3: 'text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-slate-100 mt-12 first:mt-0 mb-4',
+  4: 'text-xl sm:text-2xl font-semibold text-gray-900 dark:text-slate-100 mt-10 first:mt-0 mb-4',
+  5: 'text-lg font-semibold text-gray-800 dark:text-slate-300 mt-8 first:mt-0 mb-3 uppercase tracking-wide',
+  6: 'text-base font-semibold text-gray-700 dark:text-slate-400 mt-8 first:mt-0 mb-3 uppercase tracking-wider',
 }
 const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
   const remarkPlugins = withBreaks
@@ -58,17 +58,17 @@ const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
             </h6>
           ),
           p: ({ children, ...props }) => (
-            <p className="mt-5 first:mt-0 text-base sm:text-lg leading-8 text-gray-700 dark:text-slate-200" {...props}>
+            <p className="mt-8 first:mt-0 text-lg sm:text-xl leading-relaxed text-gray-700 dark:text-slate-300" {...props}>
               {children}
             </p>
           ),
           ul: ({ children, ...props }) => (
-            <ul className="mt-5 first:mt-0 list-disc list-outside space-y-3 pl-6 text-base sm:text-lg leading-8 text-gray-700 dark:text-slate-200" {...props}>
+            <ul className="mt-8 first:mt-0 list-disc list-outside space-y-4 pl-6 text-lg sm:text-xl leading-relaxed text-gray-700 dark:text-slate-300" {...props}>
               {children}
             </ul>
           ),
           ol: ({ children, ...props }) => (
-            <ol className="mt-5 first:mt-0 list-decimal list-outside space-y-3 pl-6 text-base sm:text-lg leading-8 text-gray-700 dark:text-slate-200" {...props}>
+            <ol className="mt-8 first:mt-0 list-decimal list-outside space-y-4 pl-6 text-lg sm:text-xl leading-relaxed text-gray-700 dark:text-slate-300" {...props}>
               {children}
             </ol>
           ),
@@ -79,7 +79,7 @@ const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
           ),
           blockquote: ({ children, ...props }) => (
             <blockquote
-              className="mt-6 first:mt-0 rounded-2xl border-l-4 border-primary-400/80 bg-primary-50/60 dark:bg-slate-800/60 dark:border-primary-400/50 px-5 py-4 text-base sm:text-lg italic text-gray-700 dark:text-slate-200"
+              className="mt-10 first:mt-0 rounded-2xl border-l-4 border-primary-500 bg-primary-50/40 dark:bg-slate-800/40 dark:border-primary-500/60 px-8 py-6 text-lg sm:text-xl italic text-gray-700 dark:text-slate-200 shadow-sm"
               {...props}
             >
               {children}
@@ -131,7 +131,7 @@ const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
               <code
                 className={mergeClassNames(
                   className,
-                  'rounded-md bg-gray-100 dark:bg-slate-800/90 py-0.5 px-1.5 font-mono text-sm text-primary-700 dark:text-primary-300 whitespace-nowrap'
+                  'rounded-md bg-gray-100 dark:bg-slate-800/90 py-0.5 px-2 font-mono text-[0.9em] text-primary-700 dark:text-primary-300 whitespace-nowrap'
                 )}
                 {...props}
               >
@@ -149,7 +149,7 @@ const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
             <CodeBlock
               className={mergeClassNames(
                 className,
-                'mt-6 overflow-x-auto rounded-2xl bg-gray-900 dark:bg-gray-950 p-5 text-sm text-gray-100 shadow-inner'
+                'mt-10 mb-10 overflow-x-auto rounded-2xl bg-gray-900 dark:bg-slate-950 p-6 text-sm text-gray-100 shadow-xl border border-white/5'
               )}
               {...props}
             >
