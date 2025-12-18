@@ -19,9 +19,9 @@ const LandingPage = () => {
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-primary-500/30 overflow-x-hidden">
             <Header />
             <LandingHero content={heroContent} />
-            <LandingFeatures features={features} />
-            <LandingStats stats={statsItems} />
-            <LandingCTA content={ctaContent} />
+            <LandingFeatures features={features} section="hero" />
+            <LandingStats stats={statsItems} section="stats" />
+            <LandingCTA content={ctaContent} section="cta_section" />
             <Footer />
         </div>
     )

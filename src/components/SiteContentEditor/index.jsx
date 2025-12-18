@@ -348,6 +348,15 @@ const CtaSectionForm = ({ content, onFieldChange }) => {
             onChange={(e) => onFieldChange(['description'], e.target.value)}
           />
         </div>
+        <div>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Button Text</label>
+          <input
+            type="text"
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            value={cta.buttonLabel || 'Get Started Now'}
+            onChange={(e) => onFieldChange(['buttonLabel'], e.target.value)}
+          />
+        </div>
       </div>
     </div>
   )
@@ -408,6 +417,33 @@ const HeroContentForm = ({ content, onFieldChange }) => {
               value={heroContent.subtitle || ''}
               onChange={handleChange(['subtitle'])}
               placeholder="Kurze Beschreibung"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Features Sektion: Titel</label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                value={heroContent.features_title || ''}
+                onChange={handleChange(['features_title'])}
+                placeholder="Everything you need to"
+              />
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                value={heroContent.features_highlight || ''}
+                onChange={handleChange(['features_highlight'])}
+                placeholder="scale"
+              />
+            </div>
+            <label className="mt-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Features Sektion: Untertitel</label>
+            <textarea
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              rows="2"
+              value={heroContent.features_subtitle || ''}
+              onChange={handleChange(['features_subtitle'])}
+              placeholder="Powerful features packaged in a beautiful interface."
             />
           </div>
           <div className="md:col-span-2">
@@ -753,6 +789,24 @@ const FooterForm = ({ content, onFieldChange }) => {
               rows="2"
               value={brand.description || ''}
               onChange={(e) => onFieldChange(['brand', 'description'], e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Copyright Text</label>
+            <input
+              type="text"
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              value={bottom.copyright || ''}
+              onChange={(e) => onFieldChange(['bottom', 'copyright'], e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Signatur (rechts)</label>
+            <input
+              type="text"
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              value={bottom.signature || ''}
+              onChange={(e) => onFieldChange(['bottom', 'signature'], e.target.value)}
             />
           </div>
         </div>

@@ -107,7 +107,9 @@ const LandingHero = ({ content }) => {
                                     <Zap className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <div className="text-sm font-bold text-white">{content.badgeText}</div>
+                                    <div className="text-sm font-bold text-white">
+                                        <EditableText section="hero" field="badgeText" value={content.badgeText} />
+                                    </div>
                                 </div>
                             </div>
                         </div>

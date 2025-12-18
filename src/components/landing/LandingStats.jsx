@@ -1,6 +1,8 @@
 import React from 'react'
 
-const LandingStats = ({ stats }) => {
+import EditableText from '../cms/EditableText'
+
+const LandingStats = ({ stats, section = 'stats' }) => {
     // Use stats from props
     const displayStats = Array.isArray(stats) ? stats : []
 
@@ -12,10 +14,10 @@ const LandingStats = ({ stats }) => {
                         {displayStats.map((stat, idx) => (
                             <div key={idx} className="flex flex-col items-center p-4">
                                 <div className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">
-                                    {stat.value}
+                                    <EditableText section={section} field={`items.${idx}.value`} value={stat.value} />
                                 </div>
                                 <div className="text-slate-400 font-medium uppercase tracking-wider text-sm">
-                                    {stat.label}
+                                    <EditableText section={section} field={`items.${idx}.label`} value={stat.label} />
                                 </div>
                             </div>
                         ))}

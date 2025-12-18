@@ -1,7 +1,9 @@
 import React from 'react'
 import { Terminal, Cpu, Globe, Lock, Palette, Zap } from 'lucide-react'
 
-const LandingFeatures = ({ features }) => {
+import EditableText from '../cms/EditableText'
+
+const LandingFeatures = ({ features, section = 'hero' }) => {
     // Use features from props, or empty array if not provided
     const displayFeatures = Array.isArray(features) ? features : []
 
@@ -10,17 +12,20 @@ const LandingFeatures = ({ features }) => {
             <div className="container px-6 mx-auto relative z-10">
                 <div className="text-center max-w-2xl mx-auto mb-16">
                     <h2 className="section-title">
-                        Everything you need to <span className="gradient-text-aurora">scale</span>
+                        <EditableText section="hero" field="features_title" value="Everything you need to " />
+                        <span className="gradient-text-aurora">
+                            <EditableText section="hero" field="features_highlight" value="scale" />
+                        </span>
                     </h2>
                     <p className="text-slate-400 text-lg">
-                        Powerful features packaged in a beautiful interface.
+                        <EditableText section="hero" field="features_subtitle" value="Powerful features packaged in a beautiful interface." />
                     </p>
                 </div>
 
                 {/* Bento Grid Layout */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(200px,auto)]">
                     {displayFeatures.map((feature, idx) => (
-                        <FeatureCard key={idx} feature={feature} index={idx} />
+                        <FeatureCard key={idx} feature={feature} index={idx} section={section} />
                     ))}
                 </div>
             </div>
@@ -28,7 +33,7 @@ const LandingFeatures = ({ features }) => {
     )
 }
 
-const FeatureCard = ({ feature, index }) => {
+const FeatureCard = ({ feature, index, section }) => {
     const Icon = feature.icon || Star
     const isLarge = feature.size === 'large'
 
@@ -45,9 +50,11 @@ const FeatureCard = ({ feature, index }) => {
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.bg} ${feature.color} group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+                <h3 className="text-xl font-bold text-white mb-2">
+                    <EditableText section={section} field={`features.${index}.title`} value={feature.title} />
+                </h3>
                 <p className="text-slate-400 leading-relaxed">
-                    {feature.description}
+                    <EditableText section={section} field={`features.${index}.description`} value={feature.description} multiline />
                 </p>
             </div>
 

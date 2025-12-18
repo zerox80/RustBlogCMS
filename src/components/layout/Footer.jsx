@@ -45,6 +45,8 @@ const resolveContactFallbackIcon = (contact) => {
     return 'Terminal'
 }
 
+import EditableText from '../cms/EditableText'
+
 const Footer = () => {
     const { getSection, navigation } = useContent()
     const footerContent = getSection('footer') ?? {}
@@ -103,7 +105,7 @@ const Footer = () => {
     const quickLinks = useMemo(() => {
         const contentLinks = Array.isArray(footerContent?.quickLinks) ? footerContent.quickLinks : []
         const normalizedContentLinks = contentLinks
-            .map((link) => {
+            .map((link, index) => {
                 if (!link) return null
                 if (link.target) {
                     const href = buildTargetHref(link.target)
@@ -111,6 +113,7 @@ const Footer = () => {
                         label: link.label || link.target?.value || 'Link',
                         target: link.target,
                         href,
+                        field: `quickLinks.${index}.label`
                     }
                 }
                 if (link.href) {
@@ -122,6 +125,7 @@ const Footer = () => {
                     return {
                         label: link.label || link.href,
                         href: safeHref,
+                        field: `quickLinks.${index}.label`
                     }
                 }
                 if (link.path) {
@@ -129,7 +133,7 @@ const Footer = () => {
                         label: link.label || link.path,
                         target: { type: 'route', value: link.path },
                         href: link.path,
-                        // Add href for SEO/hover
+                        field: `quickLinks.${index}.label`
                     }
                 }
                 if (link.slug) {
@@ -139,6 +143,7 @@ const Footer = () => {
                         label: link.label || slug,
                         target: { type: 'route', value: `/pages/${slug}` },
                         href: `/pages/${slug}`,
+                        field: `quickLinks.${index}.label`
                     }
                 }
                 return null
@@ -246,12 +251,20 @@ const Footer = () => {
                                 <BrandIcon className="w-6 h-6 text-white" />
                             </div>
                             <span className="text-xl font-bold text-white">
-                                {footerContent?.brand?.title || footerContent?.brand?.name || 'IT Portal'}
+                                <EditableText
+                                    section="footer"
+                                    field="brand.name"
+                                    value={footerContent?.brand?.title || footerContent?.brand?.name || 'IT Portal'}
+                                />
                             </span>
                         </div>
                         <p className="text-gray-400">
-                            {footerContent?.brand?.description ||
-                                'Dein Portal für IT Security, Programmierung und Administration.'}
+                            <EditableText
+                                section="footer"
+                                field="brand.description"
+                                value={footerContent?.brand?.description || 'Dein Portal für IT Security, Programmierung und Administration.'}
+                                multiline
+                            />
                         </p>
                     </div>
 
@@ -272,7 +285,11 @@ const Footer = () => {
                                                 target={isExternal ? '_blank' : undefined}
                                                 rel={isExternal ? 'noopener noreferrer' : undefined}
                                             >
-                                                {link.label || 'Link'}
+                                                {link.field ? (
+                                                    <EditableText section="footer" field={link.field} value={link.label} />
+                                                ) : (
+                                                    link.label || 'Link'
+                                                )}
                                             </a>
                                         </li>
                                     )
@@ -299,7 +316,9 @@ const Footer = () => {
                                                 className="flex items-center space-x-2 text-gray-500"
                                             >
                                                 <ContactIcon className="w-5 h-5" />
-                                                <span>{contact.label || 'Kontakt'}</span>
+                                                <span>
+                                                    <EditableText section="footer" field={`contactLinks.${index}.label`} value={contact.label || 'Kontakt'} />
+                                                </span>
                                             </div>
                                         )
                                     }
@@ -316,7 +335,9 @@ const Footer = () => {
                                             className="flex items-center space-x-2 hover:text-primary-400 transition-colors duration-200"
                                         >
                                             <ContactIcon className="w-5 h-5" />
-                                            <span>{contact.label || safeHref || 'Kontakt'}</span>
+                                            <span>
+                                                <EditableText section="footer" field={`contactLinks.${index}.label`} value={contact.label || safeHref || 'Kontakt'} />
+                                            </span>
                                         </a>
                                     )
                                 })
@@ -330,14 +351,19 @@ const Footer = () => {
                 {/* Bottom Bar */}
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
                     <p className="text-gray-400 text-sm mb-4 md:mb-0">
-                        {(footerContent?.bottom?.copyright || '© {year} IT Portal. Alle Rechte vorbehalten.').replace(
-                            '{year}',
-                            currentYear,
-                        )}
+                        <EditableText
+                            section="footer"
+                            field="bottom.copyright"
+                            value={footerContent?.bottom?.copyright || '© {year} IT Portal. Alle Rechte vorbehalten.'}
+                        />
                     </p>
                     {footerContent?.bottom?.signature ? (
                         <p className="text-gray-400 text-sm text-center md:text-right">
-                            {footerContent.bottom.signature.replace('{year}', currentYear)}
+                            <EditableText
+                                section="footer"
+                                field="bottom.signature"
+                                value={footerContent.bottom.signature}
+                            />
                         </p>
                     ) : (
                         <div className="flex items-center space-x-1 text-sm">
