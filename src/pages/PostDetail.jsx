@@ -47,7 +47,7 @@ const PostDetail = () => {
       </Helmet>
 
       {/* Hero Header */}
-      <div className="relative w-full h-[50vh] md:h-[60vh] flex items-end justify-center pb-12 mb-12">
+      <div className="relative w-full h-[40vh] md:h-[50vh] flex items-center justify-center mb-12">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-10" />
           {post.image && (
