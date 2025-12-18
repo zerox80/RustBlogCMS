@@ -31,11 +31,18 @@ const Header = () => {
 
     const location = useLocation()
 
+    const scrollTimeout = React.useRef(null)
+
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY
             const lastY = lastScrollY.current
             const scrollDelta = lastY - currentScrollY // Positive when scrolling up
+
+            // Clear existing timeout on every scroll event
+            if (scrollTimeout.current) {
+                clearTimeout(scrollTimeout.current)
+            }
 
             // 1. Detect if at top or scrolled deeply
             setIsScrolled(currentScrollY > 20)
@@ -60,13 +67,22 @@ const Header = () => {
                 if (scrollUpAccumulator.current > SCROLL_UP_THRESHOLD) {
                     setIsVisible(true)
                 }
+
+                // [NEW] Reset accumulator if user STOPS scrolling for a moment (150ms)
+                // This prevents "slow reading" (scroll bit, read, scroll bit) from triggering logic
+                scrollTimeout.current = setTimeout(() => {
+                    scrollUpAccumulator.current = 0
+                }, 150)
             }
 
             lastScrollY.current = currentScrollY
         }
 
         window.addEventListener('scroll', handleScroll, { passive: true })
-        return () => window.removeEventListener('scroll', handleScroll)
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            if (scrollTimeout.current) clearTimeout(scrollTimeout.current)
+        }
     }, [])
 
     // Use centralized navigation data from ContentContext (CMS + Dynamic Pages)
