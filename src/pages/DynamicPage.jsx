@@ -99,7 +99,7 @@ const DynamicPage = () => {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-10">
         <button
           onClick={() => navigate('/', { state: { scrollTo: null, from: 'dynamic-page' } })}
           className="group inline-flex items-center gap-2 text-primary-700 font-medium mb-6"

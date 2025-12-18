@@ -364,6 +364,7 @@ export const ContentProvider = ({ children }) => {
       error: publishedPagesError,
       refresh: loadPublishedPages,
       invalidate: invalidatePageCache,
+      getPost: api.getPublishedPost.bind(api),
     },
   }), [
     content,

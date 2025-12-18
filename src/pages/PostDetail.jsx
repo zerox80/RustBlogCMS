@@ -10,18 +10,22 @@ import rehypeHighlight from 'rehype-highlight'
 import { Calendar, Clock, User, ArrowLeft, Share2, Bookmark } from 'lucide-react'
 
 const PostDetail = () => {
-  const { slug } = useParams()
-  const { getPostBySlug } = useContent()
+  const { pageSlug, postSlug } = useParams()
+  const { pages } = useContent()
   const [post, setPost] = useState(null)
   const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
     const fetchPost = async () => {
-      const data = await getPostBySlug(slug)
-      setPost(data)
+      try {
+        const data = await pages.getPost(pageSlug, postSlug)
+        setPost(data.post)
+      } catch (err) {
+        console.error("Failed to load post:", err)
+      }
     }
     fetchPost()
-  }, [slug, getPostBySlug])
+  }, [pageSlug, postSlug, pages])
 
   // Scroll spy for Table of Contents
   useEffect(() => {
