@@ -1,3 +1,8 @@
+import React, { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { Menu, X, Github, Moon, Sun } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { useTheme } from '../../context/ThemeContext'
 import { useContent } from '../../context/ContentContext'
 
 const Header = () => {
