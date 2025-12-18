@@ -3,6 +3,7 @@ import { Suspense, lazy } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { ContentProvider } from './context/ContentContext'
+import { EditProvider } from './context/EditContext'
 import { TutorialProvider } from './context/TutorialContext'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ui/ErrorBoundary'
@@ -33,82 +34,84 @@ function App() {
           <Router>
             <AuthProvider>
               <ContentProvider>
-                <TutorialProvider>
-                  <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors">
-                    <GlobalSiteMeta />
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <Routes>
-                        <Route
-                          path="/"
-                          element={
-                            <ErrorBoundary>
-                              <LandingPage />
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/blog"
-                          element={
-                            <ErrorBoundary>
-                              <Header />
-                              <Home />
-                              <Footer />
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/tutorials/:id"
-                          element={
-                            <ErrorBoundary>
-                              <Header />
-                              <TutorialDetail />
-                              <Footer />
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/pages/:pageSlug/posts/:postSlug"
-                          element={
-                            <ErrorBoundary>
-                              <Header />
-                              <PostDetail />
-                              <Footer />
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/pages/:slug"
-                          element={
-                            <ErrorBoundary>
-                              <Header />
-                              <DynamicPage />
-                              <Footer />
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
-                        <Route
-                          path="/admin"
-                          element={
-                            <ProtectedRoute>
+                <EditProvider>
+                  <TutorialProvider>
+                    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors">
+                      <GlobalSiteMeta />
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Routes>
+                          <Route
+                            path="/"
+                            element={
                               <ErrorBoundary>
-                                <AdminDashboard />
+                                <LandingPage />
                               </ErrorBoundary>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="*"
-                          element={
-                            <ErrorBoundary>
-                              <LandingPage />
-                            </ErrorBoundary>
-                          }
-                        />
-                      </Routes>
-                    </Suspense>
-                  </div>
-                </TutorialProvider>
+                            }
+                          />
+                          <Route
+                            path="/blog"
+                            element={
+                              <ErrorBoundary>
+                                <Header />
+                                <Home />
+                                <Footer />
+                              </ErrorBoundary>
+                            }
+                          />
+                          <Route
+                            path="/tutorials/:id"
+                            element={
+                              <ErrorBoundary>
+                                <Header />
+                                <TutorialDetail />
+                                <Footer />
+                              </ErrorBoundary>
+                            }
+                          />
+                          <Route
+                            path="/pages/:pageSlug/posts/:postSlug"
+                            element={
+                              <ErrorBoundary>
+                                <Header />
+                                <PostDetail />
+                                <Footer />
+                              </ErrorBoundary>
+                            }
+                          />
+                          <Route
+                            path="/pages/:slug"
+                            element={
+                              <ErrorBoundary>
+                                <Header />
+                                <DynamicPage />
+                                <Footer />
+                              </ErrorBoundary>
+                            }
+                          />
+                          <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
+                          <Route
+                            path="/admin"
+                            element={
+                              <ProtectedRoute>
+                                <ErrorBoundary>
+                                  <AdminDashboard />
+                                </ErrorBoundary>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="*"
+                            element={
+                              <ErrorBoundary>
+                                <LandingPage />
+                              </ErrorBoundary>
+                            }
+                          />
+                        </Routes>
+                      </Suspense>
+                    </div>
+                  </TutorialProvider>
+                </EditProvider>
               </ContentProvider>
             </AuthProvider>
           </Router>

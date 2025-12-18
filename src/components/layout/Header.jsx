@@ -3,11 +3,16 @@ import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, Github } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useContent } from '../../context/ContentContext'
+import { useEdit } from '../../context/EditContext'
+import { useAuth } from '../../context/AuthContext'
+import EditableText from '../cms/EditableText'
 import { getIconComponent } from '../../utils/iconMap'
 
 const Header = () => {
     const { t } = useTranslation()
     const { navigation, getSection } = useContent()
+    const { isEditing, toggleEditMode } = useEdit() // [NEW] Use Edit Context
+    const { isAuthenticated, user } = useAuth() // [NEW] Check auth for toggle visibility
     const headerContent = getSection('header') ?? {}
 
     // Resolve dynamic brand icon
@@ -47,11 +52,13 @@ const Header = () => {
                 scrollUpAccumulator.current = 0
             } else if (currentScrollY < lastY) {
                 // Scrolling UP
-                scrollUpAccumulator.current += scrollDelta
+                // Only count "intentional" scrolls (ignore micro-jitters < 5px)
+                if (scrollDelta > 5) {
+                    scrollUpAccumulator.current += scrollDelta
+                }
 
                 if (scrollUpAccumulator.current > SCROLL_UP_THRESHOLD) {
                     setIsVisible(true)
-                    // No need to reset accumulator here, we want it to stay visible
                 }
             }
 
@@ -104,7 +111,7 @@ const Header = () => {
                         <BrandIcon className="w-5 h-5" />
                     </div>
                     <span className="font-bold text-lg text-white tracking-tight group-hover:text-neon-cyan transition-colors hidden sm:block">
-                        {headerContent?.brand?.name || 'Zero Point'}
+                        <EditableText section="header" field="brand.name" value={headerContent?.brand?.name || 'Zero Point'} />
                     </span>
                 </Link>
 
@@ -124,6 +131,19 @@ const Header = () => {
 
                 {/* Action Buttons */}
                 <div className="hidden md:flex items-center gap-4">
+
+                    {/* [NEW] Edit Mode Toggle (only for admins) */}
+                    {isAuthenticated && (
+                        <button
+                            onClick={toggleEditMode}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${isEditing
+                                ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                                }`}
+                        >
+                            {isEditing ? 'Editing On' : 'Edit Mode'}
+                        </button>
+                    )}
 
                     <a
                         href="https://github.com/zerox80/LinuxTutorialCMS"

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowRight, Terminal, Zap, Shield, Layout } from 'lucide-react'
+import EditableText from '../cms/EditableText'
+import EditableImage from '../cms/EditableImage'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { navigateContentTarget } from '../../utils/contentNavigation'
@@ -39,15 +41,15 @@ const LandingHero = ({ content }) => {
 
                     {/* Hero Title */}
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-extrabold tracking-tight mb-8 animate-slide-up [animation-delay:400ms]">
-                        {titleLine1}
+                        <EditableText section="hero" field="title.line1" value={titleLine1} />
                         <span className="block mt-2 gradient-text-aurora">
-                            {titleLine2}
+                            <EditableText section="hero" field="title.line2" value={titleLine2} />
                         </span>
                     </h1>
 
                     {/* Subtitle */}
                     <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up [animation-delay:600ms]">
-                        {subtitle}
+                        <EditableText section="hero" field="subtitle" value={subtitle} multiline />
                     </p>
 
                     {/* CTA Buttons */}
@@ -56,14 +58,14 @@ const LandingHero = ({ content }) => {
                             onClick={() => navigateContentTarget(content?.primaryCta?.target, { navigate, location })}
                             className="btn-primary group"
                         >
-                            {primaryCta}
+                            <EditableText section="hero" field="primaryCta.label" value={primaryCta} />
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                         </button>
                         <button
                             onClick={() => navigateContentTarget(content?.secondaryCta?.target, { navigate, location })}
                             className="btn-secondary"
                         >
-                            {secondaryCta}
+                            <EditableText section="hero" field="secondaryCta.label" value={secondaryCta} />
                         </button>
                     </div>
                 </div>
@@ -79,14 +81,13 @@ const LandingHero = ({ content }) => {
                         className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-neon-violet/20 bg-slate-900/50 backdrop-blur-sm transform transition-transform duration-500 hover:scale-[1.01]"
                         style={{ transform: `perspective(1000px) rotateX(${mousePosition.y * 0.5}deg) rotateY(${mousePosition.x * 0.5}deg)` }}
                     >
-                        <img
+                        <EditableImage
+                            section="hero"
+                            field="heroImage"
                             src={heroImage}
                             alt="Dashboard Preview"
                             className="w-full h-auto max-h-[60vh] object-contain rounded-2xl"
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "/hero-dashboard-v2.png"; // Fallback
-                            }}
+                            containerClassName="w-full h-full"
                         />
 
                         {/* Overlay glare effect */}
