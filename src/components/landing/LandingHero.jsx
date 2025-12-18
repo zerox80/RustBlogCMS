@@ -56,54 +56,38 @@ const LandingHero = ({ content }) => {
                     </div>
                 </div>
 
-                {/* Floating Glass Cards Visualization */}
-                <div className="relative mt-20 h-64 md:h-96 w-full max-w-6xl mx-auto perspective-1000 hidden md:block animate-fade-in [animation-delay:1000ms]">
+                {/* Hero Image / Dashboard Mockup */}
+                <div className="relative mt-20 w-full max-w-6xl mx-auto hidden md:block animate-fade-in [animation-delay:1000ms]">
 
-                    {/* Central Dashboard Mockup */}
+                    {/* Glowing effect behind the image */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan/20 to-neon-violet/20 rounded-2xl blur-2xl opacity-50"></div>
+
+                    {/* The Image Itself */}
                     <div
-                        className="absolute inset-x-0 top-0 mx-auto w-3/4 h-full glass-card transform transition-transform duration-200 ease-out hover:scale-105 z-20 overflow-hidden"
-                        style={{ transform: `translateY(${mousePosition.y * -1}px) rotateX(5deg)` }}
+                        className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-neon-violet/20 bg-slate-900/50 backdrop-blur-sm transform transition-transform duration-500 hover:scale-[1.01]"
+                        style={{ transform: `perspective(1000px) rotateX(${mousePosition.y * 0.5}deg) rotateY(${mousePosition.x * 0.5}deg)` }}
                     >
-                        {/* Browser Bar */}
-                        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-slate-900/50">
-                            <div className="flex gap-1.5">
-                                <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                                <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                                <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
-                            </div>
-                            <div className="mx-auto text-xs text-slate-500 font-mono">dashboard.rs</div>
-                        </div>
+                        <img
+                            src={content?.heroImage || "/dashboard-mockup.png"}
+                            alt="Dashboard Preview"
+                            className="w-full h-auto object-cover rounded-2xl"
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/dashboard-mockup.png"; // Fallback if user upload fails
+                            }}
+                        />
 
-                        {/* Mock Content */}
-                        <div className="p-8 grid grid-cols-3 gap-6">
-                            <div className="col-span-2 space-y-4">
-                                <div className="h-32 rounded-xl bg-slate-800/50 border border-slate-700/50 animate-pulse-slow relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 translate-x-[-150%] animate-shimmer" />
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="h-24 w-1/2 rounded-xl bg-slate-800/30 border border-slate-700/30"></div>
-                                    <div className="h-24 w-1/2 rounded-xl bg-slate-800/30 border border-slate-700/30"></div>
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="h-20 rounded-xl bg-slate-800/50 border border-slate-700/50"></div>
-                                <div className="h-40 rounded-xl bg-neon-violet/5 border border-neon-violet/10 relative p-4">
-                                    <div className="w-full h-2 bg-slate-700/50 rounded mb-2"></div>
-                                    <div className="w-2/3 h-2 bg-slate-700/50 rounded mb-2"></div>
-                                    <div className="w-3/4 h-2 bg-slate-700/50 rounded"></div>
-                                    <div className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-neon-violet/20 animate-bounce"></div>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Overlay glare effect */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none"></div>
                     </div>
 
-                    {/* Floating Element Left */}
+                    {/* Floating Badge - "Blazing Fast" */}
                     <div
-                        className="absolute -left-4 top-20 w-56 p-4 glass-card z-30 animate-float"
-                        style={{ transform: `translateY(${mousePosition.y}px)` }}
+                        className="absolute -left-12 top-1/4glass-card p-4 rounded-xl border border-white/10 bg-slate-900/60 backdrop-blur-md shadow-xl animate-float z-20 hidden lg:block"
+                        style={{ transform: `translateY(${mousePosition.y * 1.5}px)` }}
                     >
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 rounded-lg bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-neon-cyan/10 text-neon-cyan">
                                 <Zap className="w-5 h-5" />
                             </div>
                             <div>
@@ -113,13 +97,13 @@ const LandingHero = ({ content }) => {
                         </div>
                     </div>
 
-                    {/* Floating Element Right */}
+                    {/* Floating Badge - "Rust Secure" */}
                     <div
-                        className="absolute -right-4 bottom-32 w-56 p-4 glass-card z-30 animate-float-delayed-2s"
-                        style={{ transform: `translateY(${mousePosition.y * 1.5}px)` }}
+                        className="absolute -right-12 bottom-1/4 glass-card p-4 rounded-xl border border-white/10 bg-slate-900/60 backdrop-blur-md shadow-xl animate-float-delayed-2s z-20 hidden lg:block"
+                        style={{ transform: `translateY(${mousePosition.y * -1.5}px)` }}
                     >
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 rounded-lg bg-neon-violet/10 text-neon-violet border border-neon-violet/20">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-neon-violet/10 text-neon-violet">
                                 <Shield className="w-5 h-5" />
                             </div>
                             <div>

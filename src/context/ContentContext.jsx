@@ -20,6 +20,7 @@ export const DEFAULT_CONTENT = {
     },
     subtitle: 'Dein Wissensportal für IT-Themen – von Security bis Systemadministration.',
     subline: 'Aktuell, praxisnah und verständlich.',
+    heroImage: '', // URL to the hero image (can be set via CMS)
     primaryCta: {
       label: "Themen entdecken",
       target: { type: 'section', value: 'features' },
