@@ -1,291 +1,123 @@
-import { useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, Search } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
-import { useContent } from '../../context/ContentContext'
-import { getIconComponent } from '../../utils/iconMap'
-import { navigateContentTarget } from '../../utils/contentNavigation'
-import { scrollToSection } from '../../utils/scrollToSection'
-import { sanitizeExternalUrl } from '../../utils/urlValidation'
-import SearchBar from '../search/SearchBar'
-
-const FALLBACK_NAV_ITEMS = [
-    { id: 'home', label: 'Home', type: 'section' },
-    { id: 'blog', label: 'Blog', type: 'route', path: '/blog' },
-]
+import React, { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { Menu, X, Github, Moon, Sun } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { useTheme } from '../../context/ThemeContext'
 
 const Header = () => {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    const [searchOpen, setSearchOpen] = useState(false)
-    const navigate = useNavigate()
+    const { t } = useTranslation()
+    const { isDarkMode, toggleTheme } = useTheme()
+    const [isScrolled, setIsScrolled] = useState(false)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const location = useLocation()
-    const { isAuthenticated } = useAuth()
-    const { getSection, navigation } = useContent()
-    const headerContent = getSection('header') ?? {}
-    const BrandIcon = getIconComponent(headerContent?.brand?.icon, 'Terminal')
-    const ctaContent = headerContent?.cta ?? {}
-    const CTAIcon = getIconComponent(ctaContent.icon, 'Lock')
 
-    const resolveSectionId = (item) => {
-        if (!item) return null
-        if (item.target?.type === 'section') return item.target.value
-        if (typeof item.value === 'string') return item.value
-        if (typeof item.id === 'string') return item.id
-        return null
-    }
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 20)
+        }
+        window.addEventListener('scroll', handleScroll)
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
 
-    const computedNavItems = useMemo(() => {
-        if (navigation?.items?.length) {
-            return navigation.items
-        }
-        const contentNavItems = Array.isArray(headerContent.navItems) ? headerContent.navItems : []
-        if (contentNavItems.length > 0) {
-            return contentNavItems
-        }
-        if (navigation?.loading) {
-            return []
-        }
-        return FALLBACK_NAV_ITEMS
-    }, [navigation?.items, navigation?.loading, headerContent.navItems])
-
-    const handleNavigation = (item) => {
-        if (!item) return
-        if (item.target) {
-            navigateContentTarget(item.target, { navigate, location })
-            return
-        }
-        if (item.href && typeof window !== 'undefined') {
-            const safeUrl = sanitizeExternalUrl(item.href)
-            if (!safeUrl) {
-                console.warn('Blocked unsafe navigation URL:', item.href)
-                return
-            }
-            if (safeUrl.startsWith('http://') || safeUrl.startsWith('https://')) {
-                window.open(safeUrl, '_blank', 'noopener,noreferrer')
-                return
-            }
-            if (safeUrl.startsWith('mailto:') || safeUrl.startsWith('tel:')) {
-                window.location.assign(safeUrl)
-                return
-            }
-            window.location.assign(safeUrl)
-            return
-        }
-        const type = item.type || 'section'
-        if (type === 'route' && item.path) {
-            navigate(item.path)
-            return
-        }
-        if (type === 'section') {
-            const sectionId = resolveSectionId(item)
-            if (!sectionId) return
-            if (location.pathname !== '/') {
-                navigate('/', { state: { scrollTo: sectionId } })
-                return
-            }
-            scrollToSection(sectionId)
-            return
-        }
-    }
-
-    const getNavHref = (item) => {
-        if (!item) return '#'
-        if (item.target) {
-            const target = item.target
-            const value = target.value ?? target.path ?? target.href ?? target.slug
-            switch (target.type) {
-                case 'section': {
-                    const sectionId = resolveSectionId({ ...item, ...target })
-                    return sectionId ? `#${sectionId.replace(/^#/, '')}` : '#'
-                }
-                case 'route':
-                case 'page':
-                    return typeof value === 'string' && value.trim()
-                        ? value.startsWith('/')
-                            ? value
-                            : `/${value.trim().replace(/^\//, '')}`
-                        : '#'
-                case 'external':
-                case 'href': {
-                    const safeUrl = sanitizeExternalUrl(value)
-                    return safeUrl || '#'
-                }
-                default:
-                    return '#'
-            }
-        }
-        if (item.href) {
-            const safeUrl = sanitizeExternalUrl(item.href)
-            return safeUrl || '#'
-        }
-        if ((item.type === 'route' || item.type === 'page') && item.path) {
-            return item.path
-        }
-        if (item.type === 'section') {
-            const sectionId = resolveSectionId(item)
-            return sectionId ? `#${sectionId.replace(/^#/, '')}` : '#'
-        }
-        if (item.slug) {
-            return `/pages/${item.slug}`
-        }
-        return '#'
-    }
-
-    const isExternalHref = (href) =>
-        typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'))
-
-    const isSpecialProtocol = (href) =>
-        typeof href === 'string' && (href.startsWith('mailto:') || href.startsWith('tel:'))
-
-    const handleNavClick = (event, item) => {
-        if (!item) return
-        if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.button !== 0) {
-            return
-        }
-        event.preventDefault()
-        handleNavigation(item)
-        setMobileMenuOpen(false)
-    }
-
-    const handleBrandClick = (event) => {
-        if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.button !== 0) {
-            return
-        }
-        event.preventDefault()
-        setMobileMenuOpen(false)
-        if (location.pathname === '/') {
-            if (typeof window !== 'undefined') {
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-            }
-            return
-        }
-        navigate('/')
-    }
-
-    const handleCtaClick = () => {
-        if (ctaContent.target) {
-            navigateContentTarget(ctaContent.target, { navigate, location })
-            return
-        }
-        navigate(isAuthenticated ? '/admin' : '/login')
-    }
+    const navLinks = [
+        { name: t('nav.features'), path: '/#features' },
+        { name: t('nav.tutorial'), path: '/tutorial/getting-started' },
+        { name: t('nav.blog'), path: '/blog' },
+        { name: t('nav.about'), path: '/about' },
+    ]
 
     return (
-        <header className="bg-gray-900 shadow-soft sticky top-0 z-50 border-b border-gray-800">
-            <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-20">
-                    {/* Logo */}
-                    <a
-                        href="/"
-                        onClick={handleBrandClick}
-                        className="flex items-center space-x-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-                        aria-label="Zur Startseite"
-                    >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
-                            <BrandIcon className="w-6 h-6" />
-                        </div>
-                        <span className="text-xl font-semibold text-gray-100">
-                            {headerContent?.brand?.name || 'IT Portal'}
-                        </span>
-                    </a>
-
-                    {/* Desktop Navigation */}
-                    <div className="hidden md:flex items-center space-x-8">
-                        {computedNavItems.map((item, index) => {
-                            const href = getNavHref(item)
-                            const external = isExternalHref(href)
-                            const special = isSpecialProtocol(href)
-                            const ariaCurrent = !href || href.startsWith('#') || external || special
-                                ? undefined
-                                : location.pathname === href
-                                    ? 'page'
-                                    : undefined
-
-                            return (
-                                <a
-                                    key={item.id || `${item.label ?? 'nav'}-${index}`}
-                                    href={href}
-                                    onClick={(event) => handleNavClick(event, item)}
-                                    target={external ? '_blank' : undefined}
-                                    rel={external ? 'noopener noreferrer' : undefined}
-                                    className="nav-link font-medium text-gray-300 hover:text-primary-400"
-                                    aria-current={ariaCurrent}
-                                >
-                                    {item.label}
-                                </a>
-                            )
-                        })}
-
-                        <button
-                            onClick={() => setSearchOpen(true)}
-                            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-                            aria-label="Search tutorials"
-                        >
-                            <Search className="w-5 h-5 text-gray-300" />
-                        </button>
-
-                        {/* ThemeToggle removed */}
-
-                        <button onClick={handleCtaClick} className="btn-primary btn-primary--compact">
-                            <CTAIcon className="w-4 h-4" />
-                            <span>{isAuthenticated ? ctaContent.authLabel || 'Admin' : ctaContent.guestLabel || 'Login'}</span>
-                        </button>
+        <header
+            className={`
+                fixed top-0 left-0 right-0 z-50 transition-all duration-300 flex justify-center px-4
+                ${isScrolled ? 'pt-4' : 'pt-6'}
+            `}
+        >
+            <nav
+                className={`
+                    w-full max-w-5xl rounded-full transition-all duration-300
+                    flex items-center justify-between px-6 py-3
+                    ${isScrolled
+                        ? 'bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/20'
+                        : 'bg-transparent border border-transparent'
+                    }
+                `}
+            >
+                {/* Logo */}
+                <Link to="/" className="flex items-center gap-2 group">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-neon-cyan to-neon-violet flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-neon-cyan/20 group-hover:shadow-neon-cyan/40 transition-shadow">
+                        R
                     </div>
+                    <span className="font-bold text-lg text-white tracking-tight group-hover:text-neon-cyan transition-colors hidden sm:block">
+                        RustCMS
+                    </span>
+                </Link>
 
-                    {/* Mobile Menu Button */}
-                    <div className="md:hidden flex items-center space-x-2">
-                        <button
-                            onClick={() => setSearchOpen(true)}
-                            className="p-2 rounded-md text-gray-300 hover:text-gray-100 hover:bg-gray-800"
-                            aria-label="Search tutorials"
+                {/* Desktop Navigation */}
+                <div className="hidden md:flex items-center gap-8">
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.name}
+                            to={link.path}
+                            className="text-sm font-medium text-slate-300 hover:text-white transition-colors relative group"
                         >
-                            <Search className="w-5 h-5" />
-                        </button>
-                        {/* ThemeToggle removed */}
-                        <button
-                            className="p-2 rounded-md text-gray-300 hover:text-gray-100 hover:bg-gray-800"
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            aria-label={mobileMenuOpen ? 'Navigation schließen' : 'Navigation öffnen'}
-                        >
-                            {mobileMenuOpen ? (
-                                <X className="w-5 h-5" />
-                            ) : (
-                                <Menu className="w-5 h-5" />
-                            )}
-                        </button>
-                    </div>
+                            {link.name}
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover:w-full"></span>
+                        </Link>
+                    ))}
                 </div>
 
-                {/* Mobile Menu */}
-                {mobileMenuOpen && (
-                    <div className="md:hidden pb-4 space-y-2">
-                        {computedNavItems.map((item, index) => {
-                            const href = getNavHref(item)
-                            const external = isExternalHref(href)
-                            return (
-                                <a
-                                    key={item.id || `${item.label ?? 'nav'}-${index}`}
-                                    href={href}
-                                    onClick={(event) => handleNavClick(event, item)}
-                                    target={external ? '_blank' : undefined}
-                                    rel={external ? 'noopener noreferrer' : undefined}
-                                    className="block w-full text-left px-4 py-2 rounded-md text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-600 dark:hover:text-primary-400"
-                                >
-                                    {item.label}
-                                </a>
-                            )
-                        })}
-                        <button
-                            onClick={handleCtaClick}
-                            className="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:from-primary-700 hover:to-primary-800"
-                        >
-                            <CTAIcon className="w-4 h-4" />
-                            <span>{isAuthenticated ? ctaContent.authLabel || 'Admin' : ctaContent.guestLabel || 'Login'}</span>
-                        </button>
-                    </div>
-                )}
+                {/* Action Buttons */}
+                <div className="hidden md:flex items-center gap-4">
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white"
+                    >
+                        {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    </button>
+                    <a
+                        href="https://github.com/zerox80/LinuxTutorialCMS"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-slate-400 hover:text-white transition-colors"
+                    >
+                        <Github className="w-5 h-5" />
+                    </a>
+                    <Link
+                        to="/login"
+                        className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all border border-white/5"
+                    >
+                        {t('nav.login')}
+                    </Link>
+                </div>
+
+                {/* Mobile Menu Button */}
+                <button
+                    className="md:hidden text-white p-2"
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                    {isMobileMenuOpen ? <X /> : <Menu />}
+                </button>
             </nav>
-            {searchOpen && <SearchBar onClose={() => setSearchOpen(false)} />}
+
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+                <div className="absolute top-24 left-4 right-4 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-6 flex flex-col gap-4 shadow-xl animate-fade-in md:hidden">
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.name}
+                            to={link.path}
+                            className="text-lg font-medium text-slate-200 py-2 border-b border-white/5 last:border-0"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            {link.name}
+                        </Link>
+                    ))}
+                    <div className="flex gap-4 mt-4 pt-4 border-t border-white/10">
+                        <Link to="/login" className="flex-1 btn-primary text-center py-2">Sign In</Link>
+                    </div>
+                </div>
+            )}
         </header>
     )
 }

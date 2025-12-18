@@ -1,133 +1,154 @@
-import { useEffect, useState, useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { AlertCircle, Loader2 } from 'lucide-react'
-import Comments from '../components/Comments'
+import React, { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
-import { normalizeSlug } from '../utils/postUtils'
-import PostControls from '../components/post/PostControls'
-import PostContent from '../components/post/PostContent'
+import { Helmet } from 'react-helmet-async'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import rehypeHighlight from 'rehype-highlight'
+import { Calendar, Clock, User, ArrowLeft, Share2, Bookmark } from 'lucide-react'
 
 const PostDetail = () => {
-  const { pageSlug = '', postSlug = '' } = useParams()
-  const navigate = useNavigate()
-  const { pages } = useContent()
-  const normalizedPageSlug = useMemo(() => normalizeSlug(pageSlug), [pageSlug])
-  const normalizedPostSlug = useMemo(() => normalizeSlug(postSlug), [postSlug])
+  const { slug } = useParams()
+  const { getPostBySlug } = useContent()
   const [post, setPost] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [pdfEnabled, setPdfEnabled] = useState(true)
+  const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
-    // Fetch global settings
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch('/api/content/settings')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.content && typeof data.content.pdfEnabled === 'boolean') {
-            setPdfEnabled(data.content.pdfEnabled)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch settings:', err)
-      }
+    const fetchPost = async () => {
+      const data = await getPostBySlug(slug)
+      setPost(data)
     }
-    fetchSettings()
-  }, [])
+    fetchPost()
+  }, [slug, getPostBySlug])
 
+  // Scroll spy for Table of Contents
   useEffect(() => {
-    if (!normalizedPageSlug || !normalizedPostSlug) {
-      setError(new Error('Ungültige Seite oder Post'))
-      setLoading(false)
-      return
-    }
-    const controller = new AbortController()
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const pageData = await pages.fetch(normalizedPageSlug, { signal: controller.signal })
-        if (controller.signal.aborted) return
-        const foundPost = pageData.posts?.find(
-          (p) => normalizeSlug(p.slug) === normalizedPostSlug
-        )
-        if (!foundPost) {
-          throw new Error('Beitrag nicht gefunden')
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id)
         }
-        setPost(foundPost)
-      } catch (err) {
-        if (controller.signal.aborted) return
-        setError(err)
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
-      }
-    }
-    load()
-    return () => {
-      controller.abort()
-    }
-  }, [normalizedPageSlug, normalizedPostSlug, pages])
+      })
+    }, { rootMargin: '-100px 0px -60% 0px' })
 
-  const handleDownloadPDF = async () => {
-    try {
-      setLoading(true)
-      const element = document.getElementById('post-content')
+    document.querySelectorAll('h2, h3').forEach(heading => observer.observe(heading))
+    return () => observer.disconnect()
+  }, [post])
 
-      if (!element) {
-        throw new Error('Inhalt nicht gefunden')
-      }
-
-      // Dynamically import the generator to keep bundle size small
-      const { generatePdf } = await import('../utils/pdfGenerator')
-
-      await generatePdf(element, `${post.slug}.pdf`)
-
-    } catch (err) {
-      console.error('PDF generation failed:', err)
-      alert(`Fehler beim Erstellen des PDFs: ${err.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
+  if (!post) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <PostControls
-          onBack={() => navigate(`/pages/${normalizedPageSlug}`)}
-          onDownload={pdfEnabled ? handleDownloadPDF : undefined}
-          loading={loading}
-        />
+    <div className="min-h-screen bg-slate-950 pt-24 pb-20">
+      <Helmet>
+        <title>{post.meta?.title || post.title} | RustCMS</title>
+      </Helmet>
 
-        {loading && !post ? (
-          <div className="flex flex-col items-center justify-center py-32 text-gray-500">
-            <Loader2 className="w-10 h-10 animate-spin mb-4" />
-            <p>Beitrag wird geladen…</p>
+      {/* Hero Header */}
+      <div className="relative w-full h-[50vh] md:h-[60vh] flex items-end justify-center pb-12 mb-12">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-10" />
+          {post.image && (
+            <img src={post.image} alt={post.title} className="w-full h-full object-cover opacity-60" />
+          )}
+          {/* Fallback pattern if no image */}
+          {!post.image && (
+            <div className="w-full h-full bg-slate-900 aurora-bg-animated opacity-30" />
+          )}
+        </div>
+
+        <div className="container px-6 relative z-20 max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-medium text-neon-cyan mb-6">
+            {post.category || "Technology"}
           </div>
-        ) : error ? (
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 flex gap-3">
-            <AlertCircle className="w-6 h-6 flex-shrink-0" />
-            <div>
-              <h2 className="font-semibold mb-1">Beitrag konnte nicht geladen werden</h2>
-              <p className="text-sm">{error?.message || 'Unbekannter Fehler'}</p>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6 leading-tight">
+            {post.title}
+          </h1>
+
+          <div className="flex flex-wrap items-center justify-center gap-6 text-slate-300 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-purple to-neon-blue p-0.5">
+                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <span className="font-medium text-white">{post.author}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>{new Date(post.date).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{post.readTime || "5 min read"}</span>
             </div>
           </div>
-        ) : (
-          <div className="space-y-8">
-            <PostContent post={post} />
-
-            {post.allow_comments && (
-              <div className="bg-white dark:bg-slate-900/90 rounded-3xl shadow-xl border border-gray-200 dark:border-slate-700/60 overflow-hidden p-6 sm:p-10">
-                <Comments postId={post.id} />
-              </div>
-            )}
-          </div>
-        )}
+        </div>
       </div>
-    </main>
+
+      <div className="container px-6 mx-auto relative max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-12">
+        {/* Sidebar - Table of Contents */}
+        <aside className="hidden lg:block lg:col-span-3">
+          <div className="sticky top-32 glass-card p-6 rounded-2xl">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Table of Contents</h4>
+            <nav className="space-y-1">
+              {/* Note: In a real app, generate these from markdown AST. For now static or simple regex */}
+              <div className="text-sm text-slate-500 italic">Sections auto-generated</div>
+            </nav>
+
+            <div className="mt-8 pt-8 border-t border-white/5 flex gap-4">
+              <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
+                <Share2 className="w-5 h-5" />
+              </button>
+              <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
+                <Bookmark className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="lg:col-span-8 lg:col-start-4">
+          <article className="prose prose-invert prose-lg max-w-none 
+                        prose-headings:font-serif prose-headings:font-bold prose-headings:tracking-tight 
+                        prose-p:text-slate-300 prose-p:leading-8
+                        prose-a:text-neon-cyan prose-a:no-underline hover:prose-a:underline
+                        prose-blockquote:border-l-neon-violet prose-blockquote:bg-slate-900/50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg
+                        prose-code:text-neon-cyan prose-code:bg-slate-900/50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+                        prose-img:rounded-2xl prose-img:shadow-2xl">
+
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex, rehypeHighlight]}
+              className="markdown-renderer"
+            >
+              {post.content}
+            </ReactMarkdown>
+          </article>
+
+          {/* Footer / Comments Area */}
+          <div className="mt-20 border-t border-white/10 pt-10">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-bold text-white">Discussion</h3>
+              <button className="btn-primary px-4 py-2 text-sm">Post Comment</button>
+            </div>
+
+            <div className="glass-card p-6 mb-6">
+              <div className="flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-slate-800 flex-shrink-0" />
+                <div className="flex-1">
+                  <textarea
+                    placeholder="What are your thoughts?"
+                    className="w-full bg-transparent border-0 text-white placeholder-slate-500 focus:ring-0 resize-none h-24"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
   )
 }
 

@@ -1,485 +1,183 @@
-/* Import Inter font family for consistent typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* Import Inter and Merriweather font families */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap');
 
 /* Import Tailwind CSS base styles */
 @import "tailwindcss";
 
 /* Custom theme configuration extending Tailwind's design system */
 @theme {
-  /* Primary color palette - blue-based theme for Linux tutorial site */
-  --color-primary-50: #f0f9ff;
-  /* Lightest blue for backgrounds */
-  --color-primary-100: #e0f2fe;
-  /* Very light blue */
-  --color-primary-200: #bae6fd;
-  /* Light blue */
-  --color-primary-300: #7dd3fc;
-  /* Medium light blue */
-  --color-primary-400: #38bdf8;
-  /* Medium blue */
-  --color-primary-500: #0ea5e9;
-  /* Primary blue accent */
-  --color-primary-600: #0284c7;
-  /* Medium dark blue */
-  --color-primary-700: #0369a1;
-  /* Dark blue */
-  --color-primary-800: #075985;
-  /* Very dark blue */
-  --color-primary-900: #0c4a6e;
-  /* Darkest blue */
-  --color-primary-950: #082f49;
-  /* Ultra dark blue */
+  /* Aurora Dark Palette */
+  --color-slate-850: #151e32;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  
+  --color-neon-cyan: #06b6d4;
+  --color-neon-violet: #8b5cf6;
+  --color-neon-purple: #d8b4fe;
 
-  /* Custom shadow utilities for glass morphism and depth effects */
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-  /* Glass morphism shadow */
-  --shadow-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-  /* Subtle inner highlight */
-  --shadow-soft: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
-  /* Soft elevation shadow */
-  --shadow-card-xl: 0 20px 40px rgba(8, 22, 57, 0.35);
-  /* Deep card shadow for elevated surfaces */
+  /* Premium Shadows */
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --shadow-glass-sm: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+  --shadow-neon-cyan: 0 0 20px rgba(6, 182, 212, 0.3);
+  --shadow-neon-violet: 0 0 20px rgba(139, 92, 246, 0.3);
 }
 
-/* Base layer styles - fundamental element styling and resets */
+/* Base layer styles */
 @layer base {
-
-  /* Enable font smoothing for better text rendering across all devices */
   * {
     @apply antialiased;
   }
 
-  /* Base body styling with gradient background and default typography */
   body {
-    /* Multi-layer gradient for subtle depth in light mode */
-    background: linear-gradient(to bottom right, #f9fafb, rgba(239, 246, 255, 0.3), rgba(238, 242, 255, 0.2));
-    @apply text-gray-900 font-sans;
+    /* Aurora Dark Background - Deep Slate with subtle gradient */
+    @apply bg-slate-950 text-slate-100 font-sans selection:bg-neon-cyan selection:text-slate-950;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%), 
+      radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 25%);
+    background-attachment: fixed;
   }
 
-  /* Dark mode body styling with darker gradient and adjusted text color */
-  .dark body {
-    /* Darker gradient with more opaque layers for dark mode */
-    background: linear-gradient(to bottom right, #0f172a, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.9));
-    color: rgb(226 232 240);
-    /* Light gray text for dark mode */
-  }
-
-  /* Custom text selection styling using primary color theme */
-  ::selection {
-    @apply bg-primary-600 text-white;
+  /* Typography Defaults */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-display text-white;
   }
 }
 
-/* Component layer styles - reusable UI component classes */
+/* Component layer styles */
 @layer components {
 
-  /* Code block styling for syntax highlighting and terminal-like appearance */
-  .code-block {
-    background: linear-gradient(to bottom right, #111827, #1f2937);
-    @apply text-green-400 p-6 rounded-2xl font-mono text-sm shadow-2xl border border-gray-700/50;
-    white-space: pre-wrap !important;
-    /* Allow text wrapping while preserving formatting */
-    word-wrap: break-word;
-    /* Break long words to prevent overflow */
-    overflow-wrap: break-word;
-    /* Modern property for word breaking */
-    overflow-x: auto;
-    /* Horizontal scroll for very long lines */
-  }
-
-  /* Tutorial card component with glass morphism effect and hover animations */
-  .tutorial-card {
-    @apply relative rounded-2xl border border-white/20 p-8 shadow-soft transition-all duration-500 backdrop-blur-xl overflow-hidden;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  /* Hover overlay effect for tutorial cards using gradient overlay */
-  .tutorial-card::before {
-    content: '';
-    background: linear-gradient(to bottom right, rgba(59, 130, 246, 0.1), rgba(34, 211, 238, 0.05));
-    @apply absolute inset-0 opacity-0 transition-opacity duration-500;
-  }
-
-  /* Show overlay on hover for visual feedback */
-  .tutorial-card:hover::before {
-    @apply opacity-100;
-  }
-
-  /* Dark mode variant for tutorial cards with adjusted colors and opacity */
-  .dark .tutorial-card {
-    @apply border-white/10 shadow-card-xl;
-    background: rgba(11, 23, 51, 0.72);
-  }
-
-  /* Dark mode hover overlay with purple tint instead of blue */
-  .dark .tutorial-card::before {
-    background: linear-gradient(to bottom right, rgba(168, 85, 247, 0.16), transparent);
-  }
-
-  /* Section title with gradient text effect (light mode only) */
-  .section-title {
-    color: #38bdf8;
-    background: linear-gradient(to right, #22d3ee, #3b82f6, #1d4ed8);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    @apply text-4xl md:text-5xl font-bold mb-8;
-  }
-
-  /* Dark mode section title - removes gradient, uses solid color */
-  .dark .section-title {
-    background: none;
-    background-clip: initial;
-    -webkit-background-clip: initial;
-    color: #e2e8f0;
-    -webkit-text-fill-color: #e2e8f0;
-  }
-
-  /* Navigation link with underline animation on hover */
-  .nav-link {
-    @apply relative text-gray-900 hover:text-primary-600 transition-all duration-300 font-medium;
-  }
-
-  /* Animated underline effect for navigation links */
-  .nav-link::after {
-    content: '';
-    background: linear-gradient(to right, #0284c7, #38bdf8);
-    @apply absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300;
-  }
-
-  /* Expand underline to full width on hover */
-  .nav-link:hover::after {
-    @apply w-full;
-  }
-
-  /* Dark mode navigation link colors */
-  .dark .nav-link {
-    @apply text-gray-300 hover:text-primary-400;
-  }
-
-  /* Glass morphism card component with backdrop blur and transparency */
+  /* Premium Glass Card - The core building block */
   .glass-card {
-    @apply bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-glass;
+    @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-glass transition-all duration-300;
   }
 
-  /* Dark mode glass card with adjusted transparency and colors */
-  .dark .glass-card {
-    @apply bg-gray-900/10 backdrop-blur-xl rounded-3xl border border-gray-900/20 shadow-glass;
+  .glass-card:hover {
+    @apply bg-slate-900/50 border-white/10 shadow-glass-premium transform -translate-y-1;
+    box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.3), 0 0 15px -3px rgba(139, 92, 246, 0.1);
   }
 
-  /* Gradient text effect for headings and emphasis text */
-  .gradient-text {
-    background: linear-gradient(to right, #0284c7, #3b82f6, #4f46e5);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  /* Button utility styles for consistent CTA presentation */
+  /* Neon Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:opacity-60 disabled:cursor-not-allowed px-6 py-3 text-white shadow-md bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 hover:-translate-y-0.5;
-  }
-
-  .btn-primary--compact {
-    @apply px-5 py-2.5;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-300 
+           px-6 py-3 text-white shadow-lg shadow-neon-violet/20
+           bg-gradient-to-r from-neon-violet to-neon-cyan
+           hover:brightness-110 hover:shadow-neon-violet/40 hover:-translate-y-0.5
+           active:scale-95;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:opacity-60 disabled:cursor-not-allowed px-6 py-3 border border-primary-600 text-primary-700 bg-white hover:bg-primary-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-300
+           px-6 py-3 border border-slate-700 text-slate-300 bg-slate-800/50 backdrop-blur-md
+           hover:bg-slate-800 hover:text-white hover:border-slate-600;
   }
 
-  .btn-secondary-inverse {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:opacity-60 disabled:cursor-not-allowed px-6 py-3 border border-white/40 text-white hover:bg-white/10;
+  /* Typography Components */
+  .section-title {
+    @apply text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6;
+    background: linear-gradient(to right, #ffffff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:opacity-60 disabled:cursor-not-allowed px-6 py-3 text-gray-700 hover:text-primary-600 hover:bg-primary-50 dark:text-gray-300 dark:hover:text-primary-300 dark:hover:bg-gray-800/60;
+  .gradient-text-aurora {
+    background: linear-gradient(to right, #22d3ee, #a855f7, #f472b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    @apply animate-gradient;
+    background-size: 200% auto;
   }
 
-  /* Floating animation class for continuous up and down movement */
-  .floating {
-    animation: float 6s ease-in-out infinite;
+  /* Navigation Links */
+  .nav-link {
+    @apply relative text-slate-400 hover:text-white transition-colors duration-300 font-medium tracking-wide text-sm uppercase;
   }
 
-  /* Shimmer effect for loading states or decorative elements */
-  .shimmer {
-    background: linear-gradient(90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.2) 50%,
-        rgba(255, 255, 255, 0) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
+  .nav-link::after {
+    content: '';
+    @apply absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 shadow-[0_0_10px_rgba(34,211,238,0.5)];
   }
 
-  /* Delayed floating animations for staggered entrance effects */
-  .animate-float-delayed-2s {
-    animation: float 6s ease-in-out infinite 2s;
-    /* 2 second delay */
+  .nav-link:hover::after {
+    @apply w-full;
   }
+}
 
-  .animate-float-delayed-4s {
-    animation: float 6s ease-in-out infinite 4s;
-    /* 4 second delay */
+/* Utilities */
+@layer utilities {
+  .aurora-bg-animated {
+    background-image:
+      radial-gradient(at 100% 0%, hsla(250, 100%, 70%, .15) 0px, transparent 50%),
+      radial-gradient(at 0% 0%, hsla(210, 100%, 60%, .15) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(280, 100%, 70%, .15) 0px, transparent 50%),
+      radial-gradient(at 80% 100%, hsla(200, 100%, 60%, .15) 0px, transparent 50%),
+      radial-gradient(at 0% 0%, hsla(240, 100%, 70%, .15) 0px, transparent 50%);
+    background-size: 200% 200%;
+    animation: aurora 20s linear infinite;
   }
+}
 
-  /* Staggered slide-up animations for sequential element reveals */
-  .animate-slide-up-delayed-1 {
-    animation: slideUp 0.8s ease-out 0.1s both;
-    /* 0.1s delay */
-  }
-
-  .animate-slide-up-delayed-2 {
-    animation: slideUp 0.8s ease-out 0.2s both;
-    /* 0.2s delay */
-  }
-
-  .animate-slide-up-delayed-3 {
-    animation: slideUp 0.8s ease-out 0.3s both;
-    /* 0.3s delay */
-  }
-
-  /* =========================================================== */
-  /* Markdown Renderer Fixes - Handle inline code wrapping issues */
-  /* =========================================================== */
-
+/* =========================================================== */
+/* Markdown Renderer Fixes (Legacy Support) */
+/* =========================================================== */
+@layer components {
   /* Remove margins from paragraphs inside list items and make them inline */
   .markdown-renderer li>p {
     @apply mt-0 mb-0;
     display: inline;
   }
-
-  /* Keep consecutive paragraphs inline within list items */
   .markdown-renderer li>p+p {
     display: inline;
   }
-
-  /* Add space between consecutive paragraphs in list items */
   .markdown-renderer li>p+p::before {
     content: ' ';
   }
-
-  /* Base inline code styling with proper text wrapping */
   .markdown-renderer code {
-    @apply align-baseline;
-    white-space: normal !important;
-    /* Allow code to wrap instead of overflowing */
-    overflow-wrap: anywhere;
-    /* Break at any character if needed */
-    word-break: break-word;
-    /* Break words to prevent overflow */
-    display: inline !important;
-    /* Force inline display */
-    /* Keep inline spacing consistent */
-    padding-left: 0.15em;
-    padding-right: 0.15em;
-  }
-
-  /* Ensure inline code within lists stays inline and wraps properly */
-  .markdown-renderer li code {
+    @apply align-baseline font-mono text-neon-cyan bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-700/50;
     white-space: normal !important;
     overflow-wrap: anywhere;
     word-break: break-word;
     display: inline !important;
   }
-
-  /* Allow list items to have normal text wrapping behavior */
-  .markdown-renderer ol li,
-  .markdown-renderer ul li {
-    white-space: normal;
-  }
-
-  /* Force all inline elements in list items to stay inline */
-  .markdown-renderer li p,
-  .markdown-renderer li code,
-  .markdown-renderer li strong,
-  .markdown-renderer li em {
+  .markdown-renderer li code, .markdown-renderer li strong, .markdown-renderer li em, .markdown-renderer li p {
     display: inline !important;
   }
-
-  /* Code blocks should remain block elements with proper formatting */
   .markdown-renderer pre>code {
     display: block !important;
     white-space: pre-wrap !important;
-    /* Preserve formatting but allow wrapping */
     word-wrap: break-word;
-    /* Break long words */
     overflow-wrap: break-word;
-    /* Modern word breaking */
-    margin: 0;
-    padding: 0;
+    @apply bg-transparent border-none p-0 text-slate-300;
   }
-
-  /* Base markdown renderer with normal text wrapping */
   .markdown-renderer {
     white-space: normal;
+    @apply text-slate-300 leading-relaxed;
   }
-
-  /* List items should break text normally */
-  .markdown-renderer li {
-    @apply break-normal;
+  .markdown-renderer h1, .markdown-renderer h2, .markdown-renderer h3 {
+    @apply text-white font-serif mt-8 mb-4;
   }
-
-  /* Enhanced text wrapping for paragraphs and list items */
-  .markdown-renderer p,
+  .markdown-renderer p {
+     @apply mb-4;
+  }
   .markdown-renderer li {
-    word-wrap: break-word;
-    /* Break long words */
-    overflow-wrap: break-word;
-    /* Modern word breaking */
-    hyphens: none;
-    /* Don't add hyphens */
-    white-space: normal;
-    /* Normal text behavior */
+    @apply break-normal mb-1;
   }
 }
 
-/* =========================================================== */
-/* Keyframe Animations - Core animation definitions */
-/* =========================================================== */
+/* Animations */
+@keyframes aurora {
+  0% { background-position: 50% 50%, 50% 50% }
+  100% { background-position: 350% 50%, 350% 50% }
+}
 
-/* Floating animation - smooth up and down movement */
 @keyframes float {
-  0% {
-    transform: translateY(0);
-  }
-
-  /* Start position */
-  50% {
-    transform: translateY(-12px);
-  }
-
-  /* Highest point */
-  100% {
-    transform: translateY(0);
-  }
-
-  /* Return to start */
+  0%, 100% { transform: translateY(0) }
+  50% { transform: translateY(-10px) }
 }
 
-/* Slide up animation - entrance from bottom */
-@keyframes slideUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  /* Start: invisible, lower */
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* End: visible, in position */
-}
-
-/* Slide down animation - entrance from top */
-@keyframes slideDown {
-  0% {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-
-  /* Start: invisible, higher */
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* End: visible, in position */
-}
-
-/* Scale in animation - entrance with scaling effect */
-@keyframes scaleIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-
-  /* Start: smaller, invisible */
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  /* End: normal size, visible */
-}
-
-/* Gradient shift animation - moving gradient background */
 @keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  /* Start position */
-  50% {
-    background-position: 100% 50%;
-  }
-
-  /* End position */
-  100% {
-    background-position: 0% 50%;
-  }
-
-  /* Return to start */
-}
-
-/* Shimmer animation - moving highlight effect */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  /* Start off-screen left */
-  100% {
-    background-position: 200% 0;
-  }
-
-  /* End off-screen right */
-}
-
-/* Utilities layer - single-purpose animation utility classes */
-@layer utilities {
-
-  /* Slide down entrance animation utility */
-  .animate-slide-down {
-    animation: slideDown 0.8s ease-out both;
-  }
-
-  /* Slide up entrance animation utility */
-  .animate-slide-up {
-    animation: slideUp 0.8s ease-out both;
-  }
-
-  /* Scale in entrance animation utility */
-  .animate-scale-in {
-    animation: scaleIn 0.6s ease-out both;
-  }
-
-  /* Continuous gradient animation utility for decorative effects */
-  .animate-gradient {
-    animation: gradientShift 8s ease-in-out infinite;
-  }
-
-  /* Aurora Background Effect */
-  .aurora-bg {
-    background-image:
-      radial-gradient(at 100% 0%, hsla(250, 100%, 70%, .1) 0px, transparent 50%),
-      radial-gradient(at 0% 0%, hsla(210, 100%, 60%, .1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(280, 100%, 70%, .1) 0px, transparent 50%),
-      radial-gradient(at 80% 100%, hsla(200, 100%, 60%, .1) 0px, transparent 50%),
-      radial-gradient(at 0% 0%, hsla(240, 100%, 70%, .1) 0px, transparent 50%);
-    background-size: 200% 200%;
-    animation: aurora 20s linear infinite;
-  }
-
-  /* Premium Glass Card */
-  .glass-card-premium {
-    @apply bg-white/5 backdrop-blur-2xl border border-white/10 shadow-glass;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  }
-
-  .dark .glass-card-premium {
-    @apply bg-slate-900/40 border-white/5;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.2) 100%);
-  }
+  0% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+  100% { background-position: 0% 50% }
 }

@@ -1,18 +1,30 @@
 import React from 'react'
 
 const LandingStats = ({ stats }) => {
+    // Default stats if none provided
+    const displayStats = stats?.length > 0 ? stats : [
+        { label: "Active Users", value: "10k+" },
+        { label: "Articles Published", value: "50k+" },
+        { label: "Uptime", value: "99.9%" },
+        { label: "GitHub Stars", value: "2.5k" },
+    ]
+
     return (
-        <section className="py-20 border-y border-white/5 bg-white/2 backdrop-blur-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-                    {stats.map((stat, i) => (
-                        <div key={i} className="group">
-                            <div className="text-5xl md:text-6xl font-bold text-white mb-2 bg-gradient-to-b from-white to-slate-500 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
-                                {stat.value}
+        <section className="py-20 relative z-10">
+            <div className="container px-6 mx-auto">
+                <div className="glass-card p-12 rounded-[2.5rem]">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-x divide-white/10">
+                        {displayStats.map((stat, idx) => (
+                            <div key={idx} className="flex flex-col items-center p-4">
+                                <div className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">
+                                    {stat.value}
+                                </div>
+                                <div className="text-slate-400 font-medium uppercase tracking-wider text-sm">
+                                    {stat.label}
+                                </div>
                             </div>
-                            <div className="text-primary-400 font-medium tracking-wider uppercase text-sm">{stat.label}</div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>
