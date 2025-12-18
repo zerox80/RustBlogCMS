@@ -10,10 +10,14 @@
   --color-slate-850: #151e32;
   --color-slate-900: #0f172a;
   --color-slate-950: #020617;
-  
+
   --color-neon-cyan: #06b6d4;
   --color-neon-violet: #8b5cf6;
   --color-neon-purple: #d8b4fe;
+
+  /* Typography */
+  --font-display: "Cal Sans", "Inter", "system-ui", "sans-serif";
+  --font-serif: "Merriweather", "serif";
 
   /* Premium Shadows */
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
@@ -31,14 +35,19 @@
   body {
     /* Aurora Dark Background - Deep Slate with subtle gradient */
     @apply bg-slate-950 text-slate-100 font-sans selection:bg-neon-cyan selection:text-slate-950;
-    background-image: 
-      radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%), 
+    background-image:
+      radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
       radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 25%);
     background-attachment: fixed;
   }
 
   /* Typography Defaults */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply tracking-tight font-display text-white;
   }
 }
@@ -58,17 +67,11 @@
 
   /* Neon Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-300 
-           px-6 py-3 text-white shadow-lg shadow-neon-violet/20
-           bg-gradient-to-r from-neon-violet to-neon-cyan
-           hover:brightness-110 hover:shadow-neon-violet/40 hover:-translate-y-0.5
-           active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-300 px-6 py-3 text-white shadow-lg shadow-neon-violet/20 bg-gradient-to-r from-neon-violet to-neon-cyan hover:brightness-110 hover:shadow-neon-violet/40 hover:-translate-y-0.5 active:scale-95;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-300
-           px-6 py-3 border border-slate-700 text-slate-300 bg-slate-800/50 backdrop-blur-md
-           hover:bg-slate-800 hover:text-white hover:border-slate-600;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-300 px-6 py-3 border border-slate-700 text-slate-300 bg-slate-800/50 backdrop-blur-md hover:bg-slate-800 hover:text-white hover:border-slate-600;
   }
 
   /* Typography Components */
@@ -96,7 +99,7 @@
 
   .nav-link::after {
     content: '';
-    @apply absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 shadow-[0_0_10px_rgba(34,211,238,0.5)];
+    @apply absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 shadow-[0_0_10px_rgba(34, 211, 238, 0.5)];
   }
 
   .nav-link:hover::after {
@@ -122,17 +125,21 @@
 /* Markdown Renderer Fixes (Legacy Support) */
 /* =========================================================== */
 @layer components {
+
   /* Remove margins from paragraphs inside list items and make them inline */
   .markdown-renderer li>p {
     @apply mt-0 mb-0;
     display: inline;
   }
+
   .markdown-renderer li>p+p {
     display: inline;
   }
+
   .markdown-renderer li>p+p::before {
     content: ' ';
   }
+
   .markdown-renderer code {
     @apply align-baseline font-mono text-neon-cyan bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-700/50;
     white-space: normal !important;
@@ -140,9 +147,14 @@
     word-break: break-word;
     display: inline !important;
   }
-  .markdown-renderer li code, .markdown-renderer li strong, .markdown-renderer li em, .markdown-renderer li p {
+
+  .markdown-renderer li code,
+  .markdown-renderer li strong,
+  .markdown-renderer li em,
+  .markdown-renderer li p {
     display: inline !important;
   }
+
   .markdown-renderer pre>code {
     display: block !important;
     white-space: pre-wrap !important;
@@ -150,16 +162,22 @@
     overflow-wrap: break-word;
     @apply bg-transparent border-none p-0 text-slate-300;
   }
+
   .markdown-renderer {
     white-space: normal;
     @apply text-slate-300 leading-relaxed;
   }
-  .markdown-renderer h1, .markdown-renderer h2, .markdown-renderer h3 {
+
+  .markdown-renderer h1,
+  .markdown-renderer h2,
+  .markdown-renderer h3 {
     @apply text-white font-serif mt-8 mb-4;
   }
+
   .markdown-renderer p {
-     @apply mb-4;
+    @apply mb-4;
   }
+
   .markdown-renderer li {
     @apply break-normal mb-1;
   }
@@ -167,17 +185,37 @@
 
 /* Animations */
 @keyframes aurora {
-  0% { background-position: 50% 50%, 50% 50% }
-  100% { background-position: 350% 50%, 350% 50% }
+  0% {
+    background-position: 50% 50%, 50% 50%
+  }
+
+  100% {
+    background-position: 350% 50%, 350% 50%
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0) }
-  50% { transform: translateY(-10px) }
+
+  0%,
+  100% {
+    transform: translateY(0)
+  }
+
+  50% {
+    transform: translateY(-10px)
+  }
 }
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50% }
-  50% { background-position: 100% 50% }
-  100% { background-position: 0% 50% }
+  0% {
+    background-position: 0% 50%
+  }
+
+  50% {
+    background-position: 100% 50%
+  }
+
+  100% {
+    background-position: 0% 50%
+  }
 }
