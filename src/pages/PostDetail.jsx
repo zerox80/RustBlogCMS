@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
+import { formatDate } from '../utils/postUtils'
 import { Helmet } from 'react-helmet-async'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -77,15 +78,15 @@ const PostDetail = () => {
                   <User className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <span className="font-medium text-white">{post.author}</span>
+              <span className="font-medium text-white">{post.author || "Admin"}</span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              <span>{new Date(post.date).toLocaleDateString()}</span>
+              <span>{formatDate(post.published_at || post.created_at) || "Recently"}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span>{post.readTime || "5 min read"}</span>
+              <span>{post.readTime || `${Math.ceil((post.content_markdown?.length || 0) / 1000) + 1} min read`}</span>
             </div>
           </div>
         </div>
@@ -127,7 +128,7 @@ const PostDetail = () => {
               rehypePlugins={[rehypeKatex, rehypeHighlight]}
               className="markdown-renderer"
             >
-              {post.content}
+              {post.content_markdown}
             </ReactMarkdown>
           </article>
 

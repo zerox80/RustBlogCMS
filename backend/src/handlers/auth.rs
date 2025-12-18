@@ -329,8 +329,11 @@ pub async fn login(
         (None, _) => (false, None),
     };
 
-    let jitter = (chrono::Utc::now().timestamp_subsec_millis() % 200) as u64;
-    tokio::time::sleep(Duration::from_millis(100 + jitter)).await;
+    let jitter = {
+        use rand::Rng;
+        rand::thread_rng().gen_range(100..300)
+    };
+    tokio::time::sleep(Duration::from_millis(jitter)).await;
 
     if !password_valid {
         let now = Utc::now();

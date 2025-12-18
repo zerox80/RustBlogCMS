@@ -217,6 +217,7 @@ pub async fn get_post(
 
 pub async fn create_post(
     claims: auth::Claims,
+    _csrf: crate::security::csrf::CsrfGuard,
     State(pool): State<db::DbPool>,
     Path(page_id): Path<String>,
     Json(payload): Json<CreateSitePostRequest>,
@@ -267,6 +268,7 @@ pub async fn create_post(
 
 pub async fn update_post(
     claims: auth::Claims,
+    _csrf: crate::security::csrf::CsrfGuard,
     State(pool): State<db::DbPool>,
     Path(id): Path<String>,
     Json(payload): Json<UpdateSitePostRequest>,
@@ -340,6 +342,7 @@ pub async fn update_post(
 
 pub async fn delete_post(
     claims: auth::Claims,
+    _csrf: crate::security::csrf::CsrfGuard,
     State(pool): State<db::DbPool>,
     Path(id): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
