@@ -3,10 +3,10 @@ import React from 'react'
 const LandingStats = ({ stats }) => {
     // Default stats if none provided
     const displayStats = stats?.length > 0 ? stats : [
-        { label: "Active Users", value: "10k+" },
-        { label: "Articles Published", value: "50k+" },
-        { label: "Uptime", value: "99.9%" },
-        { label: "GitHub Stars", value: "2.5k" },
+        { label: "Focus", value: "Rust" },
+        { label: "Topic", value: "Research" },
+        { label: "Security", value: "Hardened" },
+        { label: "License", value: "Open" },
     ]
 
     return (

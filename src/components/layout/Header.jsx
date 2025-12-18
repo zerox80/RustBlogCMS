@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, Github, Moon, Sun } from 'lucide-react'
+import { Menu, X, Github } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useTheme } from '../../context/ThemeContext'
 import { useContent } from '../../context/ContentContext'
 
 const Header = () => {
     const { t } = useTranslation()
-    const { isDarkMode, toggleTheme } = useTheme()
     const { navigation } = useContent()
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -62,7 +60,7 @@ const Header = () => {
                         R
                     </div>
                     <span className="font-bold text-lg text-white tracking-tight group-hover:text-neon-cyan transition-colors hidden sm:block">
-                        RustCMS
+                        Zero Point
                     </span>
                 </Link>
 
@@ -82,12 +80,7 @@ const Header = () => {
 
                 {/* Action Buttons */}
                 <div className="hidden md:flex items-center gap-4">
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white"
-                    >
-                        {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                    </button>
+
                     <a
                         href="https://github.com/zerox80/LinuxTutorialCMS"
                         target="_blank"
@@ -114,24 +107,26 @@ const Header = () => {
             </nav>
 
             {/* Mobile Menu Overlay */}
-            {isMobileMenuOpen && (
-                <div className="absolute top-24 left-4 right-4 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-6 flex flex-col gap-4 shadow-xl animate-fade-in md:hidden">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.name}
-                            to={link.path}
-                            className="text-lg font-medium text-slate-200 py-2 border-b border-white/5 last:border-0"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                            {link.name}
-                        </Link>
-                    ))}
-                    <div className="flex gap-4 mt-4 pt-4 border-t border-white/10">
-                        <Link to="/login" className="flex-1 btn-primary text-center py-2">Sign In</Link>
+            {
+                isMobileMenuOpen && (
+                    <div className="absolute top-24 left-4 right-4 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-6 flex flex-col gap-4 shadow-xl animate-fade-in md:hidden">
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.name}
+                                to={link.path}
+                                className="text-lg font-medium text-slate-200 py-2 border-b border-white/5 last:border-0"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                {link.name}
+                            </Link>
+                        ))}
+                        <div className="flex gap-4 mt-4 pt-4 border-t border-white/10">
+                            <Link to="/login" className="flex-1 btn-primary text-center py-2">Sign In</Link>
+                        </div>
                     </div>
-                </div>
-            )}
-        </header>
+                )
+            }
+        </header >
     )
 }
 

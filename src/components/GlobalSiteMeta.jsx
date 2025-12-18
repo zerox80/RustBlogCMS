@@ -2,8 +2,8 @@ import { Helmet } from 'react-helmet-async'
 import { useEffect } from 'react'
 import { useContent } from '../context/ContentContext'
 
-const FALLBACK_TITLE = 'Linux Tutorial - Lerne Linux Schritt für Schritt'
-const FALLBACK_DESCRIPTION = 'Lerne Linux von Grund auf - Interaktiv, modern und praxisnah.'
+const FALLBACK_TITLE = 'Zero Point - IT & Rust Research'
+const FALLBACK_DESCRIPTION = 'In-depth tutorials and research on Rust, Linux, and Server Infrastructure.'
 
 const sanitize = (value) => {
   if (typeof value !== 'string') {

@@ -22,11 +22,11 @@
     "login": "Sign In"
   },
   "hero": {
-    "title": "Learn Linux",
-    "subtitle": "from scratch",
-    "description": "Your comprehensive Linux tutorial – from basics to advanced techniques.",
-    "cta_primary": "Get Started",
-    "cta_secondary": "Learn More"
+    "title": "Publish Stories",
+    "subtitle": "That Matter",
+    "description": "The modern platform for IT research, Rust development, and in-depth tutorials.",
+    "cta_primary": "Explore Tutorials",
+    "cta_secondary": "GitHub"
   },
   "tutorials": {
     "title": "Tutorial Content",

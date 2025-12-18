@@ -22,11 +22,11 @@
     "login": "Anmelden"
   },
   "hero": {
-    "title": "Lerne Linux",
-    "subtitle": "von Grund auf",
-    "description": "Dein umfassendes Tutorial für Linux – von den Basics bis zu Advanced-Techniken.",
-    "cta_primary": "Los geht's",
-    "cta_secondary": "Mehr erfahren"
+    "title": "Veröffentliche Stories",
+    "subtitle": "die zählen",
+    "description": "Die moderne Plattform für IT-Research, Rust-Entwicklung und detaillierte Tutorials.",
+    "cta_primary": "Tutorials entdecken",
+    "cta_secondary": "GitHub"
   },
   "tutorials": {
     "title": "Tutorial Inhalte",

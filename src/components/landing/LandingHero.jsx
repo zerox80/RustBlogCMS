@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowRight, Terminal, Zap, Shield, Layout } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const LandingHero = ({ content }) => {
+    const { t } = useTranslation()
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
     useEffect(() => {
@@ -23,41 +25,34 @@ const LandingHero = ({ content }) => {
 
             <div className="container relative z-10 px-6 mx-auto">
                 <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
-                    {/* Badge */}
-                    <div className="animate-fade-in [animation-delay:200ms] mb-6">
-                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 backdrop-blur-md text-sm text-slate-300 font-medium hover:border-slate-500 transition-colors">
-                            <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse"></span>
-                            v2.0 is now live
-                        </span>
-                    </div>
 
                     {/* Hero Title */}
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-extrabold tracking-tight mb-8 animate-slide-up [animation-delay:400ms]">
-                        Publish Stories
+                        {t('hero.title')}
                         <span className="block mt-2 gradient-text-aurora">
-                            That Matter
+                            {t('hero.subtitle')}
                         </span>
                     </h1>
 
                     {/* Subtitle */}
                     <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up [animation-delay:600ms]">
-                        {content?.subtitle || "The modern, high-performance content management system designed for creators, developers, and teams who care about speed and aesthetics."}
+                        {content?.subtitle || t('hero.description')}
                     </p>
 
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 animate-slide-up [animation-delay:800ms]">
-                        <Link to="/tutorial/getting-started" className="btn-primary group">
-                            Start Writing
+                        <Link to="/tutorials/1" className="btn-primary group">
+                            {t('hero.cta_primary')}
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                         </Link>
                         <a href="https://github.com/zerox80/LinuxTutorialCMS" target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                            View on GitHub
+                            {t('hero.cta_secondary')}
                         </a>
                     </div>
                 </div>
 
                 {/* Hero Image / Dashboard Mockup */}
-                <div className="relative mt-20 w-full max-w-6xl mx-auto hidden md:block animate-fade-in [animation-delay:1000ms]">
+                <div className="relative mt-20 w-full max-w-4xl mx-auto hidden md:block animate-fade-in [animation-delay:1000ms]">
 
                     {/* Glowing effect behind the image */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan/20 to-neon-violet/20 rounded-2xl blur-2xl opacity-50"></div>
@@ -68,12 +63,12 @@ const LandingHero = ({ content }) => {
                         style={{ transform: `perspective(1000px) rotateX(${mousePosition.y * 0.5}deg) rotateY(${mousePosition.x * 0.5}deg)` }}
                     >
                         <img
-                            src={content?.heroImage || "/dashboard-mockup.png"}
+                            src={content?.heroImage || "/hero-dashboard-v2.png"}
                             alt="Dashboard Preview"
                             className="w-full h-auto object-cover rounded-2xl"
                             onError={(e) => {
                                 e.target.onerror = null;
-                                e.target.src = "/dashboard-mockup.png"; // Fallback if user upload fails
+                                e.target.src = "/hero-dashboard-v2.png"; // Fallback
                             }}
                         />
 
@@ -91,8 +86,8 @@ const LandingHero = ({ content }) => {
                                 <Zap className="w-5 h-5" />
                             </div>
                             <div>
-                                <div className="text-sm font-bold text-white">Blazing Fast</div>
-                                <div className="text-xs text-slate-400">100ms Load Time</div>
+                                <div className="text-sm font-bold text-white">IT Research</div>
+                                <div className="text-xs text-slate-400">Deep Dives</div>
                             </div>
                         </div>
                     </div>
@@ -107,8 +102,8 @@ const LandingHero = ({ content }) => {
                                 <Shield className="w-5 h-5" />
                             </div>
                             <div>
-                                <div className="text-sm font-bold text-white">Rust Secure</div>
-                                <div className="text-xs text-slate-400">Memory Safe Core</div>
+                                <div className="text-sm font-bold text-white">Rust Powered</div>
+                                <div className="text-xs text-slate-400">Memory Safe</div>
                             </div>
                         </div>
                     </div>
