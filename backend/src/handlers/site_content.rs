@@ -13,7 +13,7 @@ use axum::{
 use serde_json::Value;
 use std::collections::HashSet;
 
-const MAX_CONTENT_BYTES: usize = 200_000;
+const MAX_CONTENT_BYTES: usize = 5_000_000;
 
 fn allowed_sections() -> &'static HashSet<&'static str> {
     use std::sync::OnceLock;
@@ -118,24 +118,10 @@ fn validate_header_structure(content: &Value) -> Result<(), &'static str> {
     if !obj.contains_key("brand") || !obj.contains_key("navItems") {
         return Err("Missing required fields 'brand' or 'navItems'");
     }
-    if !obj
-        .get("navItems")
-        .and_then(|items| items.as_array())
-        .map(|items| {
-            items.iter().all(|item| {
-                let has_id_label = item.get("id").is_some() && item.get("label").is_some();
-                // Ensure at least one target property exists and is not empty
-                let has_target = item.get("slug").and_then(|v| v.as_str()).map(|s| !s.trim().is_empty()).unwrap_or(false)
-                    || item.get("href").and_then(|v| v.as_str()).map(|s| !s.trim().is_empty()).unwrap_or(false)
-                    || item.get("path").and_then(|v| v.as_str()).map(|s| !s.trim().is_empty()).unwrap_or(false)
-                    || item.get("value").and_then(|v| v.as_str()).map(|s| !s.trim().is_empty()).unwrap_or(false)
-                    || item.get("type").and_then(|t| t.as_str()).map(|s| s == "section").unwrap_or(false);
-                has_id_label && has_target
-            })
-        })
-        .unwrap_or(false)
-    {
-        return Err("Each navigation item must include 'id', 'label', and a target ('slug', 'href', 'path', 'value', or type='section')");
+    // Relaxed validation: we only check if navItems is an array.
+    // We do NOT strictly check if every item has a target, to allow saving work-in-progress.
+    if !obj.get("navItems").map(|v| v.is_array()).unwrap_or(false) {
+        return Err("Field 'navItems' must be an array");
     }
     Ok(())
 }

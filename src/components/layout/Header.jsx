@@ -3,10 +3,18 @@ import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, Github } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useContent } from '../../context/ContentContext'
+import { getIconComponent } from '../../utils/iconMap'
 
 const Header = () => {
     const { t } = useTranslation()
-    const { navigation } = useContent()
+    const { navigation, getSection } = useContent()
+    const headerContent = getSection('header') ?? {}
+
+    // Resolve dynamic brand icon
+    const BrandIcon = React.useMemo(
+        () => getIconComponent(headerContent?.brand?.icon, 'Terminal'),
+        [headerContent?.brand?.icon]
+    )
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const location = useLocation()
@@ -57,10 +65,10 @@ const Header = () => {
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-2 group">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-neon-cyan to-neon-violet flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-neon-cyan/20 group-hover:shadow-neon-cyan/40 transition-shadow">
-                        R
+                        <BrandIcon className="w-5 h-5" />
                     </div>
                     <span className="font-bold text-lg text-white tracking-tight group-hover:text-neon-cyan transition-colors hidden sm:block">
-                        Zero Point
+                        {headerContent?.brand?.name || 'Zero Point'}
                     </span>
                 </Link>
 
@@ -93,7 +101,7 @@ const Header = () => {
                         to="/login"
                         className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all border border-white/5"
                     >
-                        {t('nav.login')}
+                        {headerContent?.cta?.guestLabel || t('nav.login')}
                     </Link>
                 </div>
 

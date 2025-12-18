@@ -1,13 +1,8 @@
 import React from 'react'
 
 const LandingStats = ({ stats }) => {
-    // Default stats if none provided
-    const displayStats = stats?.length > 0 ? stats : [
-        { label: "Focus", value: "Rust" },
-        { label: "Topic", value: "Research" },
-        { label: "Security", value: "Hardened" },
-        { label: "License", value: "Open" },
-    ]
+    // Use stats from props
+    const displayStats = Array.isArray(stats) ? stats : []
 
     return (
         <section className="py-20 relative z-10">

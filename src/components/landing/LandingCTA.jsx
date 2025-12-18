@@ -12,10 +12,10 @@ const LandingCTA = ({ content }) => {
 
             <div className="relative max-w-5xl mx-auto px-4 text-center">
                 <h2 className="text-5xl md:text-7xl font-bold mb-8 text-white tracking-tight">
-                    {ctaContent.title || 'Ready to Start?'}
+                    {ctaContent.title}
                 </h2>
                 <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto">
-                    {ctaContent.description || 'Join thousands of developers mastering Linux and Modern Web Development today.'}
+                    {ctaContent.description}
                 </p>
                 <button
                     onClick={() => navigate('/blog')}

@@ -2,49 +2,8 @@ import React from 'react'
 import { Terminal, Cpu, Globe, Lock, Palette, Zap } from 'lucide-react'
 
 const LandingFeatures = ({ features }) => {
-    // Default features if none provided
-    const displayFeatures = features?.length > 0 ? features : [
-        {
-            title: "Performance First",
-            description: "Built with Rust and React for instant page loads and seamless interactions.",
-            icon: Zap,
-            color: "text-amber-400",
-            bg: "bg-amber-400/10",
-            size: "large" // Spans 2 cols
-        },
-        {
-            title: "Type Safe",
-            description: "End-to-end type safety ensures your blog never crashes in production.",
-            icon: Shield,
-            color: "text-neon-cyan",
-            bg: "bg-neon-cyan/10",
-            size: "normal"
-        },
-        {
-            title: "Global CDN",
-            description: "Deploy to the edge in seconds.",
-            icon: Globe,
-            color: "text-neon-violet",
-            bg: "bg-neon-violet/10",
-            size: "normal"
-        },
-        {
-            title: "Markdown Support",
-            description: "Write content in standard Markdown with GFM support.",
-            icon: Terminal,
-            color: "text-pink-400",
-            bg: "bg-pink-400/10",
-            size: "normal"
-        },
-        {
-            title: "Modern Theming",
-            description: "Fully customizable Aurora & Glassmorphism themes out of the box.",
-            icon: Palette,
-            color: "text-emerald-400",
-            bg: "bg-emerald-400/10",
-            size: "large"
-        }
-    ]
+    // Use features from props, or empty array if not provided
+    const displayFeatures = Array.isArray(features) ? features : []
 
     return (
         <section id="features" className="py-24 relative overflow-hidden">

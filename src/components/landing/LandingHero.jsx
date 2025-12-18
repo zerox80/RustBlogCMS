@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowRight, Terminal, Zap, Shield, Layout } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { navigateContentTarget } from '../../utils/contentNavigation'
 
 const LandingHero = ({ content }) => {
     const { t } = useTranslation()
+    const navigate = useNavigate()
+    const location = useLocation()
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
     useEffect(() => {
@@ -49,13 +52,19 @@ const LandingHero = ({ content }) => {
 
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 animate-slide-up [animation-delay:800ms]">
-                        <Link to="/tutorials/1" className="btn-primary group">
+                        <button
+                            onClick={() => navigateContentTarget(content?.primaryCta?.target, { navigate, location })}
+                            className="btn-primary group"
+                        >
                             {primaryCta}
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                        </Link>
-                        <a href="https://github.com/zerox80/LinuxTutorialCMS" target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                        </button>
+                        <button
+                            onClick={() => navigateContentTarget(content?.secondaryCta?.target, { navigate, location })}
+                            className="btn-secondary"
+                        >
                             {secondaryCta}
-                        </a>
+                        </button>
                     </div>
                 </div>
 
