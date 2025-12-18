@@ -93,7 +93,7 @@ const FeatureCard = ({ feature, index }) => {
             </div>
 
             {/* Decorative gradient blob on hover */}
-            <div className={`absolute -right-10 -bottom-10 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none ${feature.bg.replace('/10', '/50')}`} />
+            <div className={`absolute -right-10 -bottom-10 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none ${feature.bg?.replace('/10', '/50') || ''}`} />
         </div>
     )
 }
