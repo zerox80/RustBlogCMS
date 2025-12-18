@@ -14,6 +14,13 @@
     "create": "Erstellen",
     "close": "Schließen"
   },
+  "nav": {
+    "features": "Features",
+    "tutorial": "Tutorial",
+    "blog": "Blog",
+    "about": "Über",
+    "login": "Anmelden"
+  },
   "hero": {
     "title": "Lerne Linux",
     "subtitle": "von Grund auf",
