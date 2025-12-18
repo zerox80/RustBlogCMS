@@ -86,11 +86,7 @@
 
   /* Typography Components */
   .section-title {
-    @apply text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6;
-    background: linear-gradient(to right, #ffffff, #94a3b8);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    @apply text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-white;
   }
 
   .gradient-text-aurora {

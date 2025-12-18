@@ -12,8 +12,8 @@ const LandingFeatures = ({ features, section = 'hero' }) => {
             <div className="container px-6 mx-auto relative z-10">
                 <div className="text-center max-w-2xl mx-auto mb-16">
                     <h2 className="section-title">
-                        <EditableText section="hero" field="features_title" value="Everything you need to " />
-                        <span className="gradient-text-aurora">
+                        <EditableText section="hero" field="features_title" value="Everything you need to " className="text-white" />
+                        <span className="gradient-text-aurora ml-2">
                             <EditableText section="hero" field="features_highlight" value="scale" />
                         </span>
                     </h2>
