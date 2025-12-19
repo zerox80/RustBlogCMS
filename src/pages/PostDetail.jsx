@@ -1,4 +1,4 @@
-```javascript
+
 import React, { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
@@ -66,7 +66,7 @@ const PostDetail = () => {
 
   if (!post) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
 
-  const readTimeDisplay = post.readTime || `${ Math.ceil((post.content_markdown?.length || 0) / 1000) + 1 } min read`
+  const readTimeDisplay = post.readTime || `${Math.ceil((post.content_markdown?.length || 0) / 1000) + 1} min read`
 
   return (
     <div className="min-h-screen bg-slate-950 pt-24 pb-20">
