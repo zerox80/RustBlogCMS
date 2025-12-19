@@ -263,6 +263,15 @@ pub async fn create_post(
     .await
     .map_err(|err| map_sqlx_error(err, "Site post"))?;
 
+    tracing::info!(
+        action = "create_post",
+        user = %claims.sub,
+        post_id = %record.id,
+        post_title = %record.title,
+        page_id = %record.page_id,
+        "Admin created new post"
+    );
+
     Ok(Json(map_post(record)))
 }
 
@@ -337,6 +346,13 @@ pub async fn update_post(
         .await
         .map_err(|err| map_sqlx_error(err, "Site post"))?;
 
+    tracing::info!(
+        action = "update_post",
+        user = %claims.sub,
+        post_id = %id,
+        "Admin updated post"
+    );
+
     Ok(Json(map_post(record)))
 }
 
@@ -351,6 +367,13 @@ pub async fn delete_post(
     repositories::posts::delete_site_post(&pool, &id)
         .await
         .map_err(|err| map_sqlx_error(err, "Site post"))?;
+
+    tracing::info!(
+        action = "delete_post",
+        user = %claims.sub,
+        post_id = %id,
+        "Admin deleted post"
+    );
 
     Ok(StatusCode::NO_CONTENT)
 }

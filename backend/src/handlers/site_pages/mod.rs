@@ -388,6 +388,14 @@ pub async fn create_site_page(
         .await
         .map_err(|err| map_sqlx_error(err, "Site page"))?;
 
+    tracing::info!(
+        action = "create_page",
+        user = %claims.sub,
+        page_id = %record.id,
+        page_slug = %record.slug,
+        "Admin created new page"
+    );
+
     Ok(Json(map_page(record)?))
 }
 
@@ -405,6 +413,13 @@ pub async fn update_site_page(
         .await
         .map_err(|err| map_sqlx_error(err, "Site page"))?;
 
+    tracing::info!(
+        action = "update_page",
+        user = %claims.sub,
+        page_id = %id,
+        "Admin updated page"
+    );
+
     Ok(Json(map_page(record)?))
 }
 
@@ -418,6 +433,13 @@ pub async fn delete_site_page(
     repositories::pages::delete_site_page(&pool, &id)
         .await
         .map_err(|err| map_sqlx_error(err, "Site page"))?;
+
+    tracing::info!(
+        action = "delete_page",
+        user = %claims.sub,
+        page_id = %id,
+        "Admin deleted page"
+    );
 
     Ok(StatusCode::NO_CONTENT)
 }

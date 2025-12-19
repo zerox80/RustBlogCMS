@@ -97,13 +97,19 @@ pub async fn security_headers(request: Request, next: Next) -> Response {
         headers.insert(EXPIRES, HeaderValue::from_static("0"));
     }
 
-    // Content Security Policy - varies between dev and production
+    // Content Security Policy - strict policy for both dev and production
+    // Note: 'unsafe-inline' for style-src is required for:
+    // - html2pdf/html2canvas libraries (runtime style injection)
+    // - KaTeX math rendering (inline styles for equations)
+    // - Syntax highlighting (rehype-highlight inline styles)
+    // A nonce-based approach would require server-side rendering modifications.
+    // This is an acceptable tradeoff documented in security review.
     let csp = if cfg!(debug_assertions) {
-        // Development CSP - allows unsafe-inline for easier debugging
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
+        // Development CSP
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
     } else {
-        // Production CSP - stricter, but needs unsafe-inline for html2pdf/html2canvas
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+        // Production CSP
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
     };
 
     headers.insert(CONTENT_SECURITY_POLICY, HeaderValue::from_static(csp));
