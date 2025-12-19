@@ -4,6 +4,16 @@ import { api } from '../api/client'
 import { getIconComponent as getIconComponentFromMap } from '../utils/iconMap'
 const TutorialContext = createContext(null)
 
+/**
+ * Global Tutorial Data Provider.
+ * 
+ * Centralizes the fetching, caching, and management of tutorial content.
+ * 
+ * Features:
+ * - **Resilient Fetching**: Implements exponential backoff retry logic (up to 3 attempts) for flaky networks.
+ * - **CRUD Operations**: Exposes `add`, `update`, and `delete` methods that sync local state with backend.
+ * - **Abort Safety**: Cancels in-flight requests on unmount to prevent state updates on destroyed components.
+ */
 export const TutorialProvider = ({ children }) => {
   const [tutorials, setTutorials] = useState([])
   const [loading, setLoading] = useState(true)

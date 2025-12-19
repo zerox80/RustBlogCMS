@@ -1,3 +1,17 @@
+/**
+ * API Client Module
+ * 
+ * A centralized wrapper for making HTTP requests to the backend API.
+ * 
+ * Key Features:
+ * - **Base URL Resolution**: Automatically determines the API base URL based on environment (Vite env vars or window location).
+ * - **Authentication**: Manages JWT tokens, automatically attaching them to requests and handling 401 Unauthorized responses.
+ * - **CSRF Protection**: Automatically extracts and includes the `x-csrf-token` header for mutating requests.
+ * - **AbortController Integration**: Supports request cancellation via `AbortController` signals.
+ * - **Timeout Handling**: Implements request timeouts (default 15s) with cleanup.
+ * - **Response Parsing**: Automatically parses JSON responses and handles edge cases like empty bodies or non-JSON errors.
+ * - **File Uploads**: Provides a helper for `multipart/form-data` uploads.
+ */
 export const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '')

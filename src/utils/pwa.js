@@ -1,5 +1,15 @@
 // Global variable to store the install prompt event
 let deferredPrompt = null;
+
+/**
+ * Service Worker Registration and PWA Install Logic.
+ * 
+ * Functions:
+ * - `registerServiceWorker`: Registers the SW script (`/sw.js`) for offline capabilities.
+ * - `initPWA`: Listens for the `beforeinstallprompt` event to enable custom install UI.
+ * - `installPWA`: Triggers the browser's native install prompt when the user clicks the install button.
+ * - `isPWAInstalled`: Checks if the app is running in standalone mode (installed).
+ */
 export const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {

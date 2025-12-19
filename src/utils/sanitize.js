@@ -1,4 +1,11 @@
 import DOMPurify from 'dompurify';
+
+/**
+ * HTML Sanitization Utilities.
+ * 
+ * Wraps DOMPurify to provide strict, configured sanitization for HTML content.
+ * Prevents XSS attacks by stripping dangerous tags and attributes.
+ */
 const DEFAULT_CONFIG = {
   ALLOWED_TAGS: [
     'p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li',

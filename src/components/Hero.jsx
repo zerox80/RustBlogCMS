@@ -5,6 +5,24 @@ import { useContent } from '../context/ContentContext'
 import { getIconComponent } from '../utils/iconMap'
 import { scrollToSection } from '../utils/scrollToSection'
 import { sanitizeExternalUrl } from '../utils/urlValidation'
+
+/**
+ * A generic Hero section component used for standard pages.
+ * 
+ * Unlike the specialized `LandingHero`, this component is designed for reusability
+ * across different pages. It supports a configurable title, subtitle, CTA buttons,
+ * and a grid of feature highlights.
+ * 
+ * Key Features:
+ * - Dynamic Icon Resolution: Loads icons based on CMS string identifiers.
+ * - Smart Navigation: Handles internal routes, external links, and anchor scrolling via `handleTarget`.
+ * - Visuals: Features a background gradient with decorative blur blobs and a pattern overlay.
+ * 
+ * @component
+ * @example
+ * // Usage within a page component
+ * <Hero />
+ */
 const Hero = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -12,6 +30,20 @@ const Hero = () => {
   const heroContent = getSection('hero') ?? {}
   const HeroIcon = useMemo(() => getIconComponent(heroContent.icon, 'Terminal'), [heroContent.icon])
   const features = Array.isArray(heroContent.features) ? heroContent.features : []
+
+  /**
+   * Unified handler for processing navigation actions.
+   * 
+   * Abstracts away the complexity of different link types:
+   * - `section`: Scrolls to an ID on the home page (handling cross-page jumps if needed).
+   * - `route`: Standard SPA client-side navigation.
+   * - `external`: Opens in new tab with security attributes (noopener, noreferrer).
+   * - `href`: Direct window location assignment (for special protocols or hard refreshes).
+   * 
+   * @param {Object} target - The target definition object from CMS.
+   * @param {string} target.type - The type of navigation ('section', 'route', 'external', 'href').
+   * @param {string} target.value - The destination path, URL, or ID.
+   */
   const handleTarget = (target) => {
     if (!target || !target.type) {
       return

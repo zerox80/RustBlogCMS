@@ -55,6 +55,17 @@ const resolveContactFallbackIcon = (contact) => {
 
 import EditableText from '../cms/EditableText'
 
+/**
+ * The global site footer component.
+ * 
+ * Aggregates navigation links, contact info, and branding into a structured layout.
+ * 
+ * Architecture:
+ * - **Data Source**: Pulls `footer` section data and `navigation` structure from `ContentContext`.
+ * - **Dynamic Links**: Merges specifically configured `quickLinks` with the global navigation tree.
+ * - **CMS Integration**: All text elements (Brand, Copyright, Links) are wrapped in `EditableText`.
+ * - **Safety**: Sanitizes all external URLs to prevent XSS/Phishing via `sanitizeExternalUrl`.
+ */
 const Footer = () => {
     const { getSection, navigation } = useContent()
     const footerContent = getSection('footer') ?? {}

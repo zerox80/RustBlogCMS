@@ -14,14 +14,7 @@ import { Calendar, Clock, User, ArrowLeft, Share2, Bookmark } from 'lucide-react
  * - Table of Contents (ToC): Implements a Scroll-Spy to highlight current section.
  * - Dynamic SEO: Injects post-specific meta tags for social sharing and search.
  * - Advanced Meta: Calculates "Read Time" if not provided by backend.
- */
-/**
- * Detailed Tutorial Viewer.
- * 
- * Features:
- * - Hybrid Loading: Attempts to use cached context data before fetching from API.
- * - Modular Rendering: Decouples header, topics, and content for scalability.
- * - Nav Logic: Intelligent "Go Back" that stays within app history when possible.
+ * - Interaction: Integrated comments section and share functionality.
  */
 const PostDetail = () => {
   const { pageSlug, postSlug } = useParams()
@@ -73,6 +66,8 @@ const PostDetail = () => {
 
   if (!post) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
 
+  const readTimeDisplay = post.readTime || `${ Math.ceil((post.content_markdown?.length || 0) / 1000) + 1 } min read`
+
   return (
     <div className="min-h-screen bg-slate-950 pt-24 pb-20">
       <Helmet>
@@ -115,7 +110,7 @@ const PostDetail = () => {
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span>{post.readTime || `${ Math.ceil((post.content_markdown?.length || 0) / 1000) + 1 } min read`}</span>
+              <span>{readTimeDisplay}</span>
             </div>
           </div>
         </div>
