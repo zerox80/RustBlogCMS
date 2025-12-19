@@ -132,6 +132,7 @@ services:
     # Configuration and logging
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro  # Nginx config (read-only)
+      - ./nginx/rate-limiting.conf:/etc/nginx/conf.d/rate-limiting.conf:ro  # Rate limiting config
       - nginx-logs:/var/log/nginx                              # Access and error logs
 
     # Network configuration
