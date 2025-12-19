@@ -13,7 +13,7 @@ A comprehensive security review of the RustBlogCMS application was conducted. Th
 
 **Defense in Depth:**
 - **Rate Limiting:** Progressive lockout for failed logins (3 failures = 10s, 5+ = 60s).
-- **Password Storage:** Argon2/Bcrypt hashing with entropy checks.
+- **Password Storage:** Bcrypt hashing with entropy checks.
 - **Token Management:** Blacklisting of tokens on logout prevents reuse.
 - **Secrets:** Application verifies entropy of JWT_SECRET on startup.
 - **Access Control:** Admin-only routes are properly guarded by Claims extraction and role checks.
