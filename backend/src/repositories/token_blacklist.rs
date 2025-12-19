@@ -1,11 +1,14 @@
 use crate::db::DbPool;
 use sqlx;
 
+/// Adds a JWT to the blacklist to invalidate it before its natural expiration.
+/// Used during logout or security revocation.
 pub async fn blacklist_token(
     pool: &DbPool,
     token: &str,
     expires_at: i64,
 ) -> Result<(), sqlx::Error> {
+    // Convert unix timestamp to RFC3339 for ISO-standard DB storage
     let expires_at_str = chrono::DateTime::<chrono::Utc>::from(
         std::time::UNIX_EPOCH + std::time::Duration::from_secs(expires_at as u64),
     )

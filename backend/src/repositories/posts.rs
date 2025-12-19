@@ -3,6 +3,7 @@ use crate::models::{CreateSitePostRequest, SitePost, UpdateSitePostRequest};
 use crate::repositories::common::validate_slug;
 use sqlx;
 
+/// Lists all posts belonging to a specific page (admin view).
 pub async fn list_site_posts_for_page(
     pool: &DbPool,
     page_id: &str,
@@ -18,6 +19,7 @@ pub async fn list_site_posts_for_page(
     .await
 }
 
+/// Lists all published posts for a specific page, sorted by order index and publication date.
 pub async fn list_published_posts_for_page(
     pool: &DbPool,
     page_id: &str,
@@ -59,17 +61,20 @@ pub async fn get_site_post_by_id(pool: &DbPool, id: &str) -> Result<Option<SiteP
     .await
 }
 
+/// Creates a new blog post for a parent page.
 pub async fn create_site_post(
     pool: &DbPool,
     page_id: &str,
     payload: CreateSitePostRequest,
 ) -> Result<SitePost, sqlx::Error> {
+    // Validate slug hygiene
     validate_slug(&payload.slug)?;
 
     let id = uuid::Uuid::new_v4().to_string();
     let excerpt = payload.excerpt.unwrap_or_default();
     let order_index = payload.order_index.unwrap_or(0);
 
+    // Insert record
     sqlx::query(
         "INSERT INTO site_posts (id, page_id, title, slug, excerpt, content_markdown, is_published, allow_comments, published_at, order_index)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -87,11 +92,13 @@ pub async fn create_site_post(
     .execute(pool)
     .await?;
 
+    // Return created state
     get_site_post_by_id(pool, &id)
         .await?
         .ok_or_else(|| sqlx::Error::RowNotFound)
 }
 
+/// Updates an existing blog post using field merging.
 pub async fn update_site_post(
     pool: &DbPool,
     id: &str,
@@ -101,35 +108,22 @@ pub async fn update_site_post(
         validate_slug(slug)?;
     }
 
+    // Load existing
     let mut existing = get_site_post_by_id(pool, id)
         .await?
         .ok_or(sqlx::Error::RowNotFound)?;
 
-    if let Some(title) = payload.title {
-        existing.title = title;
-    }
-    if let Some(slug) = payload.slug {
-        existing.slug = slug;
-    }
-    if let Some(excerpt) = payload.excerpt {
-        existing.excerpt = excerpt;
-    }
-    if let Some(content) = payload.content_markdown {
-        existing.content_markdown = content;
-    }
-    if let Some(is_published) = payload.is_published {
-        existing.is_published = is_published;
-    }
-    if let Some(allow_comments) = payload.allow_comments {
-        existing.allow_comments = allow_comments;
-    }
-    if let Some(published_at) = payload.published_at {
-        existing.published_at = published_at;
-    }
-    if let Some(order_index) = payload.order_index {
-        existing.order_index = order_index;
-    }
+    // Merge changes
+    if let Some(title) = payload.title { existing.title = title; }
+    if let Some(slug) = payload.slug { existing.slug = slug; }
+    if let Some(excerpt) = payload.excerpt { existing.excerpt = excerpt; }
+    if let Some(content) = payload.content_markdown { existing.content_markdown = content; }
+    if let Some(is_published) = payload.is_published { existing.is_published = is_published; }
+    if let Some(allow_comments) = payload.allow_comments { existing.allow_comments = allow_comments; }
+    if let Some(published_at) = payload.published_at { existing.published_at = published_at; }
+    if let Some(order_index) = payload.order_index { existing.order_index = order_index; }
 
+    // Save back to DB
     sqlx::query(
         "UPDATE site_posts
          SET title = ?, slug = ?, excerpt = ?, content_markdown = ?, is_published = ?, allow_comments = ?, published_at = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP

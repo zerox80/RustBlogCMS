@@ -1,3 +1,13 @@
+//! Image Upload HTTP Handlers
+//!
+//! This module provides secure image upload capabilities with several safeguards:
+//! - RBAC: Admin role required
+//! - File size limits (10MB)
+//! - Filename extension whitelisting
+//! - Magic byte (MIME) inference to prevent extension spoofing
+//! - Atomic-like file writing with cleanup on failure
+//! - UUID-based filename generation to prevent collisions and path injection
+
 use crate::{
     security::auth,
     models::{ErrorResponse, UploadResponse},
@@ -11,14 +21,18 @@ use std::path::PathBuf;
 use tokio::fs;
 use uuid::Uuid;
 
-const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
+/// Maximum allowed file size for uploads (10 megabytes)
+const MAX_FILE_SIZE: usize = 10 * 1024 * 1024;
+/// List of allowed file extensions for image uploads
 const ALLOWED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp"];
 
+/// Processes a multipart form-data request to upload an image.
+/// Implements strict security validations before saving to disk.
 pub async fn upload_image(
     claims: auth::Claims,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // Ensure user is admin
+    // SECURITY: Ensure only authorized administrators can upload assets
     if claims.role != "admin" {
         return Err((
             StatusCode::FORBIDDEN,
@@ -28,6 +42,7 @@ pub async fn upload_image(
         ));
     }
 
+    // Iterate through multipart fields
     while let Some(mut field) = multipart.next_field().await.map_err(|err| {
         (
             StatusCode::BAD_REQUEST,
@@ -36,18 +51,20 @@ pub async fn upload_image(
             }),
         )
     })? {
+        // We only care about fields named "file"
         let name = field.name().unwrap_or("").to_string();
 
         if name == "file" {
             let file_name = field.file_name().unwrap_or("unknown").to_string();
 
-            // Simple extension validation
+            // Extract and normalize the file extension
             let ext = std::path::Path::new(&file_name)
                 .extension()
                 .and_then(|os_str| os_str.to_str())
                 .unwrap_or("")
                 .to_lowercase();
 
+            // VALIDATION: Extension must be in our whitelist
             if !ALLOWED_EXTENSIONS.contains(&ext.as_str()) {
                 return Err((
                     StatusCode::BAD_REQUEST,
@@ -57,7 +74,7 @@ pub async fn upload_image(
                 ));
             }
 
-            // Get first chunk to validate magic bytes
+            // Peek at the first chunk of data to perform MIME type detection (magic bytes)
             let first_chunk = match field.chunk().await.map_err(|err| {
                  tracing::error!("Failed to read first chunk: {}", err);
                 (
@@ -76,18 +93,15 @@ pub async fn upload_image(
                 )),
             };
 
-            // Validate file content using magic bytes
+            // VALIDATION: Verify the file content matches an allowed image type
             if let Some(kind) = infer::get(&first_chunk) {
                 let detected_ext = kind.extension();
-                 // Verify the detected extension matches the file extension (prevent spoofing)
+                // Normalize "jpeg" vs "jpg" for comparison
                 let normalized_detected = if detected_ext == "jpeg" { "jpg" } else { detected_ext };
                 let normalized_ext = if ext == "jpeg" { "jpg" } else { ext.as_str() };
 
-                // Allow matches where magic bytes might be generic but extension is specific and allowed, 
-                // but primarily check for obvious mismatches if detected extension is in our allowed list.
-                // If infer detects something NOT in allowed list, reject.
-                // If infer detects something in allowed list but different from extension, reject.
-                
+                // SECURITY: Reject if the content type (magic bytes) represents an extension we don't allow,
+                // or if it obviously contradicts the provided file extension.
                 if ALLOWED_EXTENSIONS.contains(&normalized_detected) && normalized_detected != normalized_ext {
                      return Err((
                         StatusCode::BAD_REQUEST,
@@ -100,9 +114,7 @@ pub async fn upload_image(
                     ));
                 }
             } else {
-                 // Could not infer type, but extension is allowed. 
-                 // We might strictly require inference, but for now let's issue a warning or allow if it's a known text issue?
-                 // For images, infer should usually work.
+                 // REJECT if we can't determine what it is; this is safer than allowing mystery blobs.
                  return Err((
                     StatusCode::BAD_REQUEST,
                     Json(ErrorResponse {
@@ -111,12 +123,15 @@ pub async fn upload_image(
                 ));
             }
 
+            // Generate a random ID for the filename to prevent path injection and name collisions
             let id = Uuid::new_v4();
             let new_filename = format!("{}.{}", id, ext);
+            
+            // Resolve the upload directory from environment or default to local "uploads"
             let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string());
             let upload_path_base = PathBuf::from(upload_dir);
              
-            // Ensure uploads directory exists
+            // BOOTSTRAP: Ensure the physical directory exists
             if !upload_path_base.exists() {
                 fs::create_dir_all(&upload_path_base).await.map_err(|err| {
                     (
@@ -130,7 +145,7 @@ pub async fn upload_image(
 
             let filepath = upload_path_base.join(&new_filename);
 
-            // Create file and write first chunk
+            // Open the file for writing (using async tokio file)
             let mut file = match tokio::fs::File::create(&filepath).await {
                 Ok(file) => file,
                 Err(e) => {
@@ -144,11 +159,12 @@ pub async fn upload_image(
                 }
             };
 
-            use tokio::io::AsyncWriteExt; // Import trait for write_all
+            use tokio::io::AsyncWriteExt; // Required for write_all and flush
             
+            // Write the first chunk (the one we peeked at for inference)
             if let Err(e) = file.write_all(&first_chunk).await {
                  tracing::error!("Failed to write first chunk to {}: {}", filepath.display(), e);
-                 let _ = tokio::fs::remove_file(&filepath).await;
+                 let _ = tokio::fs::remove_file(&filepath).await; // Cleanup partially written file
                  return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
@@ -159,12 +175,13 @@ pub async fn upload_image(
 
             let mut total_size = first_chunk.len();
 
+            // Stream the remaining chunks of the multipart field
             loop {
                 let chunk_option = match field.chunk().await {
                     Ok(opt) => opt,
                     Err(err) => {
                         tracing::error!("Failed to read chunk: {}", err);
-                        let _ = tokio::fs::remove_file(&filepath).await;
+                        let _ = tokio::fs::remove_file(&filepath).await; // Cleanup on network/parsing error
                          return Err((
                             StatusCode::INTERNAL_SERVER_ERROR,
                             Json(ErrorResponse {
@@ -174,11 +191,13 @@ pub async fn upload_image(
                     }
                 };
 
+                // Check if we hit the end of the field
                 let chunk = match chunk_option {
                     Some(c) => c,
                     None => break,
                 };
 
+                // ENFORCEMENT: Track total size to prevent Disk Space exhaustion (DoS)
                 total_size += chunk.len();
                 if total_size > MAX_FILE_SIZE {
                     let _ = tokio::fs::remove_file(&filepath).await;
@@ -190,9 +209,10 @@ pub async fn upload_image(
                     ));
                 }
                 
+                // Write chunk to disk
                 if let Err(e) = file.write_all(&chunk).await {
                      tracing::error!("Failed to write chunk to {}: {}", filepath.display(), e);
-                     let _ = tokio::fs::remove_file(&filepath).await;
+                     let _ = tokio::fs::remove_file(&filepath).await; // Cleanup on disk error
                      return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(ErrorResponse {
@@ -202,6 +222,7 @@ pub async fn upload_image(
                 }
             }
 
+            // Sync buffers to disk
             if let Err(e) = file.flush().await {
                  tracing::error!("Failed to flush file {}: {}", filepath.display(), e);
                  let _ = tokio::fs::remove_file(&filepath).await;
@@ -213,14 +234,17 @@ pub async fn upload_image(
                 ));
             }
 
+            // SUCCESS path
             tracing::info!("Successfully uploaded image: {}", filepath.display());
 
             return Ok(Json(UploadResponse {
+                // Return the public-facing URL
                 url: format!("/uploads/{}", new_filename),
             }));
         }
     }
 
+    // Default error if for some reason the "file" field was missing
     Err((
         StatusCode::BAD_REQUEST,
         Json(ErrorResponse {

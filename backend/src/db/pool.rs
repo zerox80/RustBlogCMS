@@ -82,8 +82,11 @@ pub async fn create_pool() -> Result<DbPool, sqlx::Error> {
 }
 
 fn ensure_sqlite_directory(database_url: &str) -> Result<(), sqlx::Error> {
+    // Step 1: Extract file path from connection string
     if let Some(db_path) = sqlite_file_path(database_url) {
+        // Step 2: Get parent directory
         if let Some(parent) = db_path.parent() {
+            // Step 3: Create directory if not current working dir
             if parent != Path::new("") && parent != Path::new(".") {
                 if let Err(err) = std::fs::create_dir_all(parent) {
                     tracing::error!(error = %err, path = ?parent, "Failed to create SQLite directory");
@@ -100,20 +103,25 @@ fn ensure_sqlite_directory(database_url: &str) -> Result<(), sqlx::Error> {
 fn sqlite_file_path(database_url: &str) -> Option<PathBuf> {
     const PREFIX: &str = "sqlite:";
 
+    // Verify scheme
     if !database_url.starts_with(PREFIX) {
         return None;
     }
 
+    // Extract path part after prefix
     let mut remainder = &database_url[PREFIX.len()..];
 
+    // Reject memory-only databases or empty paths for directory creation
     if remainder.starts_with(':') || remainder.is_empty() {
         return None;
     }
 
+    // Strip optional query parameters (e.g., ?mode=rwc)
     if let Some((path_part, _)) = remainder.split_once('?') {
         remainder = path_part;
     }
 
+    // Normalize slashes for mixed OS environments
     let normalized = if remainder.starts_with("///") {
         &remainder[2..]
     } else if remainder.starts_with("//") {

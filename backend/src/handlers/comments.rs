@@ -30,20 +30,27 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use html_escape;
 
+/// Request payload for creating a comment
 #[derive(Deserialize)]
 pub struct CreateCommentRequest {
+    /// The actual comment text
     content: String,
-    author: Option<String>, // For guest comments
+    /// The author's name (optional for guests)
+    author: Option<String>,
 }
 
+/// Query parameters for listing comments with pagination and sorting
 #[derive(Deserialize)]
 pub struct CommentListQuery {
+    /// Maximum number of comments to return (default: 50)
     #[serde(default = "default_comment_limit")]
     limit: i64,
 
+    /// Number of comments to skip for pagination
     #[serde(default)]
     offset: i64,
 
+    /// Sorting criteria (e.g., "created_at:desc")
     #[serde(default)]
     sort: Option<String>,
 }
@@ -52,18 +59,30 @@ fn default_comment_limit() -> i64 {
     50
 }
 
+/// Local DTO for comment responses, mapping from the database model
 #[derive(Serialize, sqlx::FromRow)]
 pub struct Comment {
+    /// Unique identifier for the comment
     pub id: String,
+    /// Optional parent tutorial ID
     pub tutorial_id: Option<String>,
+    /// Optional parent post ID
     pub post_id: Option<String>,
+    /// Display name of the author
     pub author: String,
+    /// The comment content (HTML escaped)
     pub content: String,
+    /// RFC3339 formatted creation timestamp
     pub created_at: String,
+    /// Total number of votes/likes
     pub votes: i64,
+    /// Whether the comment was posted by an administrator
     pub is_admin: bool,
 }
 
+/// Validates and sanitizes comment content
+///
+/// Trims whitespace, checks length constraints, and escapes HTML characters.
 fn sanitize_comment_content(raw: &str) -> Result<String, (StatusCode, Json<ErrorResponse>)> {
     let trimmed = raw.trim();
 
@@ -90,6 +109,9 @@ fn sanitize_comment_content(raw: &str) -> Result<String, (StatusCode, Json<Error
     Ok(sanitized)
 }
 
+/// Handler for listing comments on a tutorial
+///
+/// Returns a paginated list of comments for the specified tutorial.
 pub async fn list_comments(
     State(pool): State<DbPool>,
     Path(tutorial_id): Path<String>,
@@ -158,6 +180,9 @@ pub async fn list_comments(
     Ok(Json(response_comments))
 }
 
+/// Handler for creating a comment on a tutorial
+///
+/// Validates the tutorial existence and delegates to internal creation logic.
 pub async fn create_comment(
     State(pool): State<DbPool>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -193,6 +218,9 @@ pub async fn create_comment(
     create_comment_internal(pool, Some(tutorial_id), None, payload, None, addr.ip().to_string()).await
 }
 
+/// Handler for listing comments on a blog post
+///
+/// Returns a paginated list of comments for the specified post.
 pub async fn list_post_comments(
     State(pool): State<DbPool>,
     Path(post_id): Path<String>,
@@ -258,6 +286,9 @@ pub async fn list_post_comments(
     Ok(Json(response_comments))
 }
 
+/// Handler for creating a comment on a blog post
+///
+/// Supports both authenticated users and guest comments.
 pub async fn create_post_comment(
     State(pool): State<DbPool>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -290,6 +321,9 @@ pub async fn create_post_comment(
     create_comment_internal(pool, None, Some(post_id), payload, claims, addr.ip().to_string()).await
 }
 
+/// Internal logic for creating a comment on either a tutorial or a post
+///
+/// Handles author resolution (admin/user vs guest), rate limiting, and database insertion.
 async fn create_comment_internal(
     pool: DbPool,
     tutorial_id: Option<String>,
@@ -435,6 +469,9 @@ async fn create_comment_internal(
     Ok(Json(response_comment))
 }
 
+/// Handler for deleting a comment
+///
+/// Requires the user to be either an administrator or the original author.
 pub async fn delete_comment(
     claims: auth::Claims,
     State(pool): State<DbPool>,
@@ -510,6 +547,9 @@ pub async fn delete_comment(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Handler for voting on a comment
+///
+/// Authenticated users can upvote/downvote comments. Prevention logic ensures one vote per user.
 pub async fn vote_comment(
     State(pool): State<DbPool>,
     claims: auth::Claims,

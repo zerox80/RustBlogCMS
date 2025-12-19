@@ -2,6 +2,7 @@ use crate::db::DbPool;
 use crate::models::Comment;
 use sqlx;
 
+/// Fetches a paginated list of comments for a specific tutorial, with optional sorting.
 pub async fn list_comments(
     pool: &DbPool,
     tutorial_id: &str,
@@ -9,6 +10,7 @@ pub async fn list_comments(
     offset: i64,
     sort: Option<&str>,
 ) -> Result<Vec<Comment>, sqlx::Error> {
+    // Dynamic query building for different sort orders
     let mut query_builder = sqlx::QueryBuilder::new(
         "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin FROM comments WHERE tutorial_id = "
     );
@@ -139,15 +141,19 @@ pub async fn check_vote_exists(
     Ok(exists.is_some())
 }
 
+/// Records a vote for a comment and increments the total vote count in a transaction.
 pub async fn add_vote(pool: &DbPool, comment_id: &str, voter_id: &str) -> Result<(), sqlx::Error> {
+    // Audit vote within a transaction to ensure consistency between vote count and records
     let mut tx = pool.begin().await?;
 
+    // Step 1: Record unique voter ID to prevent multiple votes
     sqlx::query("INSERT INTO comment_votes (comment_id, voter_id) VALUES (?, ?)")
         .bind(comment_id)
         .bind(voter_id)
         .execute(&mut *tx)
         .await?;
 
+    // Step 2: Increment cumulative counter on the comment record
     sqlx::query("UPDATE comments SET votes = votes + 1 WHERE id = ?")
         .bind(comment_id)
         .execute(&mut *tx)

@@ -9,6 +9,11 @@ fn slug_regex() -> &'static Regex {
 }
 
 /// Validates a slug for use in URLs.
+/// 
+/// Enforces:
+/// - Maximum length of 100 characters.
+/// - Lowercase alphanumeric characters.
+/// - Single hyphens as separators (no leading/trailing hyphens).
 pub fn validate_slug(slug: &str) -> Result<(), sqlx::Error> {
     const MAX_SLUG_LENGTH: usize = 100;
 

@@ -1,5 +1,9 @@
 use sqlx::{self, Sqlite};
 
+/// Retrieves a specific metadata value by key.
+///
+/// Accepts any type that implements `Executor`, allowing calls within
+/// transactions or from a standard connection pool.
 pub async fn get_metadata<'e, E>(executor: E, key: &str) -> Result<Option<String>, sqlx::Error>
 where
     E: sqlx::Executor<'e, Database = Sqlite>,
@@ -12,6 +16,8 @@ where
     Ok(result.map(|(v,)| v))
 }
 
+/// Persists or updates a metadata key-value pair.
+/// Uses an UPSERT pattern to ensure key uniqueness.
 pub async fn set_metadata<'e, E>(executor: E, key: &str, value: &str) -> Result<(), sqlx::Error>
 where
     E: sqlx::Executor<'e, Database = Sqlite>,

@@ -371,12 +371,12 @@ where
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // Check if claims already extracted by middleware
+        // Step 1: Check cache. If auth middleware already ran, claims are in extensions.
         if let Some(claims) = parts.extensions.get::<Claims>() {
             return Ok(claims.clone());
         }
 
-        // Extract token from Authorization header or cookie
+        // Step 2: Extract raw token from standard locations (Header/Cookie).
         let token = extract_token(&parts.headers).ok_or_else(|| {
             (
                 StatusCode::UNAUTHORIZED,
@@ -384,11 +384,11 @@ where
             )
         })?;
 
-        // Verify and decode the token
+        // Step 3: Verify cryptographic signature and expiration.
         let claims = verify_jwt(&token)
             .map_err(|e| (StatusCode::UNAUTHORIZED, format!("Invalid token: {}", e)))?;
 
-        // Check if token is blacklisted
+        // Step 4: Check if token has been revoked (Logout/Blacklist).
         let pool = DbPool::from_ref(state);
         let is_blacklisted =
             crate::repositories::token_blacklist::is_token_blacklisted(&pool, &token)
@@ -408,6 +408,8 @@ where
             ));
         }
 
+        // Cache result for downstream handlers
+        parts.extensions.insert(claims.clone());
         Ok(claims)
     }
 }
@@ -581,22 +583,23 @@ where
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // Check if claims already extracted by middleware
+        // Step 1: Try cache (middleware/previous extractor)
         if let Some(claims) = parts.extensions.get::<Claims>() {
             return Ok(OptionalClaims(Some(claims.clone())));
         }
 
-        // Extract token from Authorization header or cookie
+        // Step 2: Try extraction. If missing, this matches the 'Anonymous' state.
         let token = match extract_token(&parts.headers) {
             Some(token) => token,
             None => return Ok(OptionalClaims(None)),
         };
 
-        // Verify and decode the token
+        // Step 3: If token exists, it MUST be valid. Invalid tokens for optional endpoints
+        // still result in 401 to prevent deceptive client state.
         let claims = verify_jwt(&token)
             .map_err(|e| (StatusCode::UNAUTHORIZED, format!("Invalid token: {}", e)))?;
 
-        // Check if token is blacklisted
+        // Step 4: Revocation check
         let pool = DbPool::from_ref(state);
         let is_blacklisted =
             crate::repositories::token_blacklist::is_token_blacklisted(&pool, &token)
@@ -616,6 +619,8 @@ where
             ));
         }
 
+        // Cache result
+        parts.extensions.insert(claims.clone());
         Ok(OptionalClaims(Some(claims)))
     }
 }

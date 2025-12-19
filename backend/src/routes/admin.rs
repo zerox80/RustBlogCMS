@@ -10,6 +10,16 @@ use governor::middleware::NoOpMiddleware;
 
 const ADMIN_BODY_LIMIT: usize = 8 * 1024 * 1024;
 
+/// Admin Route Module
+/// 
+/// Defines all endpoints requiring administrative privileges.
+/// 
+/// # Middleware Stacking (Critical)
+/// Layers are applied from bottom to top:
+/// 1. `GovernorLayer`: Prevents brute force on admin actions.
+/// 2. `RequestBodyLimitLayer`: Prevents DoS via large payloads (8MB cap for uploads).
+/// 3. `auth_middleware`: Ensures a valid JWT is present.
+/// 4. `enforce_csrf`: Validates session integrity (Double-Submit Cookie).
 pub fn routes(pool: DbPool, rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>) -> Router<DbPool> {
     Router::new()
         .route("/api/tutorials", post(tutorials::create_tutorial))

@@ -1,3 +1,8 @@
+//! Site Posts HTTP Handlers
+//!
+//! This module provides an API for managing blog posts associated with site pages.
+//! It includes full CRUD operations, validation, and administrative controls.
+
 use crate::{
     security::auth, db,
     models::{
@@ -13,13 +18,19 @@ use axum::{
 };
 use sqlx;
 
+/// Maximum length for a post title (200 characters)
 const MAX_TITLE_LEN: usize = 200;
+/// Maximum length for a URL-friendly slug (100 characters)
 const MAX_SLUG_LEN: usize = 100;
+/// Maximum length for a post excerpt (500 characters)
 const MAX_EXCERPT_LEN: usize = 500;
+/// Maximum length for the markdown content of a post (100KB)
 const MAX_CONTENT_LEN: usize = 100_000;
 
+/// Helper to ensure the current user has administrative privileges.
 fn ensure_admin(claims: &auth::Claims) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
     if claims.role != "admin" {
+        // Reject if role is not admin
         Err((
             StatusCode::FORBIDDEN,
             Json(ErrorResponse {
@@ -31,22 +42,28 @@ fn ensure_admin(claims: &auth::Claims) -> Result<(), (StatusCode, Json<ErrorResp
     }
 }
 
+/// Maps SQLx database errors to user-friendly HTTP responses.
+/// Handles unique constraint violations and not-found scenarios.
 fn map_sqlx_error(err: sqlx::Error, context: &str) -> (StatusCode, Json<ErrorResponse>) {
     match err {
+        // 404 Not Found
         sqlx::Error::RowNotFound => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {
                 error: format!("{context} not found"),
             }),
         ),
+        // 400 Bad Request
         sqlx::Error::Protocol(e) => (
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
                 error: e.to_string(),
             }),
         ),
+        // Database specific errors (e.g. unique constraints)
         sqlx::Error::Database(db_err) => {
             if db_err.is_unique_violation() {
+                // 409 Conflict
                 (
                     StatusCode::CONFLICT,
                     Json(ErrorResponse {
@@ -59,6 +76,7 @@ fn map_sqlx_error(err: sqlx::Error, context: &str) -> (StatusCode, Json<ErrorRes
                     }),
                 )
             } else {
+                // 500 Internal Server Error
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
@@ -67,6 +85,7 @@ fn map_sqlx_error(err: sqlx::Error, context: &str) -> (StatusCode, Json<ErrorRes
                 )
             }
         }
+        // General unexpected errors
         other => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -76,6 +95,7 @@ fn map_sqlx_error(err: sqlx::Error, context: &str) -> (StatusCode, Json<ErrorRes
     }
 }
 
+/// Maps a database SitePost record to a public response structure.
 fn map_post(record: crate::models::SitePost) -> SitePostResponse {
     SitePostResponse {
         id: record.id,
@@ -93,6 +113,7 @@ fn map_post(record: crate::models::SitePost) -> SitePostResponse {
     }
 }
 
+/// Normalizes a slug (trims and converts to lowercase).
 fn sanitize_slug(slug: &str) -> String {
     slug.trim().to_lowercase()
 }
@@ -162,6 +183,8 @@ fn validate_post_fields(
     Ok(())
 }
 
+/// Handler for listing all posts belonging to a specific site page.
+/// Admin-only.
 pub async fn list_posts_for_page(
     claims: auth::Claims,
     State(pool): State<db::DbPool>,
@@ -193,6 +216,8 @@ pub async fn list_posts_for_page(
     Ok(Json(SitePostListResponse { items }))
 }
 
+/// Handler to retrieve a single site post by its ID.
+/// Admin-only.
 pub async fn get_post(
     claims: auth::Claims,
     State(pool): State<db::DbPool>,
@@ -215,6 +240,8 @@ pub async fn get_post(
     Ok(Json(map_post(post)))
 }
 
+/// Handler to create a new site post for a specific page.
+/// Admin-only, protected by CSRF.
 pub async fn create_post(
     claims: auth::Claims,
     _csrf: crate::security::csrf::CsrfGuard,
@@ -275,6 +302,8 @@ pub async fn create_post(
     Ok(Json(map_post(record)))
 }
 
+/// Handler to update an existing site post.
+/// Admin-only, protected by CSRF. Supports partial updates via UpdateSitePostRequest.
 pub async fn update_post(
     claims: auth::Claims,
     _csrf: crate::security::csrf::CsrfGuard,
@@ -356,6 +385,8 @@ pub async fn update_post(
     Ok(Json(map_post(record)))
 }
 
+/// Handler to permanently delete a site post.
+/// Admin-only, protected by CSRF.
 pub async fn delete_post(
     claims: auth::Claims,
     _csrf: crate::security::csrf::CsrfGuard,

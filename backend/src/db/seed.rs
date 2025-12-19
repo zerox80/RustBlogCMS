@@ -5,6 +5,7 @@ pub async fn seed_site_content_tx(
     tx: &mut Transaction<'_, Sqlite>,
 ) -> Result<(), sqlx::Error> {
     for (section, content) in default_site_content() {
+        // Step 1: Check if this content section already exists (Idempotency)
         let exists: Option<(String,)> =
             sqlx::query_as("SELECT section FROM site_content WHERE section = ?")
                 .bind(section)
@@ -15,6 +16,7 @@ pub async fn seed_site_content_tx(
             continue;
         }
 
+        // Step 2: Persist the default JSON content
         sqlx::query("INSERT INTO site_content (section, content_json) VALUES (?, ?)")
             .bind(section)
             .bind(content.to_string())

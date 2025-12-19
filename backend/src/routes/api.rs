@@ -6,6 +6,15 @@ use crate::db::DbPool;
 use std::sync::Arc;
 use governor::middleware::NoOpMiddleware;
 
+/// Public API Route Module
+/// 
+/// Defines all endpoints accessible to guests and public users.
+/// 
+/// # Security Policy
+/// - **Read Access**: Generally open, but rate-limited.
+/// - **Write Access**: Restricted to specific public actions (like voting/commenting) 
+///   which are protected by stricter rate limits.
+/// - **Static Assets**: Serves the `uploads` directory safely via `tower-http`.
 pub fn routes(
     upload_dir: String,
     admin_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,

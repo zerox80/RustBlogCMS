@@ -2,12 +2,17 @@ use crate::db::DbPool;
 use crate::models::User;
 use sqlx::{self, FromRow};
 
+/// Represents a snapshot of failed login attempts for a specific user.
+/// Used by the auth handler to enforce temporary account lockouts.
 #[derive(Debug, FromRow, Clone)]
 pub struct LoginAttempt {
+    /// Number of consecutive failed attempts.
     pub fail_count: i64,
+    /// ISO 8601 timestamp string indicating when the block expires.
     pub blocked_until: Option<String>,
 }
 
+/// Retrieves a full user record by username, including the secure password hash.
 pub async fn get_user_by_username(
     pool: &DbPool,
     username: &str,
@@ -30,6 +35,12 @@ pub async fn get_login_attempt(
     .await
 }
 
+/// Atomically increments the failure count and applies tiered blocking logic.
+/// 
+/// Blocking Strategy:
+/// - 3-4 Failures: Applies `short_block` duration.
+/// - 5+ Failures: Applies `long_block` duration.
+/// - Uses SQLite's UPSERT pattern for thread-safe counters.
 pub async fn record_failed_login(
     pool: &DbPool,
     username_hash: &str,

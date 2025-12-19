@@ -1,3 +1,10 @@
+//! Site Content HTTP Handlers
+//!
+//! This module provides an API to manage global, semi-static content sections
+//! of the website, such as header, footer, hero, and site metadata.
+//! Content is stored as JSON in the database, allowing for a flexible,
+//! schema-less landing page design.
+
 use crate::{
     security::auth, db,
     models::{
@@ -13,29 +20,33 @@ use axum::{
 use serde_json::Value;
 use std::collections::HashSet;
 
+/// Maximum size allowed for a single content section's JSON payload (5MB)
 const MAX_CONTENT_BYTES: usize = 5_000_000;
 
+/// A globally initialized set of section names that the API is allowed to manage.
+/// Prevents accidental or malicious creation of arbitrary content sections.
 fn allowed_sections() -> &'static HashSet<&'static str> {
     use std::sync::OnceLock;
 
     static ALLOWED: OnceLock<HashSet<&'static str>> = OnceLock::new();
     ALLOWED.get_or_init(|| {
         [
-            "hero",
-            "tutorial_section",
-            "header",
-            "footer",
-            "site_meta",
-            "stats",
-            "cta_section",
-            "settings",
-            "login",
+            "hero",              // Landing page hero
+            "tutorial_section",  // Tutorial overview header
+            "header",            // Main navigation
+            "footer",            // Footer links/info
+            "site_meta",         // SEO titles/description
+            "stats",             // Numbers/stats display
+            "cta_section",       // Call to action
+            "settings",          // System-wide toggles
+            "login",             // Custom login page text
         ]
         .into_iter()
         .collect()
     })
 }
 
+/// Validates if a section name is within the whitelist of allowed sections.
 fn validate_section(section: &str) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
     if allowed_sections().contains(section) {
         Ok(())
@@ -49,6 +60,8 @@ fn validate_section(section: &str) -> Result<(), (StatusCode, Json<ErrorResponse
     }
 }
 
+/// Dispatches validation to section-specific structure checkers.
+/// Ensures the incoming JSON follows the expected format for that section.
 fn validate_content_structure(
     section: &str,
     content: &Value,
@@ -77,15 +90,17 @@ fn validate_content_structure(
     })
 }
 
+/// Validates the site metadata (SEO) structure.
 fn validate_site_meta_structure(content: &Value) -> Result<(), &'static str> {
     let obj = content.as_object().ok_or("Expected JSON object")?;
+    // Ensure basic SEO fields are present
     if !obj.contains_key("title") {
         return Err("Missing required field 'title'");
     }
     if !obj.contains_key("description") {
         return Err("Missing required field 'description'");
     }
-    // keywords is optional but often good to check type if present
+    // Perform type checking on optional fields
     if let Some(kw) = obj.get("keywords") {
         if !kw.is_string() {
              return Err("Field 'keywords' must be a string");
@@ -94,8 +109,10 @@ fn validate_site_meta_structure(content: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
+/// Validates the hero section structure.
 fn validate_hero_structure(content: &Value) -> Result<(), &'static str> {
     let obj = content.as_object().ok_or("Expected JSON object")?;
+    // Hero needs a title and a list of feature highlights
     if !obj.contains_key("title") || !obj.contains_key("features") {
         return Err("Missing required fields 'title' or 'features'");
     }
@@ -105,6 +122,7 @@ fn validate_hero_structure(content: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
+/// Validates the tutorial overview section structure.
 fn validate_tutorial_section_structure(content: &Value) -> Result<(), &'static str> {
     let obj = content.as_object().ok_or("Expected JSON object")?;
     if !obj.contains_key("title") || !obj.contains_key("description") {
@@ -113,19 +131,22 @@ fn validate_tutorial_section_structure(content: &Value) -> Result<(), &'static s
     Ok(())
 }
 
+/// Validates the global header (navigation) structure.
 fn validate_header_structure(content: &Value) -> Result<(), &'static str> {
     let obj = content.as_object().ok_or("Expected JSON object")?;
+    // Must have brand info (logo/name) and a list of nav items
     if !obj.contains_key("brand") || !obj.contains_key("navItems") {
         return Err("Missing required fields 'brand' or 'navItems'");
     }
-    // Relaxed validation: we only check if navItems is an array.
-    // We do NOT strictly check if every item has a target, to allow saving work-in-progress.
+    
+    // Check if navItems is an array.
     if !obj.get("navItems").map(|v| v.is_array()).unwrap_or(false) {
         return Err("Field 'navItems' must be an array");
     }
     Ok(())
 }
 
+/// Validates the global footer structure.
 fn validate_footer_structure(content: &Value) -> Result<(), &'static str> {
     let obj = content.as_object().ok_or("Expected JSON object")?;
     if !obj.contains_key("brand") || !obj.contains_key("quickLinks") {
@@ -134,10 +155,10 @@ fn validate_footer_structure(content: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
+/// Validates global site settings structure.
 fn validate_settings_structure(content: &Value) -> Result<(), &'static str> {
     let obj = content.as_object().ok_or("Expected JSON object")?;
-    // We expect at least pdfEnabled, but we can be lenient or strict.
-    // Let's be strict about the type if it exists.
+    // Example: check for a boolean PDF toggle
     if let Some(val) = obj.get("pdfEnabled") {
         if !val.is_boolean() {
             return Err("Field 'pdfEnabled' must be a boolean");
@@ -146,25 +167,29 @@ fn validate_settings_structure(content: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
+/// Validates customizations for the login page.
 fn validate_login_structure(content: &Value) -> Result<(), &'static str> {
     let obj = content.as_object().ok_or("Expected JSON object")?;
-    // We can be lenient, but let's check for at least one expected field if we want strictness.
-    // For now, just ensuring it's an object is enough, or check for 'title'.
+    // Ensure the login page at least defines a welcome title
     if !obj.contains_key("title") {
         return Err("Missing required field 'title'");
     }
     Ok(())
 }
 
+/// Ensures the size of the serialized JSON doesn't exceed the safe threshold.
 fn validate_content_size(content: &Value) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
     match serde_json::to_string(content) {
+        // If length is within boundaries, accept it
         Ok(serialized) if serialized.len() <= MAX_CONTENT_BYTES => Ok(()),
+        // Otherwise, reject due to payload size
         Ok(_) => Err((
             StatusCode::PAYLOAD_TOO_LARGE,
             Json(ErrorResponse {
                 error: format!("Content too large (max {MAX_CONTENT_BYTES} bytes)"),
             }),
         )),
+        // Handle serialization errors
         Err(err) => Err((
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
@@ -174,9 +199,12 @@ fn validate_content_size(content: &Value) -> Result<(), (StatusCode, Json<ErrorR
     }
 }
 
+/// Maps a database content record to a public response structure.
+/// Involves decoding the stored JSON string back into a JSON object.
 fn map_record(
     record: crate::models::SiteContent,
 ) -> Result<SiteContentResponse, (StatusCode, Json<ErrorResponse>)> {
+    // Attempt to parse the stored string from the 'content_json' table column
     let content: Value = serde_json::from_str(&record.content_json).map_err(|err| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -186,6 +214,7 @@ fn map_record(
         )
     })?;
 
+    // Construct the response
     Ok(SiteContentResponse {
         section: record.section,
         content,
@@ -193,9 +222,11 @@ fn map_record(
     })
 }
 
+/// Handler to fetch all managed site content sections in bulk.
 pub async fn list_site_content(
     State(pool): State<db::DbPool>,
 ) -> Result<Json<SiteContentListResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Fetch all records from the site_content table
     let records = repositories::content::fetch_all_site_content(&pool)
         .await
         .map_err(|err| {
@@ -208,6 +239,7 @@ pub async fn list_site_content(
             )
         })?;
 
+    // Convert each record from string-based JSON to object-based JSON
     let mut items = Vec::with_capacity(records.len());
     for record in records {
         items.push(map_record(record)?);
@@ -216,12 +248,15 @@ pub async fn list_site_content(
     Ok(Json(SiteContentListResponse { items }))
 }
 
+/// Handler to fetch a single content section by its name.
 pub async fn get_site_content(
     State(pool): State<db::DbPool>,
     Path(section): Path<String>,
 ) -> Result<Json<SiteContentResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Security check: only allow pre-defined sections
     validate_section(&section)?;
 
+    // Retrieve from database
     let record = repositories::content::fetch_site_content_by_section(&pool, &section)
         .await
         .map_err(|err| {
@@ -234,6 +269,7 @@ pub async fn get_site_content(
             )
         })?
         .ok_or_else(|| {
+            // Section name is valid but no content exists yet
             (
                 StatusCode::NOT_FOUND,
                 Json(ErrorResponse {
@@ -242,15 +278,19 @@ pub async fn get_site_content(
             )
         })?;
 
+    // Map and return
     Ok(Json(map_record(record)?))
 }
 
+/// Handler to update or create a content section.
+/// Admin-only endpoint with strict validation on structure and size.
 pub async fn update_site_content(
     claims: auth::Claims,
     State(pool): State<db::DbPool>,
     Path(section): Path<String>,
     Json(payload): Json<UpdateSiteContentRequest>,
 ) -> Result<Json<SiteContentResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // RBAC: Verify user has 'admin' role
     if claims.role != "admin" {
         return Err((
             StatusCode::FORBIDDEN,
@@ -260,10 +300,12 @@ pub async fn update_site_content(
         ));
     }
 
-    validate_section(&section)?;
-    validate_content_size(&payload.content)?;
-    validate_content_structure(&section, &payload.content)?;
+    // Comprehensive validation
+    validate_section(&section)?;                // Whitelist check
+    validate_content_size(&payload.content)?;    // Size sanity check
+    validate_content_structure(&section, &payload.content)?; // Format correctness check
 
+    // Upsert (Insert or Update) in database
     let record = repositories::content::upsert_site_content(&pool, &section, &payload.content)
         .await
         .map_err(|err| {
@@ -276,6 +318,7 @@ pub async fn update_site_content(
             )
         })?;
 
+    // Return the updated state
     Ok(Json(map_record(record)?))
 }
 

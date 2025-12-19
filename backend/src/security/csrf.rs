@@ -480,7 +480,7 @@ where
     type Rejection = (StatusCode, Json<ErrorResponse>);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // Skip CSRF validation for safe HTTP methods
+        // Step 1: Method Filter. CSRF is only required for state-changing operations.
         if matches!(
             parts.method,
             Method::GET | Method::HEAD | Method::OPTIONS | Method::TRACE
@@ -488,9 +488,7 @@ where
             return Ok(Self);
         }
 
-        // Ensure user is authenticated by checking existing claims or lazily extracting them
-        // For mixed endpoints (like comments) that allow both auth and guest, we only enforce CSRF
-        // if the user is actually authenticated.
+        // Step 2: Authenticated Check. CSRF protects sessions, so we first check the user's identity.
         let claims_result = if let Some(existing) = parts.extensions.get::<auth::Claims>() {
             Ok(existing.clone())
         } else {
@@ -499,21 +497,17 @@ where
 
         let claims = match claims_result {
             Ok(claims) => {
-                // User is authenticated, so we MUST enforce CSRF
+                // User is logged in -> Enforce strict CSRF checks.
                 parts.extensions.insert(claims.clone());
                 claims
             }
             Err(_) => {
-                // User is NOT authenticated (Guest) or token is invalid.
-                // In this case, we skip CSRF validation because:
-                // 1. Guests don't have a session to protect
-                // 2. Guests don't have a username to bind the token to
-                // 3. Invalid tokens will be handled by the route handler (treated as guest or rejected)
+                // Anonymous user -> No session to hijack via CSRF.
                 return Ok(Self);
             }
         };
 
-        // Extract CSRF token from HTTP header
+        // Step 3: Extract tokens from both submission channels.
         let header_value = parts
             .headers
             .get(HeaderName::from_static(CSRF_HEADER_NAME))
@@ -527,7 +521,6 @@ where
                 )
             })?;
 
-        // Extract CSRF token from cookie
         let jar = CookieJar::from_headers(&parts.headers);
         let cookie = jar.get(CSRF_COOKIE_NAME).ok_or_else(|| {
             (
@@ -538,7 +531,7 @@ where
             )
         })?;
 
-        // Verify header and cookie tokens match
+        // Step 4: Double-Submit Validation. Ensure the tokens match.
         if cookie.value() != header_value {
             return Err((
                 StatusCode::FORBIDDEN,
@@ -548,7 +541,7 @@ where
             ));
         }
 
-        // Perform full token validation
+        // Step 5: Master Validation. Verify signature, expiration, and user binding.
         validate_csrf_token(header_value, &claims.sub)
             .map_err(|err| (StatusCode::FORBIDDEN, Json(ErrorResponse { error: err })))?;
 

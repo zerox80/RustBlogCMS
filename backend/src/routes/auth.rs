@@ -19,8 +19,11 @@ pub fn routes() -> Router<DbPool> {
     );
 
     Router::new()
+        // Core Identity Endpoints
         .route("/api/auth/login", post(auth::login))
         .route("/api/auth/logout", post(auth::logout))
+        
+        // System-wide Protections
         .layer(RequestBodyLimitLayer::new(LOGIN_BODY_LIMIT))
         .layer(GovernorLayer::new(rate_limit_config))
 }

@@ -1,40 +1,32 @@
+//! Authentication Middleware Layer
+//!
+//! This module provides the primary filter for protecting API routes.
+//! It acts as a gatekeeper, ensuring every request to a protected resource 
+//! carries a valid, non-revoked JWT token.
+//!
+//! # Extractor Logic
+//! The middleware doesn't just block unauthorized requests; it also 
+//! extracts identity information (Claims) and places it into Axum's
+//! request extensions. This allows downstream handlers to simply
+//! use the `Claims` extractor to identify the user and their role.
+
 use crate::{security::auth, repositories};
 use axum::{http::StatusCode, Json};
 
-/// AXUM middleware for protecting routes with authentication.
-///
-/// This middleware validates the JWT token and adds the claims to the
-/// request extensions, making them available to downstream handlers.
-///
-/// # Usage
-/// ```rust,no_run
-/// use axum::{Router, routing::get, middleware};
-/// use linux_tutorial_cms::middleware::auth;
-///
-/// let app = Router::new()
-///     .route("/protected", get(handler))
-///     .route_layer(middleware::from_fn(auth::auth_middleware));
-/// ```
-///
-/// # Authentication
-/// Accepts tokens from:
-/// - Authorization: Bearer <token> header
-/// - ltcms_session cookie
-///
-/// # Errors
-/// Returns 401 Unauthorized if:
-/// - No token provided
-/// - Token is invalid or expired
-///
-/// # Request Extensions
-/// On success, inserts Claims into request extensions for easy access
-/// by downstream handlers.
+/// Middleware to enforce authentication on a per-route or per-router basis.
+/// 
+/// Process Flow:
+/// 1. **Extraction**: Checks both Authorization header and ltcms_session cookie.
+/// 2. **Verification**: Validates the JWT signature and expiration.
+/// 3. **Revocation Check**: Queries the database to ensure the token isn't blacklisted (e.g., after logout).
+/// 4. **Injection**: Places the verified Claims into the request lifecycle.
 pub async fn auth_middleware(
     axum::extract::State(pool): axum::extract::State<crate::db::DbPool>,
     mut request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> Result<axum::response::Response, (StatusCode, Json<crate::models::ErrorResponse>)> {
-    // Extract token from request
+    // Step 1: Token Extraction
+    // Checks for 'Bearer' token or 'ltcms_session' fallback cookie.
     let token = auth::extract_token(request.headers()).ok_or_else(|| {
         (
             StatusCode::UNAUTHORIZED,
@@ -44,7 +36,8 @@ pub async fn auth_middleware(
         )
     })?;
 
-    // Verify token and extract claims
+    // Step 2: Cryptographic Verification
+    // Validates the HMAC signature and ensured the token has not expired.
     let claims = auth::verify_jwt(&token).map_err(|e| {
         (
             StatusCode::UNAUTHORIZED,
@@ -54,7 +47,8 @@ pub async fn auth_middleware(
         )
     })?;
 
-    // Check if token is blacklisted
+    // Step 3: Revocation Check (Blacklist)
+    // Even a cryptographically valid token is rejected if the user has logged out.
     if let Ok(true) = repositories::token_blacklist::is_token_blacklisted(&pool, &token).await {
         return Err((
             StatusCode::UNAUTHORIZED,
@@ -64,8 +58,10 @@ pub async fn auth_middleware(
         ));
     }
 
-    // Add claims to request extensions for downstream handlers
+    // Step 4: Extension Injection
+    // Makes the user's role and identity available to all subsequent middleware/handlers.
     request.extensions_mut().insert(claims);
 
+    // Call the next item in the middleware chain
     Ok(next.run(request).await)
 }

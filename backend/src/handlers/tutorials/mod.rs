@@ -1,29 +1,14 @@
 //! Tutorial Management HTTP Handlers
 //!
-//! This module contains HTTP handlers for CRUD operations on tutorials.
-//! Tutorials are the main content type of the application, representing
-//! Linux learning modules with topics, icons, and markdown content.
+//! This module provides a robust API for managing educational tutorials.
+//! It includes strict input validation, role-based access control, and 
+//! seamless integration with full-text search (FTS5).
 //!
-//! # Endpoints
-//! - GET /api/tutorials: List all tutorials
-//! - GET /api/tutorials/{id}: Get specific tutorial by ID
-//! - POST /api/tutorials: Create new tutorial (admin only, CSRF protected)
-//! - PUT /api/tutorials/{id}: Update tutorial (admin only, CSRF protected)
-//! - DELETE /api/tutorials/{id}: Delete tutorial (admin only, CSRF protected)
-//!
-//! # Data Validation
-//! - Tutorial IDs: Alphanumeric and hyphens only, max 100 characters
-//! - Title: 1-200 characters
-//! - Description: 1-1000 characters
-//! - Content: Max 100,000 characters (markdown)
-//! - Icons: Whitelist of allowed Lucide icon names
-//! - Colors: Tailwind gradient classes only
-//!
-//! # Features
-//! - Full-text search integration (automatic FTS5 indexing)
-//! - Topic-based organization
-//! - Version tracking for content updates
-//! - Soft validation to preserve data integrity
+//! Tutorials are structured with:
+//! - Metadata: Title, Description, Topics, Icon (Lucide), Color (Tailwind)
+//! - Content: Markdown-based learning material
+//! - Versioning: Optimistic concurrency control via version numbers
+//! - Identifiers: Custom slugs or auto-generated UUIDs
 
 use crate::{security::auth, db::DbPool, models::*, repositories};
 use axum::{
@@ -36,10 +21,12 @@ use std::collections::HashSet;
 use std::convert::TryInto;
 use uuid::Uuid;
 
+/// Validates a tutorial ID for length and character safety.
+/// Used to prevent path injection and ensure URL compatibility.
 pub(crate) fn validate_tutorial_id(id: &str) -> Result<(), String> {
-    // Check length bounds to prevent buffer overflow attacks
+    // Check length bounds to prevent buffer overflow or DoS attacks
     if id.is_empty() || id.len() > 100 {
-        return Err("Invalid tutorial ID".to_string());
+        return Err("Invalid tutorial ID (must be 1-100 characters)".to_string());
     }
 
     // Ensure only safe characters for database and URL usage
@@ -47,12 +34,14 @@ pub(crate) fn validate_tutorial_id(id: &str) -> Result<(), String> {
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
     {
-        return Err("Tutorial ID contains invalid characters".to_string());
+        return Err("Tutorial ID contains invalid characters (allowed: alphanumeric, -, _, .)".to_string());
     }
     Ok(())
 }
 
+/// Validates the core text content of a tutorial.
 fn validate_tutorial_data(title: &str, description: &str, content: &str) -> Result<(), String> {
+    // Title validation
     let title_trimmed = title.trim();
     if title_trimmed.is_empty() {
         return Err("Title cannot be empty".to_string());
@@ -60,6 +49,8 @@ fn validate_tutorial_data(title: &str, description: &str, content: &str) -> Resu
     if title_trimmed.len() > 200 {
         return Err("Title too long (max 200 characters)".to_string());
     }
+
+    // Description validation
     let description_trimmed = description.trim();
     if description_trimmed.is_empty() {
         return Err("Description cannot be empty".to_string());
@@ -67,6 +58,8 @@ fn validate_tutorial_data(title: &str, description: &str, content: &str) -> Resu
     if description_trimmed.len() > 1000 {
         return Err("Description too long (max 1000 characters)".to_string());
     }
+
+    // Markdown content validation
     let content_trimmed = content.trim();
     if content_trimmed.is_empty() {
         return Err("Content cannot be empty".to_string());
@@ -77,7 +70,9 @@ fn validate_tutorial_data(title: &str, description: &str, content: &str) -> Resu
     Ok(())
 }
 
+/// Validates that the provided icon name is within the allowed Lucide whitelist.
 pub(crate) fn validate_icon(icon: &str) -> Result<(), String> {
+    /// Whitelist of Lucide icon identifiers used in the frontend
     const ALLOWED_ICONS: &[&str] = &[
         "Terminal",   // Command line and shell tutorials
         "FolderTree", // File system and directory tutorials
@@ -99,11 +94,14 @@ pub(crate) fn validate_icon(icon: &str) -> Result<(), String> {
     }
 }
 
+/// Validates a Tailwind CSS gradient string.
+/// Ensures the format 'from-COLOR [via-COLOR] to-COLOR' is followed.
 pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     const MAX_SEGMENT_LEN: usize = 32;
 
+    /// Checks if a single tailwind class segment is valid (e.g. 'from-blue-500')
     fn validate_segment(segment: &str, prefix: &str) -> bool {
-        // Handle modifiers (e.g., dark:from-..., md:hover:to-...)
+        // Handle responsive modifiers (e.g., dark:from-..., md:hover:to-...)
         // We look at the last part after ':' or the whole string if no ':'
         let base_class = segment.split(':').last().unwrap_or(segment);
         
@@ -123,6 +121,8 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     // Typically 2 or 3 parts: from-... [via-...] to-...
     // But could be more with responsive? No, typically "from-X to-Y" is the base structure.
     // We stick to 2 or 3 segments for simplicity of storage/validation as per original design.
+    
+    // Gradients must have 2 (from/to) or 3 (from/via/to) segments
     if !(segments.len() == 2 || segments.len() == 3) {
         return Err(
             "Invalid color gradient. Expected Tailwind style 'from-… [via-…] to-…' format."
@@ -134,6 +134,7 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     // This might be too strict if user writes "to-red-500 from-blue-500", but Tailwind usually encourages ordered.
     // The original code enforced order segments[0]=from, segments[1]=via/to. We keep this but allow modifiers.
 
+    // Validate 'from-' segment
     if !validate_segment(segments[0], "from-") {
         return Err("Invalid color gradient: 'from-*' segment malformed, too long, or missing.".to_string());
     }
@@ -141,24 +142,30 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     if segments.len() == 3 {
         // Validation for middle segment - check if it is 'via-' or 'to-'?
         // Original code expected: 0=from, 1=via, 2=to.
+        // Validate internal 'via-' segment
         if !validate_segment(segments[1], "via-") {
              return Err(
                 "Invalid color gradient: Middle segment must be 'via-*' in a 3-part gradient.".to_string(),
             );
         }
+        // Validate 'to-' segment
         if !validate_segment(segments[2], "to-") {
             return Err(
                 "Invalid color gradient: Last segment must be 'to-*'.".to_string(),
             );
         }
     } else if !validate_segment(segments[1], "to-") {
+        // Validate 'to-' segment for 2-part gradient
         return Err("Invalid color gradient: Last segment must be 'to-*'.".to_string());
     }
 
     Ok(())
 }
 
+/// Sanitizes a list of topics.
+/// Normalizes to lowercase, removes duplicates, and trims long strings.
 fn sanitize_topics(topics: &[String]) -> Result<Vec<String>, String> {
+    // SECURITY: Limit number of topics to prevent indexing DoS
     if topics.len() > 20 {
         return Err("Too many topics (max 20)".to_string());
     }
@@ -172,12 +179,14 @@ fn sanitize_topics(topics: &[String]) -> Result<Vec<String>, String> {
             continue;
         }
 
+        // ENFORCEMENT: Truncate excessively long topic names
         let limited: String = if trimmed.len() > 100 {
             trimmed.chars().take(100).collect()
         } else {
             trimmed.to_string()
         };
 
+        // Normalize to lowercase for duplicate detection
         let canonical = limited
             .chars()
             .map(|c| c.to_ascii_lowercase())
@@ -190,6 +199,7 @@ fn sanitize_topics(topics: &[String]) -> Result<Vec<String>, String> {
         sanitized.push(limited);
     }
 
+    // Requirements
     if sanitized.is_empty() {
         return Err("At least one topic is required".to_string());
     }
@@ -197,31 +207,38 @@ fn sanitize_topics(topics: &[String]) -> Result<Vec<String>, String> {
     Ok(sanitized)
 }
 
+/// Query parameters for paginated tutorial listing.
 #[derive(Deserialize)]
 pub struct TutorialListQuery {
+    /// Number of items to return (default: 50, max: 100)
     #[serde(default = "default_tutorial_limit")]
     limit: i64,
 
+    /// Number of items to skip for pagination
     #[serde(default)]
     offset: i64,
 }
 
+/// Default limit for tutorial lists
 fn default_tutorial_limit() -> i64 {
     50
 }
 
+/// Handler for listing tutorials with pagination.
+/// Publicly accessible. Excludes full tutorial content to minimize payload size.
 pub async fn list_tutorials(
     State(pool): State<DbPool>,
     Query(params): Query<TutorialListQuery>,
 ) -> Result<Json<Vec<TutorialSummaryResponse>>, (StatusCode, Json<ErrorResponse>)> {
+    // Clamp pagination parameters
     let limit = params.limit.clamp(1, 100);
     let offset = params.offset.max(0);
 
-    // Optimized query: Exclude 'content' column to reduce payload size
+    // Optimized repository call: Fetches summary data without markdown content
     let tutorials = repositories::tutorials::list_tutorials(&pool, limit, offset)
         .await
         .map_err(|e| {
-            tracing::error!("Database error: {}", e);
+            tracing::error!("Database error during list_tutorials: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -230,10 +247,12 @@ pub async fn list_tutorials(
             )
         })?;
 
+    // Transform database records into summary response models
     let mut responses = Vec::with_capacity(tutorials.len());
     for tutorial in tutorials {
+        // TryInto implementation handles JSON parsing of the 'topics' field
         let response: TutorialSummaryResponse = tutorial.try_into().map_err(|err: String| {
-            tracing::error!("Tutorial data corruption detected: {}", err);
+            tracing::error!("Tutorial summary data corruption detected: {}", err);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -247,18 +266,22 @@ pub async fn list_tutorials(
     Ok(Json(responses))
 }
 
+/// Handler to retrieve full details of a specific tutorial by its string ID.
+/// Publicly accessible. Includes full markdown content.
 pub async fn get_tutorial(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> Result<Json<TutorialResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate ID format before touching the database
     if let Err(e) = validate_tutorial_id(&id) {
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
 
+    // Attempt to retrieve record from database
     let tutorial = repositories::tutorials::get_tutorial(&pool, &id)
         .await
         .map_err(|e| {
-            tracing::error!("Database error: {}", e);
+            tracing::error!("Database error during get_tutorial {}: {}", id, e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -267,6 +290,7 @@ pub async fn get_tutorial(
             )
         })?;
 
+    // Handle 404
     let tutorial = tutorial.ok_or_else(|| {
         (
             StatusCode::NOT_FOUND,
@@ -276,24 +300,30 @@ pub async fn get_tutorial(
         )
     })?;
 
+    // Transform database record (Tutorial) into full response model (TutorialResponse)
+    // This step parses the 'topics' JSON string into a Vec<String>.
     let response: TutorialResponse = tutorial.try_into().map_err(|err: String| {
-        tracing::error!("Tutorial data corruption detected: {}", err);
+        tracing::error!("Tutorial details data corruption detected in {}: {}", id, err);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
                 error: "Failed to parse stored tutorial data".to_string(),
-            }),
-        )
-    })?;
+                }),
+            )
+        })?;
 
     Ok(Json(response))
 }
 
+/// Handler to create a new tutorial.
+/// Admin-only. Protected by RBAC (claims check).
+/// Performs comprehensive validation of ID, titles, content, icons, colors, and topics.
 pub async fn create_tutorial(
     claims: auth::Claims,
     State(pool): State<DbPool>,
     Json(payload): Json<CreateTutorialRequest>,
 ) -> Result<Json<TutorialResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // RBAC: Verify admin privileges
     if claims.role != "admin" {
         return Err((
             StatusCode::FORBIDDEN,
@@ -303,14 +333,15 @@ pub async fn create_tutorial(
         ));
     }
 
+    // Sanitize basic text fields
     let title = payload.title.trim().to_string();
     let description = payload.description.trim().to_string();
     let content = payload.content.trim().to_string();
 
+    // Perform deep validation of tutorial metadata
     if let Err(e) = validate_tutorial_data(&title, &description, &content) {
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
-
     if let Err(e) = validate_icon(&payload.icon) {
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
@@ -318,12 +349,13 @@ pub async fn create_tutorial(
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
 
+    // Determine ID: either custom (validated/checked for collisions) or auto-generated UUID
     let id = if let Some(custom_id) = &payload.id {
         let trimmed = custom_id.trim();
         if let Err(e) = validate_tutorial_id(trimmed) {
             return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
         }
-        // Check for collision
+        // Collision detection for custom IDs
         let exists = repositories::tutorials::check_tutorial_exists(&pool, trimmed)
             .await
             .map_err(|e| {
@@ -346,8 +378,11 @@ pub async fn create_tutorial(
         }
         trimmed.to_string()
     } else {
+        // Fallback to random identifier
         Uuid::new_v4().to_string()
     };
+
+    // Sanitize and serialize topics
     let sanitized_topics = sanitize_topics(&payload.topics)
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })))?;
     let topics_json = serde_json::to_string(&sanitized_topics).map_err(|e| {
@@ -359,6 +394,8 @@ pub async fn create_tutorial(
             }),
         )
     })?;
+
+    // Persist to database
     let tutorial = repositories::tutorials::create_tutorial(
         &pool,
         &id,
@@ -381,6 +418,7 @@ pub async fn create_tutorial(
         )
     })?;
 
+    // Final mapping to response model
     let response: TutorialResponse = tutorial.try_into().map_err(|err: String| {
         tracing::error!(
             "Tutorial data corruption detected after create {}: {}",
@@ -398,6 +436,8 @@ pub async fn create_tutorial(
     Ok(Json(response))
 }
 
+/// Handler to update an existing tutorial.
+/// Admin-only. Implements optimistic concurrency control using a version number.
 pub async fn update_tutorial(
     claims: auth::Claims,
     State(pool): State<DbPool>,
@@ -406,6 +446,7 @@ pub async fn update_tutorial(
 ) -> Result<Json<TutorialResponse>, (StatusCode, Json<ErrorResponse>)> {
     tracing::info!("Updating tutorial with id: {}", id);
 
+    // RBAC: Verify admin role
     if claims.role != "admin" {
         tracing::warn!(
             "Unauthorized update attempt for tutorial {} by user {}",
@@ -420,11 +461,13 @@ pub async fn update_tutorial(
         ));
     }
 
+    // Validate ID before database interaction
     if let Err(e) = validate_tutorial_id(&id) {
         tracing::warn!("Invalid tutorial ID during update: {}", id);
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
 
+    // Step 1: Pre-fetch current state to check existence and current version
     let tutorial = repositories::tutorials::get_tutorial(&pool, &id)
         .await
         .map_err(|e| {
@@ -445,6 +488,8 @@ pub async fn update_tutorial(
             )
         })?;
 
+    // Step 2: Merge partial updates with existing data
+    // Title update
     let title = match payload.title {
         Some(value) => {
             let trimmed = value.trim();
@@ -461,6 +506,7 @@ pub async fn update_tutorial(
         None => tutorial.title.trim().to_string(),
     };
 
+    // Description update
     let description = match payload.description {
         Some(value) => {
             let trimmed = value.trim();
@@ -479,6 +525,8 @@ pub async fn update_tutorial(
 
     let icon = payload.icon.unwrap_or(tutorial.icon);
     let color = payload.color.unwrap_or(tutorial.color);
+    
+    // Content update
     let content = match payload.content {
         Some(value) => {
             let trimmed = value.trim();
@@ -502,6 +550,7 @@ pub async fn update_tutorial(
         content.len()
     );
 
+    // Step 3: Deep validation of merged tutorial state
     if let Err(e) = validate_tutorial_data(&title, &description, &content) {
         tracing::warn!("Validation failed for tutorial {}: {}", id, e);
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
@@ -514,6 +563,7 @@ pub async fn update_tutorial(
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
 
+    // Step 4: Handle version increment for optimistic concurrency control
     let new_version = tutorial.version.checked_add(1).ok_or_else(|| {
         tracing::error!("Tutorial version overflow for id: {}", id);
         (
@@ -524,7 +574,9 @@ pub async fn update_tutorial(
         )
     })?;
 
+    // Step 5: Handle topics serialization
     let (topics_json, topics_vec) = if let Some(t) = payload.topics {
+        // Sanitize new topics if provided
         let sanitized = sanitize_topics(&t)
             .map_err(|e| (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })))?;
 
@@ -540,6 +592,7 @@ pub async fn update_tutorial(
 
         (serialized, sanitized)
     } else {
+        // Carry over existing topics
         match serde_json::from_str::<Vec<String>>(&tutorial.topics) {
             Ok(existing_topics) => (tutorial.topics.clone(), existing_topics),
             Err(e) => {
@@ -558,6 +611,8 @@ pub async fn update_tutorial(
         }
     };
 
+    // Step 6: Atomic Update operation in repository
+    // Note: The repository update should include a WHERE version = old_version check
     let updated_tutorial = repositories::tutorials::update_tutorial(
         &pool,
         &id,
@@ -581,6 +636,7 @@ pub async fn update_tutorial(
         )
     })?
     .ok_or_else(|| {
+        // If query returns None, it likely means the version ID mismatch (concurrency conflict)
         (
             StatusCode::CONFLICT,
             Json(ErrorResponse {
@@ -590,6 +646,7 @@ pub async fn update_tutorial(
         )
     })?;
 
+    // Success mapping
     tracing::info!("Successfully updated tutorial {}", id);
     let response: TutorialResponse = updated_tutorial.try_into().map_err(|err: String| {
         tracing::error!(
@@ -608,11 +665,14 @@ pub async fn update_tutorial(
     Ok(Json(response))
 }
 
+/// Handler to permanently delete a tutorial.
+/// Admin-only.
 pub async fn delete_tutorial(
     claims: auth::Claims,
     State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
+    // RBAC: Verify admin role
     if claims.role != "admin" {
         return Err((
             StatusCode::FORBIDDEN,
@@ -622,14 +682,16 @@ pub async fn delete_tutorial(
         ));
     }
 
+    // Validate ID before database interaction
     if let Err(e) = validate_tutorial_id(&id) {
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
 
+    // Attempt deletion in repository
     let deleted = repositories::tutorials::delete_tutorial(&pool, &id)
         .await
         .map_err(|e| {
-            tracing::error!("Database error: {}", e);
+            tracing::error!("Database error during delete_tutorial {}: {}", id, e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -638,6 +700,7 @@ pub async fn delete_tutorial(
             )
         })?;
 
+    // Handle 404
     if !deleted {
         return Err((
             StatusCode::NOT_FOUND,

@@ -2,6 +2,7 @@ use crate::db::DbPool;
 use crate::models::Tutorial;
 use sqlx;
 
+/// Fetches a paginated list of tutorials, excluding full content to save bandwidth.
 pub async fn list_tutorials(
     pool: &DbPool,
     limit: i64,
@@ -17,6 +18,7 @@ pub async fn list_tutorials(
     .await
 }
 
+/// Fetches a single tutorial by its unique ID.
 pub async fn get_tutorial(pool: &DbPool, id: &str) -> Result<Option<Tutorial>, sqlx::Error> {
     sqlx::query_as::<_, Tutorial>("SELECT * FROM tutorials WHERE id = ?")
         .bind(id)
@@ -32,6 +34,7 @@ pub async fn check_tutorial_exists(pool: &DbPool, id: &str) -> Result<bool, sqlx
     Ok(exists.is_some())
 }
 
+/// Creates a new tutorial and its associated topics within a single transaction.
 pub async fn create_tutorial(
     pool: &DbPool,
     id: &str,
@@ -43,8 +46,10 @@ pub async fn create_tutorial(
     topics_json: &str,
     topics_vec: &[String],
 ) -> Result<Tutorial, sqlx::Error> {
+    // Start ACID transaction
     let mut tx = pool.begin().await?;
 
+    // Step 1: Insert core tutorial record
     sqlx::query(
         r#"
         INSERT INTO tutorials (id, title, description, icon, color, topics, content, version)
@@ -61,8 +66,10 @@ pub async fn create_tutorial(
     .execute(&mut *tx)
     .await?;
 
+    // Step 2: Sync relational topics table for indexed searching
     replace_tutorial_topics_tx(&mut tx, id, topics_vec).await?;
 
+    // Step 3: Fetch the finalized record (including timestamps)
     let tutorial = sqlx::query_as::<_, Tutorial>(
         "SELECT id, title, description, icon, color, topics, content, version, created_at, updated_at FROM tutorials WHERE id = ?"
     )
@@ -75,6 +82,10 @@ pub async fn create_tutorial(
     Ok(tutorial)
 }
 
+/// Updates an existing tutorial using optimistic concurrency control.
+/// 
+/// Returns `Ok(None)` if a conflict occurred (version mismatch), otherwise 
+/// returns the updated record.
 pub async fn update_tutorial(
     pool: &DbPool,
     id: &str,
@@ -87,10 +98,12 @@ pub async fn update_tutorial(
     topics_vec: &[String],
     current_version: i32,
 ) -> Result<Option<Tutorial>, sqlx::Error> {
+    // Start transaction for atomic update of main table and relational topics
     let mut tx = pool.begin().await?;
 
     let new_version = current_version + 1;
 
+    // Step 1: Perform UPDATE with version-based fence
     let result = sqlx::query(
         r#"
         UPDATE tutorials
@@ -110,12 +123,15 @@ pub async fn update_tutorial(
     .execute(&mut *tx)
     .await?;
 
+    // Check for concurrency conflict: if 0 rows affected, someone else updated first
     if result.rows_affected() == 0 {
         return Ok(None);
     }
 
+    // Step 2: Sync topics
     replace_tutorial_topics_tx(&mut tx, id, topics_vec).await?;
 
+    // Step 3: Fetch updated state
     let tutorial = sqlx::query_as::<_, Tutorial>(
         "SELECT id, title, description, icon, color, topics, content, version, created_at, updated_at FROM tutorials WHERE id = ?"
     )
@@ -137,16 +153,20 @@ pub async fn delete_tutorial(pool: &DbPool, id: &str) -> Result<bool, sqlx::Erro
     Ok(result.rows_affected() > 0)
 }
 
+/// Helper to replace all topics for a tutorial within an existing transaction.
+/// Ensures the relational `tutorial_topics` table stays in sync with the JSON field.
 pub(crate) async fn replace_tutorial_topics_tx(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     tutorial_id: &str,
     topics: &[String],
 ) -> Result<(), sqlx::Error> {
+    // Purge old topics
     sqlx::query("DELETE FROM tutorial_topics WHERE tutorial_id = ?")
         .bind(tutorial_id)
         .execute(&mut **tx)
         .await?;
 
+    // Bulk insert new topics
     for topic in topics {
         sqlx::query("INSERT INTO tutorial_topics (tutorial_id, topic) VALUES (?, ?)")
             .bind(tutorial_id)
