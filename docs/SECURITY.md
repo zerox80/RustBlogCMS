@@ -1,60 +1,104 @@
-# Security Review Report: RustBlogCMS
+# Security Review: RustBlogCMS
 
-## Executive Summary
+**Datum:** 2025-12-19  
+**Reviewer:** IT Security Professor  
+**Scope:** Backend (Rust), Frontend (React), Nginx, Docker
 
-A comprehensive security review of the RustBlogCMS application was conducted. The application demonstrates a strong security posture with robust defenses against common web vulnerabilities. Key security mechanisms such as JWT authentication, CSRF protection, and SQL injection prevention are implemented correctly. No critical vulnerabilities were identified during the review.
+---
 
-## Detailed Findings
+## Gesamtbewertung: 8/10
 
-### 1. Authentication & Authorization  
-**Status:** Secure
+Die Anwendung weist eine **überdurchschnittlich gute Sicherheitsarchitektur** auf. Es wurden Best Practices implementiert, jedoch existieren einige Bereiche mit Verbesserungspotential.
 
-**Mechanism:** JWT (HS256) with 24h expiration and secure cookie storage.
+---
 
-**Defense in Depth:**
-- **Rate Limiting:** Progressive lockout for failed logins (3 failures = 10s, 5+ = 60s).
-- **Password Storage:** Bcrypt hashing with entropy checks.
-- **Token Management:** Blacklisting of tokens on logout prevents reuse.
-- **Secrets:** Application verifies entropy of JWT_SECRET on startup.
-- **Access Control:** Admin-only routes are properly guarded by Claims extraction and role checks.
+## Kritische Schwachstellen (Critical)
 
-### 2. Cross-Site Scripting (XSS)  
-**Status:** Secure
+> [!CAUTION]
+> Keine kritischen Schwachstellen identifiziert.
 
-- **Frontend (React):** React's default escaping prevents Reflected and Stored XSS in most contexts.
-- **Markdown Rendering:** MarkdownRenderer uses react-markdown without rehype-raw, meaning raw HTML tags in user content are rendered as text, executed.
-- **Input Sanitization:** Backend html_escapes comment content. Frontend rendering of comments uses `{comment.content}`, ensuring double protection (backend escape + React escape).
-- **Post Content:** Admin-generated posts support Markdown but are displayed using the safe MarkdownRenderer.
+---
 
-### 3. SQL Injection (SQLi)  
-**Status:** Secure
+## Hohe Schwachstellen (High)
 
-- **Mechanism:** The backend uses sqlx with parameterized queries (bind()) for all database interactions.
-- **Validation:** No string concatenation acting on user input was found in repositories.
+### 1. Security Headers in Nginx nicht aktiv (High - OWASP A05:2021)
 
-### 4. Cross-Site Request Forgery (CSRF)  
-**Status:** Secure
+**Schwere:** 7/10
 
-- **Mechanism:** Double-submit cookie pattern.
-- **Implementation:** CsrfGuard extractor validates the X-XSRF-TOKEN header against the ltcms_csrf cookie signature.
-- **Scope:** State-changing methods (POST, PUT, DELETE) are protected.
+**Befund:** In `nginx/nginx.conf` (Zeile 117-121) sind wichtige Security Headers nur auskommentiert:
 
-### 5. Configuration & Deployment  
-**Status:** Secure
+```nginx
+# add_header X-Frame-Options "DENY" always;
+# add_header X-Content-Type-Options "nosniff" always;
+# add_header X-XSS-Protection "1; mode=block" always;
+```
 
-- **Headers:** Nginx configuration includes HSTS, X-Frame-Options: SAMEORIGIN, and X-Content-Type-Options: nosniff.
-- **Application Headers:** Backend middleware adds a Content Security Policy (CSP).
-- **SSL:** ssl-reverse-proxy.conf enforces TLSv1.2/1.3 and uses strong ciphers.
+**Risiko:** Obwohl das Backend diese Header setzt, werden statische Assets (`*.js`, `*.css`, etc.) direkt über den `frontend`-Upstream ausgeliefert (Zeile 210-223) und erhalten diese Header **nicht**.
 
-## Recommendations (Best Practices)
+**Empfehlung:** Headers aktivieren oder global in `http`-Block setzen.
 
-While no critical bugs were found, the following improvements are recommended for "Defense in Depth":
+---
 
-- **Frontend Dependency Audit:** Run npm audit to check for vulnerabilities in third-party React libraries.
-- **CSP Refinement:** The current CSP allows style-src 'unsafe-inline'. While common for React apps, moving towards a strict CSP (using nonces or hashes) offers better protection against CSS-based exfiltration, though it requires significant refactoring.
-- **Deprecate X-XSS-Protection:** The X-XSS-Protection header in Nginx is largely deprecated. Modern browsers use CSP. It can be removed to reduce header bloat.
-- **Security.txt:** Consider adding a security.txt file to standardized vulnerability reporting.
+### 2. Rate Limiting nicht implementiert (High - OWASP A05:2021)
 
-## Conclusion
+**Schwere:** 7/10
 
-The application is built with security as a priority. The combination of Rust's type safety, sqlx's injection protection, and React's XSS mitigation creates a solid foundation. The custom Auth/CSRF implementation follows industry best practices.
+**Befund:** In `nginx/nginx.conf` (Zeile 281-310) ist Rate Limiting nur als Kommentar dokumentiert:
+
+```nginx
+# To activate, add this to /etc/nginx/nginx.conf in the http {} block:
+#   limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+```
+
+**Risiko:** 
+- Brute-Force-Angriffe auf `/api/auth/login`
+- DDoS-Anfälligkeit aller API-Endpoints
+- Resource Exhaustion
+
+**Empfehlung:** Das Backend hat zwar eigenes Rate Limiting (10s/60s Lockout nach 3/5 Fehlversuchen), aber Nginx-Level Rate Limiting ist eine wichtige Defense-in-Depth-Maßnahme.
+
+---
+
+### 3. CSP mit 'unsafe-inline' für Styles (Medium-High - OWASP A03:2021)
+
+**Schwere:** 6/10
+
+**Befund:** In `backend/src/middleware/security.rs` (Zeile 107-113):
+
+```rust
+style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
+```
+
+**Risiko:** Ermöglicht CSS-Injection-Angriffe, obwohl diese weniger kritisch als Script-Injection sind.
+
+**Hinweis:** Der Code dokumentiert dies als akzeptablen Trade-off für html2pdf, KaTeX und Syntax-Highlighting. Dies ist nachvollziehbar, aber nicht optimal.
+
+---
+
+## Sicherheitsstärken (Positiv)
+
+| Bereich | Bewertung | Details |
+|---------|-----------|---------|
+| **Authentication** | ⭐⭐⭐⭐⭐ | bcrypt, Timing-Attack Resistance, Dummy-Hash-Verifikation, Progressive Lockout |
+| **CSRF Protection** | ⭐⭐⭐⭐⭐ | HMAC-SHA256, Double-Submit Cookie, Per-User Binding, Constant-Time Comparison |
+| **SQL Injection** | ⭐⭐⭐⭐⭐ | Alle Queries benutzen parameterized Binding (`?`) via SQLx |
+| **JWT Security** | ⭐⭐⭐⭐⭐ | Secret Validation (min. 43 Zeichen, Entropy-Check, Blacklist), Token Blacklisting |
+| **File Upload** | ⭐⭐⭐⭐ | Magic-Byte Validierung, Extension-Mismatch-Prüfung, Size Limits |
+| **Docker Config** | ⭐⭐⭐⭐ | Resource Limits, Health Checks, `127.0.0.1` Port Binding, Required Secrets |
+
+---
+
+## Zusammenfassung
+
+| Kategorie | Status |
+|-----------|--------|
+| SQL Injection | ✅ Geschützt (parameterized queries) |
+| XSS | ✅ Geschützt (kein `dangerouslySetInnerHTML`, strict CSP) |
+| CSRF | ✅ Geschützt (HMAC tokens, double-submit) |
+| Broken Authentication | ✅ Geschützt (bcrypt, rate limiting, token blacklist) |
+| Security Misconfiguration | ⚠️ Nginx Headers deaktiviert, Rate Limiting fehlt |
+
+**Empfohlene Maßnahmen (Priorität):**
+1. Nginx Security Headers aktivieren
+2. Rate Limiting implementieren  
+3. HSTS in nginx.conf hinzufügen (nicht nur im Backend-Response)
