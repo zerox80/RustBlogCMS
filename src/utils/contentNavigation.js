@@ -29,6 +29,19 @@ const buildPagePath = (value) => {
   }
   return null
 }
+/**
+ * Centralized Navigation Logic for CMS Content.
+ * 
+ * Handles polymorphic "target" objects from the CMS backend, which can represent:
+ * - `section`: An anchor on the current or main page.
+ * - `route`: A React Router internal path.
+ * - `page`: A dynamic CMS-generated page slug.
+ * - `external`: A full URL to be opened in a new tab.
+ * - `href`: A direct protocol or external link.
+ * 
+ * @param {Object} target - The destination object from the CMS.
+ * @param {Object} options - Navigation context { navigate, location }.
+ */
 export const navigateContentTarget = (target, { navigate, location } = {}) => {
   if (!target || typeof target !== 'object' || !target.type) {
     return

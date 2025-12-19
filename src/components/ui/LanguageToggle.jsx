@@ -1,5 +1,12 @@
 import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+/**
+ * A simple language switcher integrated with i18next.
+ * 
+ * Supports instant switching between English ('en') and German ('de').
+ * Persists user preference to `localStorage`.
+ */
 const LanguageToggle = () => {
   const { i18n } = useTranslation();
   const toggleLanguage = () => {

@@ -3,8 +3,19 @@ import { Terminal, Cpu, Globe, Lock, Palette, Zap } from 'lucide-react'
 
 import EditableText from '../cms/EditableText'
 
+/**
+ * Displays a feature grid on the landing page using a modern Bento layout.
+ * 
+ * This component is highly dynamic; it accepts a `features` array from the CMS
+ * and maps them into interactive FeatureCards. It uses `EditableText` extensively 
+ * to allow real-time content updates.
+ * 
+ * @param {Object} props
+ * @param {Array} props.features - Array of feature objects (title, description, icon, bg, color).
+ * @param {string} [props.section='hero'] - The CMS section where these features are stored.
+ */
 const LandingFeatures = ({ features, section = 'hero' }) => {
-    // Use features from props, or empty array if not provided
+    // Robustness: Ensure features is always an array to prevent mapping errors
     const displayFeatures = Array.isArray(features) ? features : []
 
     return (
@@ -12,10 +23,18 @@ const LandingFeatures = ({ features, section = 'hero' }) => {
             <div className="container px-6 mx-auto relative z-10">
                 <div className="text-center max-w-2xl mx-auto mb-16">
                     <h2 className="section-title">
-                        <EditableText section="hero" field="features_title" value="Everything you need to " className="text-white" />
-                        <span className="gradient-text-aurora ml-2">
-                            <EditableText section="hero" field="features_highlight" value="scale" />
-                        </span>
+                        <EditableText
+                            section="hero"
+                            field="features_title"
+                            value="Everything you need to "
+                            className="text-white"
+                        />
+                        <EditableText
+                            section="hero"
+                            field="features_highlight"
+                            value="scale"
+                            className="gradient-text-aurora ml-2"
+                        />
                     </h2>
                     <p className="text-slate-400 text-lg">
                         <EditableText section="hero" field="features_subtitle" value="Powerful features packaged in a beautiful interface." />
@@ -33,8 +52,21 @@ const LandingFeatures = ({ features, section = 'hero' }) => {
     )
 }
 
+/**
+ * An individual card within the Bento grid.
+ * 
+ * Features micro-animations, glassmorphism styling, and dynamic color/icon injection.
+ * 
+ * @param {Object} props
+ * @param {Object} props.feature - The feature data object.
+ * @param {number} props.index - The index in the array (used for staggered animations).
+ * @param {string} props.section - Parent section name for CMS updates.
+ */
 const FeatureCard = ({ feature, index, section }) => {
+    // Default to 'Star' icon if specific icon name is missing or invalid
     const Icon = feature.icon || Star
+
+    // Layout Logic: Large features span two columns in the grid
     const isLarge = feature.size === 'large'
 
     return (

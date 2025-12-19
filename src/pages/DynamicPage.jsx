@@ -11,6 +11,15 @@ import DynamicPageHero from '../components/dynamic-page/DynamicPageHero'
 import DynamicPageAbout from '../components/dynamic-page/DynamicPageAbout'
 import DynamicPagePostList from '../components/dynamic-page/DynamicPagePostList'
 
+/**
+ * The primary engine for rendering user-created CMS pages.
+ * 
+ * Features:
+ * - Dynamic Slug Matching: Resolves URLs to backend page objects.
+ * - Content Normalization: Uses `postUtils` to ensure titles/text have clean fallbacks.
+ * - List Integration: Automatically renders posts associated with the specific page.
+ * - Loading States: Handles transitions, 404s, and API errors gracefully.
+ */
 const DynamicPage = () => {
   const { slug = '' } = useParams()
   const navigate = useNavigate()
@@ -22,6 +31,12 @@ const DynamicPage = () => {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    /**
+     * Life Cycle: Page Data Fetching.
+     * 
+     * Uses `AbortController` to cancel pending requests if the user navigates
+     * away before the API responds, preventing state updates on unmounted components.
+     */
     if (!normalizedSlug) {
       setError(new Error('Ungültige Seite'))
       setLoading(false)

@@ -8,11 +8,20 @@ import { useAuth } from '../../context/AuthContext'
 import EditableText from '../cms/EditableText'
 import { getIconComponent } from '../../utils/iconMap'
 
+/**
+ * The global site header with advanced scroll-aware behavior.
+ * 
+ * Features:
+ * - Smart Visibility: Hides on scroll-down, reappears on significant scroll-up.
+ * - Glassmorphism: Smoothly transitions from transparent to blurred slate background.
+ * - CMS Integration: Loads brand identity and navigation items from `ContentContext`.
+ * - Admin Controls: Provides an inline toggle for CMS "Edit Mode".
+ */
 const Header = () => {
     const { t } = useTranslation()
     const { navigation, getSection } = useContent()
-    const { isEditing, toggleEditMode } = useEdit() // [NEW] Use Edit Context
-    const { isAuthenticated, user } = useAuth() // [NEW] Check auth for toggle visibility
+    const { isEditing, toggleEditMode } = useEdit()
+    const { isAuthenticated, user } = useAuth()
     const headerContent = getSection('header') ?? {}
 
     // Resolve dynamic brand icon
@@ -34,32 +43,36 @@ const Header = () => {
     const scrollTimeout = React.useRef(null)
 
     useEffect(() => {
+        /**
+         * State-of-the-art scroll handler that minimizes layout thrashing.
+         * 
+         * Implements "Intentional Scroll-Up": 
+         * To prevent the header from flickering on accidental micro-adjustments, 
+         * the user must scroll up by at least `SCROLL_UP_THRESHOLD` (200px) 
+         * before the header slides back into view.
+         */
         const handleScroll = () => {
             const currentScrollY = window.scrollY
             const lastY = lastScrollY.current
-            const scrollDelta = lastY - currentScrollY // Positive when scrolling up
+            const scrollDelta = lastY - currentScrollY
 
-            // Clear existing timeout on every scroll event
             if (scrollTimeout.current) {
                 clearTimeout(scrollTimeout.current)
             }
 
-            // 1. Detect if at top or scrolled deeply
+            // Depth Check: Enable styling when not at the very top
             setIsScrolled(currentScrollY > 20)
 
-            // 2. Determine Visibility
             if (currentScrollY < 10) {
-                // Always show at the very top
+                // Top of Page: Always show the header
                 setIsVisible(true)
                 scrollUpAccumulator.current = 0
             } else if (currentScrollY > lastY) {
-                // Scrolling DOWN
+                // Direction: DOWN - Immediately hide for focus
                 setIsVisible(false)
-                // Reset accumulator when changing direction to down
                 scrollUpAccumulator.current = 0
             } else if (currentScrollY < lastY) {
-                // Scrolling UP
-                // Only count "intentional" scrolls (ignore micro-jitters < 5px)
+                // Direction: UP - Accumulate delta for intentionality
                 if (scrollDelta > 5) {
                     scrollUpAccumulator.current += scrollDelta
                 }
@@ -68,8 +81,7 @@ const Header = () => {
                     setIsVisible(true)
                 }
 
-                // [NEW] Reset accumulator if user STOPS scrolling for a moment (150ms)
-                // This prevents "slow reading" (scroll bit, read, scroll bit) from triggering logic
+                // Debounce directional change: Reset accumulator if scroll stops
                 scrollTimeout.current = setTimeout(() => {
                     scrollUpAccumulator.current = 0
                 }, 150)

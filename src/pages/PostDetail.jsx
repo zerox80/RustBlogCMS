@@ -1,16 +1,34 @@
+```javascript
 import React, { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
 import { formatDate } from '../utils/postUtils'
 import { Helmet } from 'react-helmet-async'
 import MarkdownRenderer from '../components/markdown/MarkdownRenderer'
 import { Calendar, Clock, User, ArrowLeft, Share2, Bookmark } from 'lucide-react'
 
+/**
+ * In-depth Blog Post Viewer.
+ * 
+ * Features:
+ * - Table of Contents (ToC): Implements a Scroll-Spy to highlight current section.
+ * - Dynamic SEO: Injects post-specific meta tags for social sharing and search.
+ * - Advanced Meta: Calculates "Read Time" if not provided by backend.
+ */
+/**
+ * Detailed Tutorial Viewer.
+ * 
+ * Features:
+ * - Hybrid Loading: Attempts to use cached context data before fetching from API.
+ * - Modular Rendering: Decouples header, topics, and content for scalability.
+ * - Nav Logic: Intelligent "Go Back" that stays within app history when possible.
+ */
 const PostDetail = () => {
   const { pageSlug, postSlug } = useParams()
   const { pages } = useContent()
   const [post, setPost] = useState(null)
   const [activeSection, setActiveSection] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -18,13 +36,28 @@ const PostDetail = () => {
         const data = await pages.getPost(pageSlug, postSlug)
         setPost(data.post)
       } catch (err) {
-        console.error("Failed to load post:", err)
+        console.error("CMS: Failed to load post:", err)
       }
     }
     fetchPost()
   }, [pageSlug, postSlug, pages])
 
-  // Scroll spy for Table of Contents
+  /**
+   * Navigation Strategy: Ensures the user returns to a logical place.
+   * 
+   * If there is browser history (e.g., they came from the listing), it goes back.
+   * If they landed here directly (e.g., via link share), it goes to the Home page.
+   */
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+    navigate('/')
+  }
+
+  // Interaction: Scroll-Spy for the Table of Contents.
+  // Observes all H2 and H3 elements within the article to track reading progress.
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -82,7 +115,7 @@ const PostDetail = () => {
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span>{post.readTime || `${Math.ceil((post.content_markdown?.length || 0) / 1000) + 1} min read`}</span>
+              <span>{post.readTime || `${ Math.ceil((post.content_markdown?.length || 0) / 1000) + 1 } min read`}</span>
             </div>
           </div>
         </div>

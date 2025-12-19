@@ -1,3 +1,14 @@
+/* 
+ * ===========================================================
+ * RustBlogCMS Global Design System
+ * ===========================================================
+ * 
+ * Architecture:
+ * - Fonts: Inter (UI) & Merriweather (Display/Serif).
+ * - Framework: Tailwind CSS (v4 engine).
+ * - Theme: Custom "@theme" configuration with Aurora Dark tokens.
+ */
+
 /* Import Inter and Merriweather font families */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap');
 
@@ -36,7 +47,10 @@
   --animate-slide-up: slideUp 0.5s ease-out;
 }
 
-/* Base layer styles */
+/* 
+ * Base Styles
+ * Sets up the dynamic background and global typography defaults.
+ */
 @layer base {
   * {
     @apply antialiased;
@@ -62,7 +76,10 @@
   }
 }
 
-/* Component layer styles */
+/* 
+ * Component System
+ * High-level design tokens for glassmorphism, buttons, and gradients.
+ */
 @layer components {
 
   /* Premium Glass Card - The core building block */
@@ -127,9 +144,13 @@
   }
 }
 
-/* =========================================================== */
-/* Markdown Renderer Fixes (Legacy Support) */
-/* =========================================================== */
+/* 
+ * Markdown Renderer Override (Critical)
+ * 
+ * Solves "Mojibake-adjacent" rendering issues where list items and paragraphs
+ * would traditionally break into block elements, disrupting the flow.
+ * Forces inline rendering for list item children.
+ */
 @layer components {
 
   /* Remove margins from paragraphs inside list items and make them inline */

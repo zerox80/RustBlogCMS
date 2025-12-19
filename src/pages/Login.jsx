@@ -5,6 +5,15 @@ import { useContent } from '../context/ContentContext'
 import { getIconComponent } from '../utils/iconMap'
 import { Terminal, Lock, User, AlertCircle, ArrowRight } from 'lucide-react'
 
+/**
+ * Secure Admin Login Page.
+ * 
+ * Security Features:
+ * - Client-side progressive cooldown (10s after 3 failures, 60s after 5).
+ * - Regex-based username validation to prevent injection attempts.
+ * - Automatic redirection to `/admin` upon successful JWT acquisition.
+ * - Animated glassmorphism UI with responsive design.
+ */
 const Login = () => {
   const { getSection } = useContent()
   const loginContent = getSection('login') || {}
@@ -34,23 +43,38 @@ const Login = () => {
     }
   }, [cooldownUntil])
 
+  /**
+   * Processes the login submission with security checks.
+   * 
+   * Logic:
+   * 1. Check client-side cooldown.
+   * 2. Validate input patterns (Username regex, Password length).
+   * 3. Send credentials to AuthContext.
+   * 4. Handle failure with progressive penalty (cooldown levels).
+   */
   const handleSubmit = async (e) => {
     e.preventDefault()
     const now = Date.now()
+
+    // Enforcement: Reject if in cooldown period
     if (cooldownUntil && now < cooldownUntil) {
       const remainingSeconds = Math.ceil((cooldownUntil - now) / 1000)
       setError(`Zu viele Anmeldeversuche. Bitte warte ${remainingSeconds} Sekunde${remainingSeconds === 1 ? '' : 'n'}.`)
       return
     }
+
     if (isSubmitting) {
       return
     }
 
+    // Input Sanitization: Strict allow-list for username characters
     const trimmedUsername = username.trim()
     if (!/^[a-zA-Z0-9_.-]{1,50}$/.test(trimmedUsername)) {
       setError('Benutzername darf nur Buchstaben, Zahlen sowie _ . - enthalten und max. 50 Zeichen lang sein.')
       return
     }
+
+    // Length Check: Basic password validation before hitting server
     if (password.length === 0) {
       setError('Passwort darf nicht leer sein.')
       return
@@ -66,20 +90,23 @@ const Login = () => {
     try {
       const result = await login(trimmedUsername, password)
       if (result.success) {
+        // Clear penalties on success
         setLoginAttempts(0)
         setCooldownUntil(null)
         navigate('/admin')
       } else {
-        const newAttempts = loginAttempts + 1
-        setLoginAttempts(newAttempts)
+        // Multi-tier Cooldown Logic:
+        // Level 1: 3 attempts -> 10 seconds
+        // Level 2: 5 attempts -> 60 seconds
+        const nextAttempts = loginAttempts + 1
+        setLoginAttempts(nextAttempts)
         setError(result.error)
-        if (newAttempts >= 5) {
-          const cooldown = now + 60000
-          setCooldownUntil(cooldown)
+
+        if (nextAttempts >= 5) {
+          setCooldownUntil(now + 60000)
           setError('Zu viele fehlgeschlagene Versuche. Bitte warte 60 Sekunden.')
-        } else if (newAttempts >= 3) {
-          const cooldown = now + 10000
-          setCooldownUntil(cooldown)
+        } else if (nextAttempts >= 3) {
+          setCooldownUntil(now + 10000)
           setError('Zu viele fehlgeschlagene Versuche. Bitte warte 10 Sekunden.')
         }
       }

@@ -1,9 +1,18 @@
 import React from 'react'
-
 import EditableText from '../cms/EditableText'
 
+/**
+ * A horizontal statistics bar with glassmorphism styling.
+ * 
+ * Uses a responsive grid that adjusts from 2 to 4 columns based on screen size.
+ * Features a custom `divide-x` border styling to separate stat items.
+ * 
+ * @param {Object} props
+ * @param {Array} props.stats - Array of stat objects { value, label }.
+ * @param {string} [props.section='stats'] - CMS section identifier.
+ */
 const LandingStats = ({ stats, section = 'stats' }) => {
-    // Use stats from props
+    // Robustness: Ensure stats is an array to avoid crashes if content is missing
     const displayStats = Array.isArray(stats) ? stats : []
 
     return (

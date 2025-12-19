@@ -6,6 +6,14 @@ import { navigateContentTarget } from '../../utils/contentNavigation'
 import { getIconComponent } from '../../utils/iconMap'
 import { sanitizeExternalUrl } from '../../utils/urlValidation'
 
+/**
+ * Smart icon resolver for contact links.
+ * 
+ * Attempts to guess the appropriate Lucide icon based on:
+ * 1. Explicitly defined icon in CMS
+ * 2. URL protocol (mailto:, tel:)
+ * 3. Domain detection (github.com)
+ */
 const resolveContactFallbackIcon = (contact) => {
     if (!contact) {
         return 'Terminal'
@@ -80,6 +88,14 @@ const Footer = () => {
         return allItems
     }, [staticNavigationItems, dynamicNavigationItems, navigation?.items])
 
+    /**
+     * Normalizes various link target types into a standard browser href.
+     * 
+     * Handles:
+     * - `section`: Prepends # for anchor navigation.
+     * - `route`/`page`: Internal SPA routing paths.
+     * - `external`: Validates and sanitizes third-party URLs.
+     */
     const buildTargetHref = useCallback((target) => {
         if (!target || typeof target !== 'object') {
             return null
@@ -204,11 +220,15 @@ const Footer = () => {
             .filter(Boolean)
     }, [buildTargetHref, effectiveNavigationItems, footerContent?.quickLinks])
 
+    /**
+     * Centralized click handler for footer links.
+     * 
+     * Leverages `navigateContentTarget` for SPA-friendly section/route jumps
+     * and falls back to standard anchor behavior for external/protocol links.
+     */
     const handleQuickLink = (event, link) => {
-        // Early return for invalid or missing link data
         if (!link) return
 
-        // Extract navigation data from link object
         const target = link.target
 
         if (target) {
@@ -219,11 +239,11 @@ const Footer = () => {
 
         const href = sanitizeExternalUrl(link.href || link.url)
         if (href) {
+            // Check for protocols that should NOT be intercepted by the SPA router
             const isExternal = href.startsWith('http://') || href.startsWith('https://')
             const isSpecialProtocol = href.startsWith('mailto:') || href.startsWith('tel:')
 
             if (isExternal || isSpecialProtocol) {
-                // Allow default anchor behavior
                 return
             }
 

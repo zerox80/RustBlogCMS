@@ -1,6 +1,15 @@
 import { Component } from 'react'
 import PropTypes from 'prop-types'
 import { AlertCircle, RefreshCw } from 'lucide-react'
+
+/**
+ * A robust React Error Boundary to prevent application-wide crashes.
+ * 
+ * Features:
+ * - Granular error catching and logging.
+ * - Recovery UI with specific error details for development.
+ * - "Reset and Return Home" logic that fixes the browser state after a crash.
+ */
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -16,7 +25,7 @@ class ErrorBoundary extends Component {
   }
   componentDidCatch(error, errorInfo) {
     // Log detailed error information for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    console.error('CMS: ErrorBoundary caught an error:', error, errorInfo)
     // Store error information in state for potential display
     this.setState({
       error: error,
@@ -34,7 +43,7 @@ class ErrorBoundary extends Component {
         // Trigger React Router's navigation listener
         window.dispatchEvent(new PopStateEvent('popstate'))
       } catch (navError) {
-        console.warn('Navigation during error reset failed:', navError)
+        console.warn('CMS: Navigation during error reset failed:', navError)
       }
     }
   }

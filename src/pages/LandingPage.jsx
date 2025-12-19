@@ -7,6 +7,14 @@ import LandingFeatures from '../components/landing/LandingFeatures'
 import LandingStats from '../components/landing/LandingStats'
 import LandingCTA from '../components/landing/LandingCTA'
 
+/**
+ * The high-level root component for the landing page.
+ * 
+ * Composition:
+ * - Composes modular landing sections (Hero, Features, Stats, CTA).
+ * - Orchestrates content retrieval from `ContentContext`.
+ * - Provides a unified layout container with a dark slate theme.
+ */
 const LandingPage = () => {
     const { getSection } = useContent()
     const heroContent = getSection('hero') || {}

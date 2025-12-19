@@ -6,13 +6,31 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { navigateContentTarget } from '../../utils/contentNavigation'
 
+/**
+ * The primary hero section for the landing page.
+ * 
+ * Features:
+ * - Parallax mouse-tracking effects for depth.
+ * - Dynamic CMS content integration with multi-layered fallbacks (CMS -> i18n -> Hardcoded).
+ * - Interactive透视 (perspective) 3D card animation for the dashboard preview.
+ * - Integrated `EditableText` and `EditableImage` for real-time site editing.
+ * 
+ * @param {Object} props
+ * @param {Object} props.content - Hero content from the CMS backend.
+ */
 const LandingHero = ({ content }) => {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
+
+    // State for the interactive parallax mouse effect
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
     useEffect(() => {
+        /**
+         * Tracks global mouse movement to update the parallax effect.
+         * Values are normalized to a small range (0-20) for subtle animation.
+         */
         const handleMouseMove = (e) => {
             setMousePosition({
                 x: (e.clientX / window.innerWidth) * 20,
@@ -23,7 +41,10 @@ const LandingHero = ({ content }) => {
         return () => window.removeEventListener('mousemove', handleMouseMove)
     }, [])
 
-    // Safe defaults from content or fallbacks
+    // Logic: Content Fallback Hierarchy
+    // 1. Check CMS provided content
+    // 2. Fallback to i18next translation keys
+    // 3. Last resort: Hardcoded English strings
     const titleLine1 = content?.title?.line1 || t('hero.title') || "Publish Stories"
     const titleLine2 = content?.title?.line2 || t('hero.subtitle') || "That Matter"
     const subtitle = content?.subtitle || t('hero.description')

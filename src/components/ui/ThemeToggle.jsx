@@ -16,16 +16,17 @@
  */
 
 // Import icon components from Lucide React icon library
+import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 
 // Import custom hook to access theme context
 import { useTheme } from '../../context/ThemeContext';
 
 /**
- * ThemeToggle Functional Component
+ * ThemeToggle Functional Component (Placeholder)
  * 
- * Renders a button that toggles between light and dark themes.
- * Icon changes based on current theme for better user experience.
+ * Note: Theme switching is currently handled globally or disabled as per 
+ * current design requirements (Dark Mode focus).
  */
 const ThemeToggle = () => {
   return null;

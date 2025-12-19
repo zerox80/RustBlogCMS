@@ -7,6 +7,14 @@ import TutorialHeader from '../components/tutorial/TutorialHeader'
 import TutorialTopicsList from '../components/tutorial/TutorialTopicsList'
 import TutorialContentDisplay from '../components/tutorial/TutorialContentDisplay'
 
+/**
+ * Detailed Tutorial Viewer.
+ * 
+ * Features:
+ * - Hybrid Loading: Attempts to use cached context data before fetching from API.
+ * - Modular Rendering: Decouples header, topics, and content for scalability.
+ * - Nav Logic: Intelligent "Go Back" that stays within app history when possible.
+ */
 const TutorialDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()

@@ -8,6 +8,17 @@ import TutorialManagement from '../components/admin/TutorialManagement'
 import DashboardTabs from '../components/admin/dashboard/DashboardTabs'
 import SettingsEditor from '../components/admin/SettingsEditor'
 
+/**
+ * The central management hub for site administrators.
+ * 
+ * Orchestrates:
+ * - Content Editing (SiteContentEditor)
+ * - Page Creation & Deletion (PageManager)
+ * - Tutorial/Course Management (TutorialManagement)
+ * - Global Site Settings
+ * 
+ * Restricted: This page should only be accessible to authenticated admin users.
+ */
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('tutorials')
   const { loading: contentLoading } = useContent()

@@ -1,8 +1,17 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-
 import EditableText from '../cms/EditableText'
 
+/**
+ * The final "Call to Action" section for the landing page.
+ * 
+ * Features a high-contrast design with an animated aurora background
+ * to draw the user's attention towards the primary conversion button.
+ * 
+ * @param {Object} props
+ * @param {Object} props.content - Content object containing title and description.
+ * @param {string} [props.section='cta_section'] - CMS section identifier.
+ */
 const LandingCTA = ({ content, section = 'cta_section' }) => {
     const navigate = useNavigate()
     const ctaContent = content || {}

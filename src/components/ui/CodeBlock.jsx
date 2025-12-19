@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import PropTypes from 'prop-types';
+/**
+ * A reusable code snippet component with a "Copy to Clipboard" feature.
+ * 
+ * Includes:
+ * - Syntax highlighting (via parent CSS/Markdown styles).
+ * - Automatic text extraction from children (handles strings and React nodes).
+ * - Animated copy-success feedback.
+ */
 const CodeBlock = ({ children, className }) => {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
@@ -23,20 +31,20 @@ const CodeBlock = ({ children, className }) => {
   };
   return (
     <div className="relative group">
-      {}
+      { }
       <button
         onClick={handleCopy}
         className="absolute right-2 top-2 p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
         aria-label="Copy code"
       >
-        {}
+        { }
         {copied ? (
           <Check className="w-4 h-4 text-green-400" />
         ) : (
           <Copy className="w-4 h-4" />
         )}
       </button>
-      {}
+      { }
       <pre className={className}>
         {children}
       </pre>

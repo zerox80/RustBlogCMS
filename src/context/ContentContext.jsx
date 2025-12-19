@@ -10,6 +10,14 @@ import {
 import PropTypes from 'prop-types'
 import { api } from '../api/client'
 const ContentContext = createContext(null)
+
+/**
+ * Global Fallback Data Configuration.
+ * 
+ * Defines the initial structure and default content for the entire site.
+ * This object serves as a blueprint for the backend data and also acts as
+ * the reliable fallback if the API fails or returns incomplete sections.
+ */
 export const DEFAULT_CONTENT = {
   hero: {
     badgeText: 'Professionelles IT Wissen',
@@ -129,6 +137,12 @@ export const ContentProvider = ({ children }) => {
   const [pageCache, setPageCache] = useState({})
   const pageCacheRef = useRef({})
   const publishedPageSlugsRef = useRef([])
+  /**
+   * Loads global site content (Hero, Features, Stats, etc.) from the backend.
+   * 
+   * Merges backend data on top of `DEFAULT_CONTENT` to ensure structural integrity
+   * even if specific sections haven't been customized in the CMS yet.
+   */
   const loadContent = useCallback(async () => {
     try {
       setLoading(true)
@@ -164,6 +178,9 @@ export const ContentProvider = ({ children }) => {
       setNavLoading(false)
     }
   }, [])
+  /**
+   * Fetches published page slugs to populate dynamic navigation.
+   */
   const loadPublishedPages = useCallback(async () => {
     try {
       setPublishedPagesLoading(true)
@@ -172,7 +189,7 @@ export const ContentProvider = ({ children }) => {
       const items = Array.isArray(data) ? data : []
       setPublishedPageSlugs(items)
     } catch (err) {
-      console.error('Failed to load published pages:', err)
+      console.error('CMS: Failed to load published pages', err)
       setPublishedPagesError(err)
     } finally {
       setPublishedPagesLoading(false)
@@ -288,6 +305,15 @@ export const ContentProvider = ({ children }) => {
       })
     }
   }, [])
+  /**
+   * Generates a unified navigation model combining static and dynamic items.
+   * 
+   * static: Defined in the `header` section of DEFAULT_CONTENT/CMS.
+   * dynamic: Automatically generated from published CMS pages.
+   * 
+   * Items are normalized into a consistent shape { id, label, path, source }
+   * for consumption by Navbar / Footer components.
+   */
   const navigationData = useMemo(() => {
     const headerContent = content?.header ?? DEFAULT_CONTENT.header
     const staticNavItems = Array.isArray(headerContent?.navItems) ? headerContent.navItems : []

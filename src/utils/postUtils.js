@@ -1,3 +1,11 @@
+/**
+ * Mojibake Encoding Repair Map.
+ * 
+ * Maps common UTF-8 interpreted as ISO-8859-1 character sequences back to 
+ * their original German and Latin-1 characters. This is a critical fallback 
+ * for data that might have been mangled during database migrations or 
+ * legacy API interactions.
+ */
 const MOJIBAKE_REPLACEMENTS = [
   ['Ã¤', 'ä'], // ä - German umlaut a
   ['Ã', 'Ä'], // Ä - German umlaut A (uppercase)
@@ -32,6 +40,12 @@ const MOJIBAKE_REPLACEMENTS = [
   ['Â', ''], // Remove stray Â characters
   ['�', ''], // Remove replacement characters
 ]
+/**
+ * Fixes character encoding issues (Mojibake) in a string.
+ * 
+ * Performance: Includes a pre-flight regex check to bypass clean strings
+ * and avoid unnecessary iterations.
+ */
 const fixMojibake = (value) => {
   if (typeof value !== 'string' || value.length === 0) {
     return value
@@ -115,6 +129,16 @@ export const buildPreviewText = (post, maxLength = 240, minCutoff = 180) => {
   const safeCut = lastSpace > minCutoff ? truncated.slice(0, lastSpace) : truncated
   return `${safeCut.trim()}.`
 }
+/**
+ * Generates a clean, URL-safe and SEO-friendly slug.
+ * 
+ * Algorithm:
+ * 1. Normalize Unicode (NFKD) to decompose combined characters (e.g., 'ü' -> 'u' + '..').
+ * 2. Strip diacritics using regex.
+ * 3. Filter for alphanumeric characters and spaces.
+ * 4. Collapse consecutive separators.
+ * 5. Enforce safety limits (length, reserved names).
+ */
 export const normalizeSlug = (value) => {
   if (typeof value !== 'string') {
     return ''
