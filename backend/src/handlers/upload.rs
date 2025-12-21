@@ -144,12 +144,15 @@ pub async fn upload_image(
             }
 
             let filepath = upload_path_base.join(&new_filename);
+            // Create a temporary file path
+            let temp_filename = format!("{}.tmp", id);
+            let temp_filepath = upload_path_base.join(&temp_filename);
 
-            // Open the file for writing (using async tokio file)
-            let mut file = match tokio::fs::File::create(&filepath).await {
+            // Open the temp file for writing
+            let mut file = match tokio::fs::File::create(&temp_filepath).await {
                 Ok(file) => file,
                 Err(e) => {
-                    tracing::error!("Failed to create file {}: {}", filepath.display(), e);
+                    tracing::error!("Failed to create temp file {}: {}", temp_filepath.display(), e);
                     return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(ErrorResponse {
@@ -161,10 +164,10 @@ pub async fn upload_image(
 
             use tokio::io::AsyncWriteExt; // Required for write_all and flush
             
-            // Write the first chunk (the one we peeked at for inference)
+            // Write the first chunk
             if let Err(e) = file.write_all(&first_chunk).await {
-                 tracing::error!("Failed to write first chunk to {}: {}", filepath.display(), e);
-                 let _ = tokio::fs::remove_file(&filepath).await; // Cleanup partially written file
+                 tracing::error!("Failed to write first chunk to {}: {}", temp_filepath.display(), e);
+                 let _ = tokio::fs::remove_file(&temp_filepath).await;
                  return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
@@ -181,7 +184,7 @@ pub async fn upload_image(
                     Ok(opt) => opt,
                     Err(err) => {
                         tracing::error!("Failed to read chunk: {}", err);
-                        let _ = tokio::fs::remove_file(&filepath).await; // Cleanup on network/parsing error
+                        let _ = tokio::fs::remove_file(&temp_filepath).await; 
                          return Err((
                             StatusCode::INTERNAL_SERVER_ERROR,
                             Json(ErrorResponse {
@@ -191,7 +194,6 @@ pub async fn upload_image(
                     }
                 };
 
-                // Check if we hit the end of the field
                 let chunk = match chunk_option {
                     Some(c) => c,
                     None => break,
@@ -200,7 +202,7 @@ pub async fn upload_image(
                 // ENFORCEMENT: Track total size to prevent Disk Space exhaustion (DoS)
                 total_size += chunk.len();
                 if total_size > MAX_FILE_SIZE {
-                    let _ = tokio::fs::remove_file(&filepath).await;
+                    let _ = tokio::fs::remove_file(&temp_filepath).await;
                     return Err((
                         StatusCode::BAD_REQUEST,
                         Json(ErrorResponse {
@@ -211,8 +213,8 @@ pub async fn upload_image(
                 
                 // Write chunk to disk
                 if let Err(e) = file.write_all(&chunk).await {
-                     tracing::error!("Failed to write chunk to {}: {}", filepath.display(), e);
-                     let _ = tokio::fs::remove_file(&filepath).await; // Cleanup on disk error
+                     tracing::error!("Failed to write chunk to {}: {}", temp_filepath.display(), e);
+                     let _ = tokio::fs::remove_file(&temp_filepath).await;
                      return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(ErrorResponse {
@@ -224,9 +226,21 @@ pub async fn upload_image(
 
             // Sync buffers to disk
             if let Err(e) = file.flush().await {
-                 tracing::error!("Failed to flush file {}: {}", filepath.display(), e);
-                 let _ = tokio::fs::remove_file(&filepath).await;
+                 tracing::error!("Failed to flush file {}: {}", temp_filepath.display(), e);
+                 let _ = tokio::fs::remove_file(&temp_filepath).await;
                  return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Failed to save file".to_string(),
+                    }),
+                ));
+            }
+
+            // Atomic rename from temp to final
+            if let Err(e) = tokio::fs::rename(&temp_filepath, &filepath).await {
+                tracing::error!("Failed to rename temp file {} to {}: {}", temp_filepath.display(), filepath.display(), e);
+                let _ = tokio::fs::remove_file(&temp_filepath).await;
+                return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
                         error: "Failed to save file".to_string(),

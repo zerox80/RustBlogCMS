@@ -563,16 +563,7 @@ pub async fn update_tutorial(
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
 
-    // Step 4: Handle version increment for optimistic concurrency control
-    let new_version = tutorial.version.checked_add(1).ok_or_else(|| {
-        tracing::error!("Tutorial version overflow for id: {}", id);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Tutorial version overflow".to_string(),
-            }),
-        )
-    })?;
+
 
     // Step 5: Handle topics serialization
     let (topics_json, topics_vec) = if let Some(t) = payload.topics {
@@ -612,7 +603,7 @@ pub async fn update_tutorial(
     };
 
     // Step 6: Atomic Update operation in repository
-    // Note: The repository update should include a WHERE version = old_version check
+    // The repository handles the version increment and the WHERE version = current_version check
     let updated_tutorial = repositories::tutorials::update_tutorial(
         &pool,
         &id,
@@ -623,7 +614,7 @@ pub async fn update_tutorial(
         &color,
         &topics_json,
         &topics_vec,
-        new_version.try_into().unwrap_or(1),
+        tutorial.version, // Fix: Pass current version, not new_version
     )
     .await
     .map_err(|e| {

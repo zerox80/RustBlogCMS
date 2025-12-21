@@ -187,6 +187,7 @@ pub async fn create_comment(
     State(pool): State<DbPool>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(tutorial_id): Path<String>,
+    _csrf: crate::security::csrf::CsrfGuard,
     Json(payload): Json<CreateCommentRequest>,
 ) -> Result<Json<Comment>, (StatusCode, Json<ErrorResponse>)> {
     if let Err(e) = validate_tutorial_id(&tutorial_id) {
@@ -294,6 +295,7 @@ pub async fn create_post_comment(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(post_id): Path<String>,
     auth::OptionalClaims(claims): auth::OptionalClaims,
+    _csrf: crate::security::csrf::CsrfGuard,
     Json(payload): Json<CreateCommentRequest>,
 ) -> Result<Json<Comment>, (StatusCode, Json<ErrorResponse>)> {
     // Verify post exists
@@ -356,7 +358,11 @@ async fn create_comment_internal(
                 }
                 
                 // Enforce strict name validation (alphanumeric and spaces)
-                let name_regex = regex::Regex::new(r"^[a-zA-Z0-9 ]+$").unwrap();
+                static NAME_REGEX: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+                let name_regex = NAME_REGEX.get_or_init(|| {
+                    regex::Regex::new(r"^[a-zA-Z0-9 ]+$").unwrap()
+                });
+
                 if !name_regex.is_match(trimmed) {
                      return Err((
                         StatusCode::BAD_REQUEST,
@@ -476,6 +482,7 @@ pub async fn delete_comment(
     claims: auth::Claims,
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    _csrf: crate::security::csrf::CsrfGuard,
 ) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
     // Fetch the comment first to check ownership
     let comment = repositories::comments::get_comment(&pool, &id)
@@ -554,6 +561,7 @@ pub async fn vote_comment(
     State(pool): State<DbPool>,
     claims: auth::Claims,
     Path(id): Path<String>,
+    _csrf: crate::security::csrf::CsrfGuard,
 ) -> Result<Json<Comment>, (StatusCode, Json<ErrorResponse>)> {
     // Check if comment exists
     let exists = repositories::comments::check_comment_exists(&pool, &id)
@@ -606,6 +614,16 @@ pub async fn vote_comment(
     repositories::comments::add_vote(&pool, &id, &voter_id)
         .await
         .map_err(|e| {
+            if let sqlx::Error::Database(db_err) = &e {
+                if db_err.is_unique_violation() {
+                    return (
+                        StatusCode::CONFLICT,
+                        Json(ErrorResponse {
+                            error: "You have already voted on this comment".to_string(),
+                        }),
+                    );
+                }
+            }
             tracing::error!("Database error recording vote: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,

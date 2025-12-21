@@ -356,7 +356,16 @@ pub async fn update_post(
     }
 
     if let Some(ref title) = payload.title {
-        if title.trim().is_empty() || title.trim().len() > MAX_TITLE_LEN {
+        let trimmed = title.trim();
+        if trimmed.is_empty() {
+             return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: "Title cannot be empty".to_string(),
+                }),
+            ));
+        }
+        if trimmed.len() > MAX_TITLE_LEN {
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
@@ -367,6 +376,9 @@ pub async fn update_post(
     }
 
     let mut payload = payload;
+    if let Some(title) = payload.title.as_mut() {
+        *title = title.trim().to_string();
+    }
     if let Some(slug) = payload.slug.as_mut() {
         *slug = sanitize_slug(slug);
     }

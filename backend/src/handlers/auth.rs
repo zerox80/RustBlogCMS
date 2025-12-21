@@ -24,7 +24,7 @@
 
 use crate::{security::{auth, csrf}, db::DbPool, models::*, repositories};
 use axum::{
-    extract::State,
+    extract::{ConnectInfo, State},
     http::{HeaderMap, StatusCode},
     Json,
 };
@@ -255,6 +255,7 @@ fn validate_password(password: &str) -> Result<(), String> {
 /// - Lockout countdown shown to user
 pub async fn login(
     State(pool): State<DbPool>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<(HeaderMap, Json<LoginResponse>), (StatusCode, Json<ErrorResponse>)> {
     let username = payload.username.trim().to_string();
@@ -266,7 +267,11 @@ pub async fn login(
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
 
-    let attempt_key = hash_login_identifier(&username);
+    // Rate limit based on (IP + Username) to prevent DoS against specific users
+    // If we only used username, an attacker could lock out 'admin' by spamming bad passwords.
+    // If we only used IP, an attacker could rotate IPs to brute force.
+    // Using both is a balanced approach.
+    let attempt_key = hash_login_identifier(&format!("{}:{}", addr.ip(), username));
 
     let attempt_record = repositories::users::get_login_attempt(&pool, &attempt_key)
         .await
