@@ -553,3 +553,68 @@ pub async fn logout(
     tracing::info!(user = %claims.sub, "User logged out");
     (StatusCode::NO_CONTENT, headers)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::migrations::run_migrations;
+    use sqlx::SqlitePool;
+
+    async fn setup_test_db() -> DbPool {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        run_migrations(&pool).await.expect("Failed to run migrations");
+        pool
+    }
+
+    fn init_salts() {
+        if LOGIN_ATTEMPT_SALT.get().is_none() {
+            env::set_var("LOGIN_ATTEMPT_SALT", "this_is_a_test_salt_for_login_attempts_at_least_32_chars");
+            let _ = init_login_attempt_salt();
+        }
+        if auth::JWT_SECRET.get().is_none() {
+             env::set_var("JWT_SECRET", "this_is_a_test_jwt_secret_with_adequate_entropy_123_ABC_!!!");
+             let _ = auth::init_jwt_secret();
+        }
+        // CSRF_SECRET is private, we just call init and ignore "already initialized" error
+        env::set_var("CSRF_SECRET", "this_is_a_very_long_secret_key_for_testing_purposes_only_at_least_32_bytes");
+        let _ = csrf::init_csrf_secret();
+    }
+
+    #[tokio::test]
+    async fn test_login_invalid_credentials() {
+        init_salts();
+        let pool = setup_test_db().await;
+        
+        let payload = LoginRequest {
+            username: "nonexistent".to_string(),
+            password: "InvalidPassword123!".to_string(),
+        };
+        
+        let addr = "127.0.0.1:1234".parse().unwrap();
+        
+        let result = login(State(pool), ConnectInfo(addr), Json(payload)).await;
+        
+        assert!(result.is_err());
+        let (status, Json(body)) = result.unwrap_err();
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        assert_eq!(body.error, "Ungültige Anmeldedaten");
+    }
+
+    #[test]
+    fn test_validate_username() {
+        assert!(validate_username("admin").is_ok());
+        assert!(validate_username("user.name").is_ok());
+        assert!(validate_username("user_123").is_ok());
+        assert!(validate_username("").is_err());
+        assert!(validate_username("user!").is_err());
+        assert!(validate_username("a".repeat(51).as_str()).is_err());
+    }
+
+    #[test]
+    fn test_validate_password() {
+        assert!(validate_password("ValidPassword123!").is_ok());
+        assert!(validate_password("short").is_err());
+        assert!(validate_password("NoSpecialChar123").is_err());
+        assert!(validate_password("nonumberspec!").is_err());
+    }
+}
