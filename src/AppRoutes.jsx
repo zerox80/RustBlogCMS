@@ -19,28 +19,17 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
  * The application defaults to a Blog view. The home page can be configured via
  * CMS settings to show:
  * - 'blog': The main blog listing (default)
- * - A specific page slug: A CMS-created dynamic page
- * - A specific post: homePagePost setting to show a featured blog article
+ * - A specific page slug: A CMS-created dynamic page (shows page with its posts)
  */
 const AppRoutes = () => {
     const { getSection } = useContent()
     const settings = getSection('settings') || {}
     const homePageSlug = settings.homePageSlug || 'blog'
-    const homePagePost = settings.homePagePost // Optional: specific blog post as start page
 
     // Determine the home page component based on settings
     let HomePageComponent
 
-    if (homePagePost) {
-        // Feature: Show a specific blog post as the start page
-        HomePageComponent = () => (
-            <>
-                <Header />
-                <PostDetail pageSlug="blog" postSlug={homePagePost} isHomePage />
-                <Footer />
-            </>
-        )
-    } else if (homePageSlug === 'blog' || !homePageSlug) {
+    if (homePageSlug === 'blog' || !homePageSlug) {
         // Default: Show the blog listing
         HomePageComponent = () => (
             <>
