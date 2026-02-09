@@ -8,6 +8,8 @@ import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import CodeBlock from '../ui/CodeBlock'
 import remarkMergeInlineParagraphs from '../../utils/remarkMergeInlineParagraphs'
+import remarkGithubAlerts from '../../utils/remarkGithubAlerts'
+import { AlertCircle, AlertTriangle, Info, Lightbulb, MessageCircle } from 'lucide-react'
 const mergeClassNames = (...classes) => classes.filter(Boolean).join(' ')
 const headingClasses = {
   1: 'text-4xl sm:text-5xl font-bold text-gray-900 dark:text-slate-100 tracking-tight mt-16 first:mt-0 mb-8',
@@ -19,8 +21,8 @@ const headingClasses = {
 }
 const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
   const remarkPlugins = withBreaks
-    ? [remarkMath, remarkGfm, remarkMergeInlineParagraphs, remarkBreaks]
-    : [remarkMath, remarkGfm, remarkMergeInlineParagraphs]
+    ? [remarkMath, remarkGfm, remarkMergeInlineParagraphs, remarkGithubAlerts, remarkBreaks]
+    : [remarkMath, remarkGfm, remarkMergeInlineParagraphs, remarkGithubAlerts]
   return (
     <div className={mergeClassNames('markdown-renderer text-gray-700 dark:text-slate-200', className)}>
       <ReactMarkdown
@@ -77,14 +79,67 @@ const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
               {children}
             </li>
           ),
-          blockquote: ({ children, ...props }) => (
-            <blockquote
-              className="mt-10 first:mt-0 rounded-2xl border-l-4 border-primary-500 bg-primary-50/40 dark:bg-slate-800/40 dark:border-primary-500/60 px-8 py-6 text-lg sm:text-xl italic text-gray-700 dark:text-slate-200 shadow-sm"
-              {...props}
-            >
-              {children}
-            </blockquote>
-          ),
+          blockquote: ({ children, ...props }) => {
+            const alertType = props['data-alert-type']
+            if (alertType) {
+              const type = alertType.toUpperCase()
+              let icon
+              let title
+              let classes = 'rounded-2xl border-l-4 px-6 py-4 my-8 shadow-sm text-base'
+
+              switch (type) {
+                case 'NOTE':
+                  icon = <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  title = 'Note'
+                  classes += ' bg-blue-50/50 border-blue-500/50 text-blue-900 dark:bg-blue-900/10 dark:text-blue-100 dark:border-blue-500'
+                  break
+                case 'TIP':
+                  icon = <Lightbulb className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  title = 'Tip'
+                  classes += ' bg-green-50/50 border-green-500/50 text-green-900 dark:bg-green-900/10 dark:text-green-100 dark:border-green-500'
+                  break
+                case 'IMPORTANT':
+                  icon = <MessageCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  title = 'Important'
+                  classes += ' bg-purple-50/50 border-purple-500/50 text-purple-900 dark:bg-purple-900/10 dark:text-purple-100 dark:border-purple-500'
+                  break
+                case 'WARNING':
+                  icon = <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                  title = 'Warning'
+                  classes += ' bg-yellow-50/50 border-yellow-500/50 text-yellow-900 dark:bg-yellow-900/10 dark:text-yellow-100 dark:border-yellow-500'
+                  break
+                case 'CAUTION':
+                  icon = <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  title = 'Caution'
+                  classes += ' bg-red-50/50 border-red-500/50 text-red-900 dark:bg-red-900/10 dark:text-red-100 dark:border-red-500'
+                  break
+                default:
+                  icon = <Info className="h-5 w-5" />
+                  title = 'Note'
+                  classes += ' bg-gray-50 border-gray-500 text-gray-900 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-500'
+              }
+
+              return (
+                <div className={classes} {...props}>
+                  <div className="flex items-center gap-3 mb-2 font-semibold select-none">
+                    {icon}
+                    <span>{title}</span>
+                  </div>
+                  <div className="text-sm sm:text-base leading-relaxed opacity-90">
+                    {children}
+                  </div>
+                </div>
+              )
+            }
+            return (
+              <blockquote
+                className="mt-10 first:mt-0 rounded-2xl border-l-4 border-primary-500 bg-primary-50/40 dark:bg-slate-800/40 dark:border-primary-500/60 px-8 py-6 text-lg sm:text-xl italic text-gray-700 dark:text-slate-200 shadow-sm"
+                {...props}
+              >
+                {children}
+              </blockquote>
+            )
+          },
           a: ({ href, children, ...props }) => (
             <a
               href={href}
