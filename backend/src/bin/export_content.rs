@@ -1,7 +1,7 @@
 /**
  * Content Export Utility
  *
- * This binary utility exports all site content from the Linux Tutorial CMS database
+ * This binary utility exports all site content from the Rust Blog CMS database
  * to a structured JSON file. It's designed for backup purposes, content migration,
  * and development environment setup.
  *

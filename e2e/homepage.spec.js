@@ -1,8 +1,8 @@
 /**
- * Homepage End-to-End Tests for LinuxTutorialCMS
+ * Homepage End-to-End Tests for RustBlogCMS
  *
  * This test suite validates the core functionality and user experience
- * of the Linux Tutorial CMS homepage using Playwright testing framework.
+ * of the Rust Blog CMS homepage using Playwright testing framework.
  *
  * Test Coverage Areas:
  * - Page loading and basic functionality
@@ -16,7 +16,7 @@
  * - German language support (for search placeholder)
  *
  * @version 1.0.0
- * @author LinuxTutorialCMS Team
+ * @author RustBlogCMS Team
  */
 
 import { test, expect } from '@playwright/test';

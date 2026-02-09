@@ -1,7 +1,7 @@
 /**
  * HTTP Handlers Module
  *
- * This module contains all HTTP request handlers for the Linux Tutorial CMS API.
+ * This module contains all HTTP request handlers for the Rust Blog CMS API.
  * Each handler module is organized by domain and follows RESTful conventions
  * for HTTP endpoints. All handlers include comprehensive error handling,
  * input validation, and security controls.

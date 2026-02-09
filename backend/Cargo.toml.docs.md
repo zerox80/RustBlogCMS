@@ -1,7 +1,7 @@
 # Cargo.toml Configuration Documentation
 
 ## Overview
-This is the main Cargo configuration file for the Linux Tutorial CMS Rust backend. It defines project metadata, dependencies, build configurations, and multiple binary targets for the high-performance API server.
+This is the main Cargo configuration file for the Rust Blog CMS Rust backend. It defines project metadata, dependencies, build configurations, and multiple binary targets for the high-performance API server.
 
 ## File Purpose
 - Configures the Rust project structure and metadata
@@ -33,8 +33,8 @@ license = "MIT"
 
 ### Project Metadata
 ```toml
-description = "High-performance Rust backend API for Linux Tutorial CMS"
-repository = "https://github.com/zerox80/LinuxTutorialCMS"
+description = "High-performance Rust backend API for Rust Blog CMS"
+repository = "https://github.com/zerox80/RustBlogCMS"
 keywords = ["cms", "api", "tutorial", "axum", "education"]
 categories = ["web-programming", "web-programming::http-server"]
 ```

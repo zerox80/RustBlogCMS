@@ -6,7 +6,7 @@ rust-version = "1.82"  # Minimum Supported Rust Version
 authors = ["zerox80"]
 license = "MIT"
 description = "High-performance Rust backend API for RustBlogCMS"
-repository = "https://github.com/zerox80/LinuxTutorialCMS"
+repository = "https://github.com/zerox80/RustBlogCMS"
 keywords = ["cms", "api", "tutorial", "axum", "education"]
 categories = ["web-programming", "web-programming::http-server"]
 

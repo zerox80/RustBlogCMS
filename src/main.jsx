@@ -1,5 +1,5 @@
 /**
- * Main Entry Point for Linux Tutorial CMS Application
+ * Main Entry Point for Rust Blog CMS Application
  * 
  * This file serves as the bootstrap for the entire React application.
  * It initializes the React root, applies global styles, and renders the main App component.

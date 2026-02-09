@@ -5,9 +5,9 @@ pub mod models; // Data structures and API models
 pub mod repositories; // Database repositories
 pub mod routes;
 /**
- * Linux Tutorial CMS - Library Root Module
+ * Rust Blog CMS - Library Root Module
  *
- * This module serves as the main entry point for the Linux Tutorial CMS backend library.
+ * This module serves as the main entry point for the Rust Blog CMS backend library.
  * It organizes all application modules into a coherent structure for both binary and library usage.
  *
  * Architecture Overview:

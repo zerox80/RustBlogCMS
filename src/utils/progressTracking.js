@@ -1,7 +1,7 @@
 // Storage configuration constants
-const STORAGE_KEY = 'linux_tutorial_cms_progress_v2';
-const BOOKMARKS_KEY = 'linux_tutorial_cms_bookmarks_v2';
-const STORAGE_PREFIX = 'linux_tutorial_cms_';
+const STORAGE_KEY = 'rust_blog_cms_progress_v2';
+const BOOKMARKS_KEY = 'rust_blog_cms_bookmarks_v2';
+const STORAGE_PREFIX = 'rust_blog_cms_';
 const MAX_STORAGE_RETRIES = 2;
 // Performance and security limits
 const MAX_STORAGE_SIZE = 5 * 1024 * 1024; // 5MB limit
@@ -102,8 +102,8 @@ const validateTutorialId = (tutorialId) => {
   }
   // Check length and format
   return tutorialId.length > 0 &&
-         tutorialId.length <= 100 &&
-         /^[a-zA-Z0-9_-]+$/.test(tutorialId);
+    tutorialId.length <= 100 &&
+    /^[a-zA-Z0-9_-]+$/.test(tutorialId);
 };
 export const getProgress = () => {
   try {

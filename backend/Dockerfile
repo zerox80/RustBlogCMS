@@ -1,8 +1,8 @@
 # ==============================================================================
-# LinuxTutorialCMS Backend Dockerfile
+# RustBlogCMS Backend Dockerfile
 # ==============================================================================
 #
-# Multi-stage Docker build for the Linux Tutorial CMS Rust backend service.
+# Multi-stage Docker build for the Rust Blog CMS Rust backend service.
 # This Dockerfile creates an optimized, secure production container for the
 # Rust-based API server.
 #
@@ -28,7 +28,7 @@
 # - JWT_SECRET: JWT token secret key
 #
 # @version 1.0.0
-# @author LinuxTutorialCMS Team
+# @author RustBlogCMS Team
 # ==============================================================================
 
 # ==============================================================================
@@ -183,25 +183,25 @@ CMD ["/app/backend"]
 # ==============================================================================
 #
 # Build the backend container:
-# docker build -t linux-tutorial-cms-backend -f backend/Dockerfile backend/
+# docker build -t rust-blog-cms-backend -f backend/Dockerfile backend/
 #
 # Run the container with environment variables:
 # docker run -p 8489:8489 \
 #   -e RUST_LOG=info \
 #   -e DATABASE_URL=postgresql://user:pass@localhost/db \
 #   -e JWT_SECRET=your-secret-key \
-#   linux-tutorial-cms-backend
+#   rust-blog-cms-backend
 #
 # With volume mounts for configuration:
 # docker run -p 8489:8489 \
 #   -v $(pwd)/config.toml:/app/config.toml \
 #   -e RUST_LOG=debug \
-#   linux-tutorial-cms-backend
+#   rust-blog-cms-backend
 #
 # With custom build arguments:
 # docker build \
 #   --build-arg RUSTFLAGS="-C target-cpu=native" \
-#   -t linux-tutorial-cms-backend \
+#   -t rust-blog-cms-backend \
 #   -f backend/Dockerfile backend/
 #
 

@@ -2,7 +2,7 @@
  * Content Import Utility
  *
  * This binary utility imports site content from a structured JSON file into the
- * Linux Tutorial CMS database. It's designed for content restoration, development
+ * Rust Blog CMS database. It's designed for content restoration, development
  * environment setup, and content migration between instances.
  *
  * Usage:

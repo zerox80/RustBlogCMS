@@ -1,7 +1,7 @@
 # Internationalization (i18n) Locale Files Documentation
 
 ## Overview
-This directory contains translation files for the LinuxTutorialCMS project. The application supports multiple languages using the i18next framework, with JSON files defining translations for each supported language.
+This directory contains translation files for the RustBlogCMS project. The application supports multiple languages using the i18next framework, with JSON files defining translations for each supported language.
 
 ## File Structure
 

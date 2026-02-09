@@ -1,6 +1,6 @@
-# Contributing to LinuxTutorialCMS
+# Contributing to RustBlogCMS
 
-Thank you for your interest in contributing to LinuxTutorialCMS! This guide will help you understand our development practices, coding standards, and documentation requirements.
+Thank you for your interest in contributing to RustBlogCMS! This guide will help you understand our development practices, coding standards, and documentation requirements.
 
 ## Table of Contents
 
@@ -25,8 +25,8 @@ Thank you for your interest in contributing to LinuxTutorialCMS! This guide will
 
 1. **Fork the repository**
    ```bash
-   git clone https://github.com/your-username/LinuxTutorialCMS.git
-   cd LinuxTutorialCMS
+   git clone https://github.com/your-username/RustBlogCMS.git
+   cd RustBlogCMS
    ```
 
 2. **Install dependencies**
@@ -463,4 +463,4 @@ Contributors are recognized for their valuable input through:
 - **GitHub badges** for various contribution types
 - **Community appreciation** in project communications
 
-Thank you for contributing to LinuxTutorialCMS! Your contributions help make this project better for everyone.
+Thank you for contributing to RustBlogCMS! Your contributions help make this project better for everyone.
