@@ -1,4 +1,5 @@
 use rust_blog_backend::security::csrf::{issue_csrf_token, init_csrf_secret};
+use rust_blog_backend::models::user::LoginRequest;
 use std::env;
 
 #[test]
@@ -7,8 +8,11 @@ fn test_csrf_token_lifecycle() {
     env::set_var("CSRF_SECRET", "this_is_a_very_long_test_secret_for_csrf_checks_12345");
     let _ = init_csrf_secret();
 
-    let username = "testuser";
-    let token = issue_csrf_token(username).expect("Failed to issue token");
+    let request = LoginRequest {
+        username: "testuser".to_string(),
+        password: "ValidPassword123!".to_string(),
+    };
+    let token = issue_csrf_token(&request.username).expect("Failed to issue token");
     
     // Check format (basic check since validate_csrf_token is private)
     assert!(token.starts_with("v1|"));
