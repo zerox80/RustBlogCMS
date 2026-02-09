@@ -11,7 +11,7 @@ pub const DEV_DEFAULT_FRONTEND_ORIGINS: &[&str] =
     &["http://localhost:5173", "http://localhost:3000"];
 
 /// Parses and validates a collection of allowed CORS origins.
-/// 
+///
 /// This function converts raw strings into Axum-compatible `HeaderValue` objects while:
 /// 1. **Filtering**: Removing empty or malformed strings.
 /// 2. **Protocol Enforcement**: Ensuring all origins use `http://` or `https://`.
@@ -55,4 +55,3 @@ where
         })
         .collect()
 }
-

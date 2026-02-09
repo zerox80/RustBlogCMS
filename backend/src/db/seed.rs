@@ -1,9 +1,7 @@
 use serde_json::json;
 use sqlx::{Sqlite, Transaction};
 
-pub async fn seed_site_content_tx(
-    tx: &mut Transaction<'_, Sqlite>,
-) -> Result<(), sqlx::Error> {
+pub async fn seed_site_content_tx(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     for (section, content) in default_site_content() {
         // Step 1: Check if this content section already exists (Idempotency)
         let exists: Option<(String,)> =

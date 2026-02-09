@@ -1,3 +1,4 @@
+use super::migrations::run_migrations;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     SqlitePool,
@@ -5,7 +6,6 @@ use sqlx::{
 use std::env;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use super::migrations::run_migrations;
 
 /// Type alias for the SQLite connection pool.
 /// Used throughout the application for database access.

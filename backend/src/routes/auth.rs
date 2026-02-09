@@ -1,10 +1,10 @@
-use axum::{routing::post, Router};
-use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
-use tower_governor::key_extractor::SmartIpKeyExtractor;
-use tower_http::limit::RequestBodyLimitLayer;
-use crate::handlers::auth;
 use crate::db::DbPool;
+use crate::handlers::auth;
+use axum::{routing::post, Router};
 use std::sync::Arc;
+use tower_governor::key_extractor::SmartIpKeyExtractor;
+use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
+use tower_http::limit::RequestBodyLimitLayer;
 
 const LOGIN_BODY_LIMIT: usize = 64 * 1024;
 
@@ -22,7 +22,6 @@ pub fn routes() -> Router<DbPool> {
         // Core Identity Endpoints
         .route("/api/auth/login", post(auth::login))
         .route("/api/auth/logout", post(auth::logout))
-        
         // System-wide Protections
         .layer(RequestBodyLimitLayer::new(LOGIN_BODY_LIMIT))
         .layer(GovernorLayer::new(rate_limit_config))

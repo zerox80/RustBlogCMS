@@ -1,7 +1,7 @@
+use super::pool::DbPool;
+use super::seed::{insert_default_tutorials_tx, seed_site_content_tx};
 use sqlx::{Sqlite, Transaction};
 use std::env;
-use super::pool::DbPool;
-use super::seed::{seed_site_content_tx, insert_default_tutorials_tx};
 
 /// Runs all database migrations and initial data seeding.
 ///
@@ -209,9 +209,7 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn apply_core_migrations(
-    tx: &mut Transaction<'_, Sqlite>,
-) -> Result<(), sqlx::Error> {
+async fn apply_core_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS users (
@@ -474,9 +472,7 @@ async fn ensure_site_page_schema(pool: &DbPool) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn apply_comment_migrations(
-    tx: &mut Transaction<'_, Sqlite>,
-) -> Result<(), sqlx::Error> {
+async fn apply_comment_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     // Check if post_id column exists
     let has_post_id: bool = sqlx::query_scalar(
         "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='post_id'",
@@ -500,9 +496,7 @@ async fn apply_comment_migrations(
     Ok(())
 }
 
-async fn apply_vote_migration(
-    tx: &mut Transaction<'_, Sqlite>,
-) -> Result<(), sqlx::Error> {
+async fn apply_vote_migration(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     // Create comment_votes table
     sqlx::query(include_str!(
         "../../migrations/20241119_create_comment_votes.sql"
@@ -542,9 +536,7 @@ async fn apply_vote_migration(
     Ok(())
 }
 
-async fn fix_comment_schema(
-    tx: &mut Transaction<'_, Sqlite>,
-) -> Result<(), sqlx::Error> {
+async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     // Check if tutorial_id is nullable by checking table info, but SQLite doesn't make it easy to check nullability directly via simple query without parsing.
     // Instead, we'll check if we've already run this fix by checking app_metadata.
     let fixed: Option<(String,)> =
@@ -613,9 +605,7 @@ async fn fix_comment_schema(
     Ok(())
 }
 
-async fn apply_site_post_migrations(
-    tx: &mut Transaction<'_, Sqlite>,
-) -> Result<(), sqlx::Error> {
+async fn apply_site_post_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     // Check if allow_comments column exists
     let has_allow_comments: bool = sqlx::query_scalar(
         "SELECT COUNT(*) FROM pragma_table_info('site_posts') WHERE name='allow_comments'",

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Represents a user-submitted comment on content.
-/// 
+///
 /// Comments can be attached to either a `Tutorial` or a `SitePost`.
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Comment {

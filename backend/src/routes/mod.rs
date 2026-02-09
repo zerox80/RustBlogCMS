@@ -2,10 +2,10 @@ pub mod admin;
 pub mod api;
 pub mod auth;
 
-use axum::Router;
 use crate::db::DbPool;
-use tower_governor::{governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor};
+use axum::Router;
 use std::sync::Arc;
+use tower_governor::{governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor};
 
 pub fn create_routes(pool: DbPool, upload_dir: String) -> Router<DbPool> {
     let admin_rate_limit_config = Arc::new(
@@ -28,7 +28,11 @@ pub fn create_routes(pool: DbPool, upload_dir: String) -> Router<DbPool> {
 
     let login_router = auth::routes();
     let admin_router = admin::routes(pool.clone(), admin_rate_limit_config.clone());
-    let api_router = api::routes(upload_dir, admin_rate_limit_config, public_rate_limit_config);
+    let api_router = api::routes(
+        upload_dir,
+        admin_rate_limit_config,
+        public_rate_limit_config,
+    );
 
     Router::new()
         .merge(login_router)

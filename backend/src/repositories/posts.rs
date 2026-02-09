@@ -114,14 +114,30 @@ pub async fn update_site_post(
         .ok_or(sqlx::Error::RowNotFound)?;
 
     // Merge changes
-    if let Some(title) = payload.title { existing.title = title; }
-    if let Some(slug) = payload.slug { existing.slug = slug; }
-    if let Some(excerpt) = payload.excerpt { existing.excerpt = excerpt; }
-    if let Some(content) = payload.content_markdown { existing.content_markdown = content; }
-    if let Some(is_published) = payload.is_published { existing.is_published = is_published; }
-    if let Some(allow_comments) = payload.allow_comments { existing.allow_comments = allow_comments; }
-    if let Some(published_at) = payload.published_at { existing.published_at = published_at; }
-    if let Some(order_index) = payload.order_index { existing.order_index = order_index; }
+    if let Some(title) = payload.title {
+        existing.title = title;
+    }
+    if let Some(slug) = payload.slug {
+        existing.slug = slug;
+    }
+    if let Some(excerpt) = payload.excerpt {
+        existing.excerpt = excerpt;
+    }
+    if let Some(content) = payload.content_markdown {
+        existing.content_markdown = content;
+    }
+    if let Some(is_published) = payload.is_published {
+        existing.is_published = is_published;
+    }
+    if let Some(allow_comments) = payload.allow_comments {
+        existing.allow_comments = allow_comments;
+    }
+    if let Some(published_at) = payload.published_at {
+        existing.published_at = published_at;
+    }
+    if let Some(order_index) = payload.order_index {
+        existing.order_index = order_index;
+    }
 
     // Save back to DB
     sqlx::query(

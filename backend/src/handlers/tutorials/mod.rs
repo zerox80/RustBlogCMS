@@ -1,7 +1,7 @@
 //! Tutorial Management HTTP Handlers
 //!
 //! This module provides a robust API for managing educational tutorials.
-//! It includes strict input validation, role-based access control, and 
+//! It includes strict input validation, role-based access control, and
 //! seamless integration with full-text search (FTS5).
 //!
 //! Tutorials are structured with:
@@ -10,7 +10,7 @@
 //! - Versioning: Optimistic concurrency control via version numbers
 //! - Identifiers: Custom slugs or auto-generated UUIDs
 
-use crate::{security::auth, db::DbPool, models::*, repositories};
+use crate::{db::DbPool, models::*, repositories, security::auth};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -34,7 +34,9 @@ pub(crate) fn validate_tutorial_id(id: &str) -> Result<(), String> {
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
     {
-        return Err("Tutorial ID contains invalid characters (allowed: alphanumeric, -, _, .)".to_string());
+        return Err(
+            "Tutorial ID contains invalid characters (allowed: alphanumeric, -, _, .)".to_string(),
+        );
     }
     Ok(())
 }
@@ -104,7 +106,7 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
         // Handle responsive modifiers (e.g., dark:from-..., md:hover:to-...)
         // We look at the last part after ':' or the whole string if no ':'
         let base_class = segment.split(':').last().unwrap_or(segment);
-        
+
         if !base_class.starts_with(prefix) {
             return false;
         }
@@ -121,7 +123,7 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     // Typically 2 or 3 parts: from-... [via-...] to-...
     // But could be more with responsive? No, typically "from-X to-Y" is the base structure.
     // We stick to 2 or 3 segments for simplicity of storage/validation as per original design.
-    
+
     // Gradients must have 2 (from/to) or 3 (from/via/to) segments
     if !(segments.len() == 2 || segments.len() == 3) {
         return Err(
@@ -136,7 +138,9 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
 
     // Validate 'from-' segment
     if !validate_segment(segments[0], "from-") {
-        return Err("Invalid color gradient: 'from-*' segment malformed, too long, or missing.".to_string());
+        return Err(
+            "Invalid color gradient: 'from-*' segment malformed, too long, or missing.".to_string(),
+        );
     }
 
     if segments.len() == 3 {
@@ -144,15 +148,14 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
         // Original code expected: 0=from, 1=via, 2=to.
         // Validate internal 'via-' segment
         if !validate_segment(segments[1], "via-") {
-             return Err(
-                "Invalid color gradient: Middle segment must be 'via-*' in a 3-part gradient.".to_string(),
+            return Err(
+                "Invalid color gradient: Middle segment must be 'via-*' in a 3-part gradient."
+                    .to_string(),
             );
         }
         // Validate 'to-' segment
         if !validate_segment(segments[2], "to-") {
-            return Err(
-                "Invalid color gradient: Last segment must be 'to-*'.".to_string(),
-            );
+            return Err("Invalid color gradient: Last segment must be 'to-*'.".to_string());
         }
     } else if !validate_segment(segments[1], "to-") {
         // Validate 'to-' segment for 2-part gradient
@@ -303,14 +306,18 @@ pub async fn get_tutorial(
     // Transform database record (Tutorial) into full response model (TutorialResponse)
     // This step parses the 'topics' JSON string into a Vec<String>.
     let response: TutorialResponse = tutorial.try_into().map_err(|err: String| {
-        tracing::error!("Tutorial details data corruption detected in {}: {}", id, err);
+        tracing::error!(
+            "Tutorial details data corruption detected in {}: {}",
+            id,
+            err
+        );
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
                 error: "Failed to parse stored tutorial data".to_string(),
-                }),
-            )
-        })?;
+            }),
+        )
+    })?;
 
     Ok(Json(response))
 }
@@ -525,7 +532,7 @@ pub async fn update_tutorial(
 
     let icon = payload.icon.unwrap_or(tutorial.icon);
     let color = payload.color.unwrap_or(tutorial.color);
-    
+
     // Content update
     let content = match payload.content {
         Some(value) => {
@@ -562,8 +569,6 @@ pub async fn update_tutorial(
     if let Err(e) = validate_color(&color) {
         return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
     }
-
-
 
     // Step 5: Handle topics serialization
     let (topics_json, topics_vec) = if let Some(t) = payload.topics {

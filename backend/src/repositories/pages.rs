@@ -111,15 +111,33 @@ pub async fn update_site_page(
         .ok_or(sqlx::Error::RowNotFound)?;
 
     // Apply updates
-    if let Some(slug) = payload.slug { existing.slug = slug; }
-    if let Some(title) = payload.title { existing.title = title; }
-    if let Some(description) = payload.description { existing.description = description; }
-    if let Some(nav_label_opt) = payload.nav_label { existing.nav_label = nav_label_opt; }
-    if let Some(show_in_nav) = payload.show_in_nav { existing.show_in_nav = show_in_nav; }
-    if let Some(order_index) = payload.order_index { existing.order_index = order_index; }
-    if let Some(is_published) = payload.is_published { existing.is_published = is_published; }
-    if let Some(hero) = payload.hero { existing.hero_json = serialize_json_value(&hero)?; }
-    if let Some(layout) = payload.layout { existing.layout_json = serialize_json_value(&layout)?; }
+    if let Some(slug) = payload.slug {
+        existing.slug = slug;
+    }
+    if let Some(title) = payload.title {
+        existing.title = title;
+    }
+    if let Some(description) = payload.description {
+        existing.description = description;
+    }
+    if let Some(nav_label_opt) = payload.nav_label {
+        existing.nav_label = nav_label_opt;
+    }
+    if let Some(show_in_nav) = payload.show_in_nav {
+        existing.show_in_nav = show_in_nav;
+    }
+    if let Some(order_index) = payload.order_index {
+        existing.order_index = order_index;
+    }
+    if let Some(is_published) = payload.is_published {
+        existing.is_published = is_published;
+    }
+    if let Some(hero) = payload.hero {
+        existing.hero_json = serialize_json_value(&hero)?;
+    }
+    if let Some(layout) = payload.layout {
+        existing.layout_json = serialize_json_value(&layout)?;
+    }
 
     // Execute UPDATE
     sqlx::query(

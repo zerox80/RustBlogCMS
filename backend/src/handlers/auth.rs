@@ -22,7 +22,12 @@
 //! - 3 failures: 10-second lockout
 //! - 5+ failures: 60-second lockout
 
-use crate::{security::{auth, csrf}, db::DbPool, models::*, repositories};
+use crate::{
+    db::DbPool,
+    models::*,
+    repositories,
+    security::{auth, csrf},
+};
 use axum::{
     extract::{ConnectInfo, State},
     http::{HeaderMap, StatusCode},
@@ -31,10 +36,10 @@ use axum::{
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use sha2::{Digest, Sha256};
 
-use std::{env, sync::OnceLock, time::Duration};
-use std::net::SocketAddr;
 use axum_extra::extract::cookie::CookieJar;
 use rand::Rng;
+use std::net::SocketAddr;
+use std::{env, sync::OnceLock, time::Duration};
 
 /// Global salt for hashing login attempt identifiers.
 /// Initialized once at startup via init_login_attempt_salt().
@@ -519,13 +524,13 @@ pub async fn logout(
 
     // 1. Extract from Header
     if let Some(auth_header) = headers.get(axum::http::header::AUTHORIZATION) {
-         if let Ok(value) = auth_header.to_str() {
-             if let Some(token) = value.strip_prefix("Bearer ").map(|t| t.trim()) {
-                 if !token.is_empty() {
-                     tokens_to_blacklist.push(token.to_string());
-                 }
-             }
-         }
+        if let Ok(value) = auth_header.to_str() {
+            if let Some(token) = value.strip_prefix("Bearer ").map(|t| t.trim()) {
+                if !token.is_empty() {
+                    tokens_to_blacklist.push(token.to_string());
+                }
+            }
+        }
     }
 
     // 2. Extract from Cookie
@@ -546,7 +551,6 @@ pub async fn logout(
         }
     }
 
-
     let mut headers = HeaderMap::new();
     auth::append_auth_cookie(&mut headers, auth::build_cookie_removal());
     csrf::append_csrf_removal(&mut headers);
@@ -562,21 +566,32 @@ mod tests {
 
     async fn setup_test_db() -> DbPool {
         let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
-        run_migrations(&pool).await.expect("Failed to run migrations");
+        run_migrations(&pool)
+            .await
+            .expect("Failed to run migrations");
         pool
     }
 
     fn init_salts() {
         if LOGIN_ATTEMPT_SALT.get().is_none() {
-            env::set_var("LOGIN_ATTEMPT_SALT", "this_is_a_test_salt_for_login_attempts_at_least_32_chars");
+            env::set_var(
+                "LOGIN_ATTEMPT_SALT",
+                "this_is_a_test_salt_for_login_attempts_at_least_32_chars",
+            );
             let _ = init_login_attempt_salt();
         }
         if auth::JWT_SECRET.get().is_none() {
-             env::set_var("JWT_SECRET", "this_is_a_test_jwt_secret_with_adequate_entropy_123_ABC_!!!");
-             let _ = auth::init_jwt_secret();
+            env::set_var(
+                "JWT_SECRET",
+                "this_is_a_test_jwt_secret_with_adequate_entropy_123_ABC_!!!",
+            );
+            let _ = auth::init_jwt_secret();
         }
         // CSRF_SECRET is private, we just call init and ignore "already initialized" error
-        env::set_var("CSRF_SECRET", "this_is_a_very_long_secret_key_for_testing_purposes_only_at_least_32_bytes");
+        env::set_var(
+            "CSRF_SECRET",
+            "this_is_a_very_long_secret_key_for_testing_purposes_only_at_least_32_bytes",
+        );
         let _ = csrf::init_csrf_secret();
     }
 
@@ -584,16 +599,16 @@ mod tests {
     async fn test_login_invalid_credentials() {
         init_salts();
         let pool = setup_test_db().await;
-        
+
         let payload = LoginRequest {
             username: "nonexistent".to_string(),
             password: "InvalidPassword123!".to_string(),
         };
-        
+
         let addr = "127.0.0.1:1234".parse().unwrap();
-        
+
         let result = login(State(pool), ConnectInfo(addr), Json(payload)).await;
-        
+
         assert!(result.is_err());
         let (status, Json(body)) = result.unwrap_err();
         assert_eq!(status, StatusCode::UNAUTHORIZED);

@@ -4,12 +4,13 @@
 //! It includes full CRUD operations, validation, and administrative controls.
 
 use crate::{
-    security::auth, db,
+    db,
     models::{
         CreateSitePostRequest, ErrorResponse, SitePostListResponse, SitePostResponse,
         UpdateSitePostRequest,
     },
     repositories,
+    security::auth,
 };
 use axum::{
     extract::{Path, State},
@@ -358,7 +359,7 @@ pub async fn update_post(
     if let Some(ref title) = payload.title {
         let trimmed = title.trim();
         if trimmed.is_empty() {
-             return Err((
+            return Err((
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
                     error: "Title cannot be empty".to_string(),

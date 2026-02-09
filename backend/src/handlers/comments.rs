@@ -20,7 +20,9 @@
 //! - Content length limits prevent abuse
 //! - Tutorial ID validation prevents injection
 
-use crate::{security::auth, db::DbPool, handlers::tutorials::validate_tutorial_id, models::*, repositories};
+use crate::{
+    db::DbPool, handlers::tutorials::validate_tutorial_id, models::*, repositories, security::auth,
+};
 use axum::{
     extract::{ConnectInfo, Path, Query, State},
     http::StatusCode,
@@ -28,7 +30,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-
 
 /// Request payload for creating a comment
 #[derive(Deserialize)]
@@ -219,7 +220,15 @@ pub async fn create_comment(
         ));
     }
 
-    create_comment_internal(pool, Some(tutorial_id), None, payload, None, addr.ip().to_string()).await
+    create_comment_internal(
+        pool,
+        Some(tutorial_id),
+        None,
+        payload,
+        None,
+        addr.ip().to_string(),
+    )
+    .await
 }
 
 /// Handler for listing comments on a blog post
@@ -323,7 +332,15 @@ pub async fn create_post_comment(
         ));
     }
 
-    create_comment_internal(pool, None, Some(post_id), payload, claims, addr.ip().to_string()).await
+    create_comment_internal(
+        pool,
+        None,
+        Some(post_id),
+        payload,
+        claims,
+        addr.ip().to_string(),
+    )
+    .await
 }
 
 /// Internal logic for creating a comment on either a tutorial or a post
@@ -361,15 +378,14 @@ async fn create_comment_internal(
                         }),
                     ));
                 }
-                
+
                 // Enforce strict name validation (alphanumeric and spaces)
                 static NAME_REGEX: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-                let name_regex = NAME_REGEX.get_or_init(|| {
-                    regex::Regex::new(r"^[a-zA-Z0-9 ]+$").unwrap()
-                });
+                let name_regex =
+                    NAME_REGEX.get_or_init(|| regex::Regex::new(r"^[a-zA-Z0-9 ]+$").unwrap());
 
                 if !name_regex.is_match(trimmed) {
-                     return Err((
+                    return Err((
                         StatusCode::BAD_REQUEST,
                         Json(ErrorResponse {
                             error: "Name can only contain letters, numbers, and spaces".to_string(),
@@ -378,11 +394,11 @@ async fn create_comment_internal(
                 }
 
                 // Prevent using "Administrator" or "Admin" as guest name
-                if trimmed.eq_ignore_ascii_case("admin") 
-                    || trimmed.eq_ignore_ascii_case("administrator") 
-                    || trimmed.eq_ignore_ascii_case("root") 
+                if trimmed.eq_ignore_ascii_case("admin")
+                    || trimmed.eq_ignore_ascii_case("administrator")
+                    || trimmed.eq_ignore_ascii_case("root")
                 {
-                     return Err((
+                    return Err((
                         StatusCode::BAD_REQUEST,
                         Json(ErrorResponse {
                             error: "This name is reserved".to_string(),

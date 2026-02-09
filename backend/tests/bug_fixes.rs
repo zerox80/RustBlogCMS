@@ -37,7 +37,8 @@ async fn test_bug_fixes() -> anyhow::Result<()> {
     assert_eq!(tutorials.len(), 1);
 
     // Test TryFrom conversion for Summary (Resilience check)
-    let summary: TutorialSummaryResponse = tutorials[0].clone()
+    let summary: TutorialSummaryResponse = tutorials[0]
+        .clone()
         .try_into()
         .expect("Should not fail even with invalid JSON");
     assert_eq!(summary.id, "test-1");

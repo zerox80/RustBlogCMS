@@ -1,20 +1,20 @@
 //! Authentication Middleware Layer
 //!
 //! This module provides the primary filter for protecting API routes.
-//! It acts as a gatekeeper, ensuring every request to a protected resource 
+//! It acts as a gatekeeper, ensuring every request to a protected resource
 //! carries a valid, non-revoked JWT token.
 //!
 //! # Extractor Logic
-//! The middleware doesn't just block unauthorized requests; it also 
+//! The middleware doesn't just block unauthorized requests; it also
 //! extracts identity information (Claims) and places it into Axum's
 //! request extensions. This allows downstream handlers to simply
 //! use the `Claims` extractor to identify the user and their role.
 
-use crate::{security::auth, repositories};
+use crate::{repositories, security::auth};
 use axum::{http::StatusCode, Json};
 
 /// Middleware to enforce authentication on a per-route or per-router basis.
-/// 
+///
 /// Process Flow:
 /// 1. **Extraction**: Checks both Authorization header and ltcms_session cookie.
 /// 2. **Verification**: Validates the JWT signature and expiration.

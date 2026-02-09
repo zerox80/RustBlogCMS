@@ -9,14 +9,10 @@
 //! - UUID-based filename generation to prevent collisions and path injection
 
 use crate::{
-    security::auth,
     models::{ErrorResponse, UploadResponse},
+    security::auth,
 };
-use axum::{
-    extract::Multipart,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::Multipart, http::StatusCode, Json};
 use std::path::PathBuf;
 use tokio::fs;
 use uuid::Uuid;
@@ -76,7 +72,7 @@ pub async fn upload_image(
 
             // Peek at the first chunk of data to perform MIME type detection (magic bytes)
             let first_chunk = match field.chunk().await.map_err(|err| {
-                 tracing::error!("Failed to read first chunk: {}", err);
+                tracing::error!("Failed to read first chunk: {}", err);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
@@ -85,25 +81,33 @@ pub async fn upload_image(
                 )
             })? {
                 Some(chunk) => chunk,
-                None => return Err((
-                    StatusCode::BAD_REQUEST,
-                    Json(ErrorResponse {
-                        error: "File is empty".to_string(),
-                    }),
-                )),
+                None => {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        Json(ErrorResponse {
+                            error: "File is empty".to_string(),
+                        }),
+                    ))
+                }
             };
 
             // VALIDATION: Verify the file content matches an allowed image type
             if let Some(kind) = infer::get(&first_chunk) {
                 let detected_ext = kind.extension();
                 // Normalize "jpeg" vs "jpg" for comparison
-                let normalized_detected = if detected_ext == "jpeg" { "jpg" } else { detected_ext };
+                let normalized_detected = if detected_ext == "jpeg" {
+                    "jpg"
+                } else {
+                    detected_ext
+                };
                 let normalized_ext = if ext == "jpeg" { "jpg" } else { ext.as_str() };
 
                 // SECURITY: Reject if the content type (magic bytes) represents an extension we don't allow,
                 // or if it obviously contradicts the provided file extension.
-                if ALLOWED_EXTENSIONS.contains(&normalized_detected) && normalized_detected != normalized_ext {
-                     return Err((
+                if ALLOWED_EXTENSIONS.contains(&normalized_detected)
+                    && normalized_detected != normalized_ext
+                {
+                    return Err((
                         StatusCode::BAD_REQUEST,
                         Json(ErrorResponse {
                             error: format!(
@@ -114,8 +118,8 @@ pub async fn upload_image(
                     ));
                 }
             } else {
-                 // REJECT if we can't determine what it is; this is safer than allowing mystery blobs.
-                 return Err((
+                // REJECT if we can't determine what it is; this is safer than allowing mystery blobs.
+                return Err((
                     StatusCode::BAD_REQUEST,
                     Json(ErrorResponse {
                         error: "Could not determine file type from magic bytes".to_string(),
@@ -126,11 +130,11 @@ pub async fn upload_image(
             // Generate a random ID for the filename to prevent path injection and name collisions
             let id = Uuid::new_v4();
             let new_filename = format!("{}.{}", id, ext);
-            
+
             // Resolve the upload directory from environment or default to local "uploads"
             let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string());
             let upload_path_base = PathBuf::from(upload_dir);
-             
+
             // BOOTSTRAP: Ensure the physical directory exists
             if !upload_path_base.exists() {
                 fs::create_dir_all(&upload_path_base).await.map_err(|err| {
@@ -152,7 +156,11 @@ pub async fn upload_image(
             let mut file = match tokio::fs::File::create(&temp_filepath).await {
                 Ok(file) => file,
                 Err(e) => {
-                    tracing::error!("Failed to create temp file {}: {}", temp_filepath.display(), e);
+                    tracing::error!(
+                        "Failed to create temp file {}: {}",
+                        temp_filepath.display(),
+                        e
+                    );
                     return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(ErrorResponse {
@@ -163,12 +171,16 @@ pub async fn upload_image(
             };
 
             use tokio::io::AsyncWriteExt; // Required for write_all and flush
-            
+
             // Write the first chunk
             if let Err(e) = file.write_all(&first_chunk).await {
-                 tracing::error!("Failed to write first chunk to {}: {}", temp_filepath.display(), e);
-                 let _ = tokio::fs::remove_file(&temp_filepath).await;
-                 return Err((
+                tracing::error!(
+                    "Failed to write first chunk to {}: {}",
+                    temp_filepath.display(),
+                    e
+                );
+                let _ = tokio::fs::remove_file(&temp_filepath).await;
+                return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
                         error: "Failed to write file".to_string(),
@@ -184,8 +196,8 @@ pub async fn upload_image(
                     Ok(opt) => opt,
                     Err(err) => {
                         tracing::error!("Failed to read chunk: {}", err);
-                        let _ = tokio::fs::remove_file(&temp_filepath).await; 
-                         return Err((
+                        let _ = tokio::fs::remove_file(&temp_filepath).await;
+                        return Err((
                             StatusCode::INTERNAL_SERVER_ERROR,
                             Json(ErrorResponse {
                                 error: format!("Failed to read file: {}", err),
@@ -210,12 +222,16 @@ pub async fn upload_image(
                         }),
                     ));
                 }
-                
+
                 // Write chunk to disk
                 if let Err(e) = file.write_all(&chunk).await {
-                     tracing::error!("Failed to write chunk to {}: {}", temp_filepath.display(), e);
-                     let _ = tokio::fs::remove_file(&temp_filepath).await;
-                     return Err((
+                    tracing::error!(
+                        "Failed to write chunk to {}: {}",
+                        temp_filepath.display(),
+                        e
+                    );
+                    let _ = tokio::fs::remove_file(&temp_filepath).await;
+                    return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(ErrorResponse {
                             error: "Failed to write file".to_string(),
@@ -226,9 +242,9 @@ pub async fn upload_image(
 
             // Sync buffers to disk
             if let Err(e) = file.flush().await {
-                 tracing::error!("Failed to flush file {}: {}", temp_filepath.display(), e);
-                 let _ = tokio::fs::remove_file(&temp_filepath).await;
-                 return Err((
+                tracing::error!("Failed to flush file {}: {}", temp_filepath.display(), e);
+                let _ = tokio::fs::remove_file(&temp_filepath).await;
+                return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
                         error: "Failed to save file".to_string(),
@@ -238,7 +254,12 @@ pub async fn upload_image(
 
             // Atomic rename from temp to final
             if let Err(e) = tokio::fs::rename(&temp_filepath, &filepath).await {
-                tracing::error!("Failed to rename temp file {} to {}: {}", temp_filepath.display(), filepath.display(), e);
+                tracing::error!(
+                    "Failed to rename temp file {} to {}: {}",
+                    temp_filepath.display(),
+                    filepath.display(),
+                    e
+                );
                 let _ = tokio::fs::remove_file(&temp_filepath).await;
                 return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,

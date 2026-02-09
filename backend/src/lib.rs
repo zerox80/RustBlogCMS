@@ -1,3 +1,9 @@
+pub mod db; // Database operations and migrations
+pub mod handlers; // HTTP request handlers
+pub mod middleware; // HTTP middleware
+pub mod models; // Data structures and API models
+pub mod repositories; // Database repositories
+pub mod routes;
 /**
  * Linux Tutorial CMS - Library Root Module
  *
@@ -105,10 +111,4 @@
  * ```
  */
 // Core application modules
-pub mod security; // Authentication, authorization, and CSRF protection
-pub mod db; // Database operations and migrations
-pub mod handlers; // HTTP request handlers
-pub mod middleware; // HTTP middleware
-pub mod models; // Data structures and API models
-pub mod repositories; // Database repositories
-pub mod routes; // Route definitions
+pub mod security; // Authentication, authorization, and CSRF protection // Route definitions

@@ -1,20 +1,16 @@
 // Module declarations for organizing the backend codebase
-pub mod security; // Authentication, authorization, and CSRF protection
 pub mod db; // Database connection and pooling
 pub mod handlers; // HTTP request handlers organized by feature
 pub mod middleware; // Middleware modules
 pub mod models; // Data structures and database models
 pub mod repositories; // Repository modules
-pub mod routes; // Route definitions
+pub mod routes;
+pub mod security; // Authentication, authorization, and CSRF protection // Route definitions
 
 use crate::middleware::{cors, security as security_middleware};
 
 // HTTP-related imports for building the web server
-use axum::{
-    extract::DefaultBodyLimit,
-    routing::get,
-    Router,
-};
+use axum::{extract::DefaultBodyLimit, routing::get, Router};
 
 // External dependencies for configuration, async runtime, and middleware
 use dotenv::dotenv;
@@ -91,7 +87,8 @@ async fn main() {
 
     tracing::info!(origins = ?cors_origins, "Configured CORS origins");
 
-    let trust_proxy_ip_headers = security_middleware::parse_env_bool("TRUST_PROXY_IP_HEADERS", false);
+    let trust_proxy_ip_headers =
+        security_middleware::parse_env_bool("TRUST_PROXY_IP_HEADERS", false);
     if trust_proxy_ip_headers {
         tracing::info!("Trusting X-Forwarded-* headers for client IP extraction");
     } else {
@@ -108,7 +105,9 @@ async fn main() {
         // Serve index.html with server-side injection for root and fallback
         .route("/", get(handlers::frontend_proxy::serve_index))
         .route("/{*path}", get(handlers::frontend_proxy::serve_index))
-        .layer(axum::middleware::from_fn(security_middleware::security_headers))
+        .layer(axum::middleware::from_fn(
+            security_middleware::security_headers,
+        ))
         .layer(cors_layer)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024)) // 10MB body limit
         .with_state(pool.clone());

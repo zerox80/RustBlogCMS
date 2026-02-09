@@ -87,46 +87,56 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
     let safe_description = html_escape::encode_text(&description);
 
     // Replace Title using Regex
-    let title_regex = regex::Regex::new(r"<title>.*?</title>")
-        .unwrap_or_else(|_| regex::Regex::new("").unwrap()); // Fallback (should not happen with valid regex)
-    
+    let title_regex =
+        regex::Regex::new(r"<title>.*?</title>").unwrap_or_else(|_| regex::Regex::new("").unwrap()); // Fallback (should not happen with valid regex)
+
     injected_html = title_regex
         .replace(&injected_html, format!("<title>{}</title>", safe_title))
         .to_string();
 
     // Replace Meta Description using Regex
     // Matches <meta name="description" content="..."> allowing for whitespace variations
-    let desc_regex = regex::Regex::new(r#"(?i)<meta\s+name=["']description["']\s+content=["'].*?["']\s*/?>"#)
-        .unwrap_or_else(|_| regex::Regex::new("").unwrap());
+    let desc_regex =
+        regex::Regex::new(r#"(?i)<meta\s+name=["']description["']\s+content=["'].*?["']\s*/?>"#)
+            .unwrap_or_else(|_| regex::Regex::new("").unwrap());
 
     injected_html = desc_regex
         .replace(
-            &injected_html, 
-            format!(r#"<meta name="description" content="{}">"#, safe_description)
+            &injected_html,
+            format!(
+                r#"<meta name="description" content="{}">"#,
+                safe_description
+            ),
         )
         .to_string();
 
     // Replace OG Title
     // Matches <meta property="og:title" content="...">
-    let og_title_regex = regex::Regex::new(r#"(?i)<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*/?>"#)
-        .unwrap_or_else(|_| regex::Regex::new("").unwrap());
+    let og_title_regex =
+        regex::Regex::new(r#"(?i)<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*/?>"#)
+            .unwrap_or_else(|_| regex::Regex::new("").unwrap());
 
     injected_html = og_title_regex
         .replace(
             &injected_html,
-            format!(r#"<meta property="og:title" content="{}">"#, safe_title)
+            format!(r#"<meta property="og:title" content="{}">"#, safe_title),
         )
         .to_string();
 
     // Replace OG Description
     // Matches <meta property="og:description" content="...">
-    let og_desc_regex = regex::Regex::new(r#"(?i)<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*/?>"#)
-        .unwrap_or_else(|_| regex::Regex::new("").unwrap());
+    let og_desc_regex = regex::Regex::new(
+        r#"(?i)<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*/?>"#,
+    )
+    .unwrap_or_else(|_| regex::Regex::new("").unwrap());
 
     injected_html = og_desc_regex
         .replace(
             &injected_html,
-            format!(r#"<meta property="og:description" content="{}">"#, safe_description)
+            format!(
+                r#"<meta property="og:description" content="{}">"#,
+                safe_description
+            ),
         )
         .to_string();
 

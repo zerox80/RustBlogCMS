@@ -26,7 +26,7 @@ pub async fn fetch_site_content_by_section(
 }
 
 /// Persists or updates content for a specific section.
-/// 
+///
 /// Handles serialization of a generic `serde_json::Value` into a persistence string.
 pub async fn upsert_site_content(
     pool: &DbPool,

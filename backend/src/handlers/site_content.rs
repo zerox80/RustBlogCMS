@@ -6,11 +6,12 @@
 //! schema-less landing page design.
 
 use crate::{
-    security::auth, db,
+    db,
     models::{
         ErrorResponse, SiteContentListResponse, SiteContentResponse, UpdateSiteContentRequest,
     },
     repositories,
+    security::auth,
 };
 use axum::{
     extract::{Path, State},
@@ -31,15 +32,15 @@ fn allowed_sections() -> &'static HashSet<&'static str> {
     static ALLOWED: OnceLock<HashSet<&'static str>> = OnceLock::new();
     ALLOWED.get_or_init(|| {
         [
-            "hero",              // Landing page hero
-            "tutorial_section",  // Tutorial overview header
-            "header",            // Main navigation
-            "footer",            // Footer links/info
-            "site_meta",         // SEO titles/description
-            "stats",             // Numbers/stats display
-            "cta_section",       // Call to action
-            "settings",          // System-wide toggles
-            "login",             // Custom login page text
+            "hero",             // Landing page hero
+            "tutorial_section", // Tutorial overview header
+            "header",           // Main navigation
+            "footer",           // Footer links/info
+            "site_meta",        // SEO titles/description
+            "stats",            // Numbers/stats display
+            "cta_section",      // Call to action
+            "settings",         // System-wide toggles
+            "login",            // Custom login page text
         ]
         .into_iter()
         .collect()
@@ -103,7 +104,7 @@ fn validate_site_meta_structure(content: &Value) -> Result<(), &'static str> {
     // Perform type checking on optional fields
     if let Some(kw) = obj.get("keywords") {
         if !kw.is_string() {
-             return Err("Field 'keywords' must be a string");
+            return Err("Field 'keywords' must be a string");
         }
     }
     Ok(())
@@ -138,28 +139,36 @@ fn validate_header_structure(content: &Value) -> Result<(), &'static str> {
     if !obj.contains_key("brand") || !obj.contains_key("navItems") {
         return Err("Missing required fields 'brand' or 'navItems'");
     }
-    
+
     // Check if navItems is an array.
-    let nav_items = obj.get("navItems").and_then(|v| v.as_array()).ok_or("Field 'navItems' must be an array")?;
+    let nav_items = obj
+        .get("navItems")
+        .and_then(|v| v.as_array())
+        .ok_or("Field 'navItems' must be an array")?;
 
     // Fix Bug 4: Header Validation Incomplete
     // Validate that each item in the array has at least an 'id' and 'label', and a valid target ('path', 'slug', 'url', etc.)
     for (_i, item) in nav_items.iter().enumerate() {
         let item_obj = item.as_object().ok_or("Nav item must be an object")?;
-        
+
         if !item_obj.contains_key("id") || !item_obj.contains_key("label") {
-             return Err("Nav item missing required fields 'id' or 'label'");
+            return Err("Nav item missing required fields 'id' or 'label'");
         }
 
         // Check for at least one target field if it's not a section header (type="section" might not need a path)
-        let has_target = item_obj.contains_key("path") 
-            || item_obj.contains_key("slug") 
+        let has_target = item_obj.contains_key("path")
+            || item_obj.contains_key("slug")
             || item_obj.contains_key("url")
             || item_obj.contains_key("value")
-            || item_obj.get("type").map(|v| v == "section").unwrap_or(false);
+            || item_obj
+                .get("type")
+                .map(|v| v == "section")
+                .unwrap_or(false);
 
         if !has_target {
-             return Err("Nav item must have a target (path, slug, url, or value) or be type='section'");
+            return Err(
+                "Nav item must have a target (path, slug, url, or value) or be type='section'",
+            );
         }
 
         // Validate slug is not empty if present
@@ -327,8 +336,8 @@ pub async fn update_site_content(
     }
 
     // Comprehensive validation
-    validate_section(&section)?;                // Whitelist check
-    validate_content_size(&payload.content)?;    // Size sanity check
+    validate_section(&section)?; // Whitelist check
+    validate_content_size(&payload.content)?; // Size sanity check
     validate_content_structure(&section, &payload.content)?; // Format correctness check
 
     // Upsert (Insert or Update) in database
@@ -371,7 +380,10 @@ mod tests {
                 { "id": "home", "label": "Home", "type": "section" }
             ]
         });
-        assert!(validate_header_structure(&content_section).is_ok(), "Should accept type='section' without other target fields");
+        assert!(
+            validate_header_structure(&content_section).is_ok(),
+            "Should accept type='section' without other target fields"
+        );
 
         // Case 3: Link with 'value' field (e.g. from some frontend logic)
         let content_value = json!({
@@ -380,7 +392,10 @@ mod tests {
                 { "id": "2", "label": "About", "value": "about-us" }
             ]
         });
-        assert!(validate_header_structure(&content_value).is_ok(), "Should accept 'value' field as target");
+        assert!(
+            validate_header_structure(&content_value).is_ok(),
+            "Should accept 'value' field as target"
+        );
 
         // Case 4: Invalid item (missing target)
         let content_invalid = json!({
@@ -417,7 +432,10 @@ mod tests {
                 { "id": "1", "label": "Empty Slug", "slug": "" }
             ]
         });
-        assert!(validate_header_structure(&content_empty_slug).is_err(), "Should reject empty slug");
+        assert!(
+            validate_header_structure(&content_empty_slug).is_err(),
+            "Should reject empty slug"
+        );
 
         // Case: Whitespace-only slug should be rejected
         let content_whitespace_slug = json!({
@@ -426,6 +444,9 @@ mod tests {
                 { "id": "2", "label": "Whitespace Slug", "slug": "   " }
             ]
         });
-        assert!(validate_header_structure(&content_whitespace_slug).is_err(), "Should reject whitespace-only slug");
+        assert!(
+            validate_header_structure(&content_whitespace_slug).is_err(),
+            "Should reject whitespace-only slug"
+        );
     }
 }

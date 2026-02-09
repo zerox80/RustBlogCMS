@@ -83,8 +83,8 @@ pub async fn create_tutorial(
 }
 
 /// Updates an existing tutorial using optimistic concurrency control.
-/// 
-/// Returns `Ok(None)` if a conflict occurred (version mismatch), otherwise 
+///
+/// Returns `Ok(None)` if a conflict occurred (version mismatch), otherwise
 /// returns the updated record.
 pub async fn update_tutorial(
     pool: &DbPool,

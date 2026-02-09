@@ -9,7 +9,7 @@ fn slug_regex() -> &'static Regex {
 }
 
 /// Validates a slug for use in URLs.
-/// 
+///
 /// Enforces:
 /// - Maximum length of 100 characters.
 /// - Lowercase alphanumeric characters.

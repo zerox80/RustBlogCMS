@@ -83,7 +83,7 @@ pub fn sanitize_fts_query(raw: &str) -> Result<String, String> {
                         )
                 })
                 .collect();
-            
+
             // If the token is empty after sanitization, skip it
             if sanitized.is_empty() {
                 None
@@ -106,13 +106,13 @@ pub fn sanitize_fts_query(raw: &str) -> Result<String, String> {
             // Prevent "*" from being treated as a prefix match on an empty string which causes FTS5 syntax error.
             // If a token is just "*" or has no alphanumeric characters (and is not a valid operator), we should be careful.
             // The previous logic wrapped * in quotes "*" then appended *, resulting in "*"* which is invalid.
-            
+
             let is_last = i == tokens.len() - 1;
-            
+
             if token == "*" {
                 // Skip standalone wildcard tokens as they are invalid in FTS5 standard query syntax
                 // or just treat them as literal if wrapped in quotes, but FTS5 doesn't like "*"*
-                continue; 
+                continue;
             }
 
             if is_last {
@@ -120,18 +120,18 @@ pub fn sanitize_fts_query(raw: &str) -> Result<String, String> {
                 // (This matches e.g. "rus*" for "rust" or "rustlang")
                 // Ensure we don't create invalid syntax like "*"*
                 if token.ends_with('*') {
-                     query_parts.push(token.clone());
+                    query_parts.push(token.clone());
                 } else {
-                     query_parts.push(format!("{}*", token));
+                    query_parts.push(format!("{}*", token));
                 }
             } else {
                 // Standard token matching
                 query_parts.push(token.clone());
             }
         }
-        
+
         if query_parts.is_empty() {
-             return Err("Search query contains no valid terms".to_string());
+            return Err("Search query contains no valid terms".to_string());
         }
 
         Ok(query_parts.join(" "))
@@ -212,8 +212,8 @@ pub async fn search_tutorials(
             "#,
         )
         .bind(&search_query) // Bind the FTS sanitized query
-        .bind(&pattern)      // Bind the LIKE pattern for topics
-        .bind(limit)        // Bind the result limit
+        .bind(&pattern) // Bind the LIKE pattern for topics
+        .bind(limit) // Bind the result limit
         .fetch_all(&pool)
         .await
     } else {
@@ -228,7 +228,7 @@ pub async fn search_tutorials(
             "#,
         )
         .bind(&search_query) // Bind the FTS sanitized query
-        .bind(limit)        // Bind the result limit
+        .bind(limit) // Bind the result limit
         .fetch_all(&pool)
         .await
     }

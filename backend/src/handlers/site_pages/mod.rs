@@ -1,17 +1,18 @@
 //! Site Pages HTTP Handlers
 //!
-//! This module provides a comprehensive API for managing site pages and their 
-//! dynamic layouts (hero, layout JSON). It handles both administrative 
+//! This module provides a comprehensive API for managing site pages and their
+//! dynamic layouts (hero, layout JSON). It handles both administrative
 //! CRUD operations and public-facing content retrieval.
 
 use crate::{
-    security::auth, db,
+    db,
     models::{
         CreateSitePageRequest, ErrorResponse, NavigationItemResponse, NavigationResponse,
         SitePageListResponse, SitePageResponse, SitePageWithPostsResponse, SitePostDetailResponse,
         SitePostResponse, UpdateSitePageRequest,
     },
     repositories,
+    security::auth,
 };
 use axum::{
     extract::{Path, State},
@@ -324,7 +325,7 @@ fn map_page(
 
     // Normalize slug for output
     let sanitized_slug = slug.trim().to_lowercase();
-    
+
     // Default title to slug if the title field is empty
     let sanitized_title = match title.trim() {
         "" => sanitized_slug.clone(),

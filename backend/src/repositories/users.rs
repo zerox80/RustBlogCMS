@@ -36,7 +36,7 @@ pub async fn get_login_attempt(
 }
 
 /// Atomically increments the failure count and applies tiered blocking logic.
-/// 
+///
 /// Blocking Strategy:
 /// - 3-4 Failures: Applies `short_block` duration.
 /// - 5+ Failures: Applies `long_block` duration.
