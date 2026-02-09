@@ -1,36 +1,112 @@
-import { useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import Hero from '../components/Hero'
-import TutorialSection from '../components/TutorialSection'
-import { scrollToSection } from '../utils/scrollToSection'
+import { useState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
+import PostCard from '../components/dynamic-page/PostCard'
+import { api } from '../api/client'
 
 /**
- * The application's homepage component.
+ * Blog Home Page - Shows all published posts from all pages.
  * 
- * Acts as the primary landing point for authenticated or returning users.
- * 
- * Features:
- * - Smart Scroll Restoration: Handles `location.state.scrollTo` to jump to specific sections upon navigation.
- * - Composition: Combines the `Hero` (standard) and `TutorialSection` components.
+ * This replaces the previous landing-style Hero component with a clean
+ * blog listing view. Posts are fetched from all CMS pages and displayed
+ * in a unified list.
  */
 const Home = () => {
-  const location = useLocation()
-  const navigate = useNavigate()
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
   useEffect(() => {
-    const targetSection = location.state?.scrollTo
-    if (!targetSection) {
-      return
+    const fetchAllPosts = async () => {
+      try {
+        setLoading(true)
+        // Fetch all pages
+        const pagesData = await api.listPages()
+        if (!pagesData?.items) {
+          setPosts([])
+          return
+        }
+
+        // Fetch posts from each page
+        const allPosts = []
+        for (const page of pagesData.items) {
+          try {
+            const postsData = await api.listPublishedPosts(page.slug)
+            if (postsData?.items) {
+              postsData.items.forEach(post => {
+                allPosts.push({
+                  ...post,
+                  pageSlug: page.slug,
+                  pageTitle: page.title
+                })
+              })
+            }
+          } catch (e) {
+            // Page might have no posts, that's ok
+          }
+        }
+
+        // Sort by creation date, newest first
+        allPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        setPosts(allPosts)
+      } catch (err) {
+        console.error('Error fetching posts:', err)
+        setError(err)
+      } finally {
+        setLoading(false)
+      }
     }
-    requestAnimationFrame(() => {
-      scrollToSection(targetSection)
-    })
-    navigate(location.pathname, { replace: true, state: {} })
-  }, [location, navigate])
+
+    fetchAllPosts()
+  }, [])
+
   return (
-    <>
-      <Hero />
-      <TutorialSection />
-    </>
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+        {/* Page Header */}
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Blog
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-slate-300">
+            Alle veröffentlichten Artikel
+          </p>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500 dark:text-slate-400">
+            <Loader2 className="w-10 h-10 animate-spin mb-4" />
+            <p>Lade Artikel…</p>
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6 text-red-700 dark:text-red-300">
+            <h2 className="font-semibold mb-1">Fehler beim Laden</h2>
+            <p className="text-sm">{error.message || 'Unbekannter Fehler'}</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-10 text-center">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Noch keine Artikel
+            </h2>
+            <p className="text-gray-500 dark:text-slate-400">
+              Sobald Artikel veröffentlicht werden, erscheinen sie hier.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <p className="text-sm text-gray-500 dark:text-slate-400">
+              {posts.length} {posts.length === 1 ? 'Artikel' : 'Artikel'}
+            </p>
+            <div className="space-y-10">
+              {posts.map((post) => (
+                <PostCard key={`${post.pageSlug}-${post.id}`} post={post} pageSlug={post.pageSlug} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
   )
 }
+
 export default Home
