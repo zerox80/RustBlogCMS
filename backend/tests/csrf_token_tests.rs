@@ -13,7 +13,7 @@ fn test_csrf_token_lifecycle() {
         password: "ValidPassword123!".to_string(),
     };
     let token = issue_csrf_token(&request.username).expect("Failed to issue token");
-    
+
     // Check format (basic check since validate_csrf_token is private)
     assert!(token.starts_with("v1|"));
     let parts: Vec<&str> = token.split('|').collect();
