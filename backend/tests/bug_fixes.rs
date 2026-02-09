@@ -1,6 +1,5 @@
 use rust_blog_backend::models::{Tutorial, TutorialSummaryResponse};
 use sqlx::SqlitePool;
-use std::env;
 
 #[tokio::test]
 async fn test_bug_fixes() -> anyhow::Result<()> {
