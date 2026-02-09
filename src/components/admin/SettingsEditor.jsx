@@ -6,15 +6,19 @@ const SettingsEditor = () => {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [settings, setSettings] = useState({
-        pdfEnabled: true
+        pdfEnabled: true,
+        homePageSlug: 'blog',
+        homePagePost: ''
     })
     const [message, setMessage] = useState(null)
 
     const [availablePages, setAvailablePages] = useState([])
+    const [availablePosts, setAvailablePosts] = useState([])
 
     useEffect(() => {
         fetchSettings()
         fetchPages()
+        fetchPosts()
     }, [])
 
     const fetchPages = async () => {
@@ -25,6 +29,35 @@ const SettingsEditor = () => {
             }
         } catch (error) {
             console.error('Error fetching pages:', error)
+        }
+    }
+
+    const fetchPosts = async () => {
+        try {
+            // Fetch all published posts from all pages
+            const pagesData = await api.listPages()
+            if (pagesData && pagesData.items) {
+                const allPosts = []
+                for (const page of pagesData.items) {
+                    try {
+                        const postsData = await api.listPublishedPosts(page.slug)
+                        if (postsData && postsData.items) {
+                            postsData.items.forEach(post => {
+                                allPosts.push({
+                                    ...post,
+                                    pageSlug: page.slug,
+                                    pageTitle: page.title
+                                })
+                            })
+                        }
+                    } catch (e) {
+                        // Page might have no posts
+                    }
+                }
+                setAvailablePosts(allPosts)
+            }
+        } catch (error) {
+            console.error('Error fetching posts:', error)
         }
     }
 
@@ -59,6 +92,23 @@ const SettingsEditor = () => {
         } finally {
             setSaving(false)
         }
+    }
+
+    const handleHomePageTypeChange = (value) => {
+        if (value === 'blog') {
+            setSettings(prev => ({ ...prev, homePageSlug: 'blog', homePagePost: '' }))
+        } else if (value === 'post') {
+            setSettings(prev => ({ ...prev, homePageSlug: 'blog', homePagePost: availablePosts[0]?.slug || '' }))
+        } else {
+            // CMS page slug
+            setSettings(prev => ({ ...prev, homePageSlug: value, homePagePost: '' }))
+        }
+    }
+
+    const getCurrentHomePageType = () => {
+        if (settings.homePagePost) return 'post'
+        if (settings.homePageSlug === 'blog' || !settings.homePageSlug) return 'blog'
+        return settings.homePageSlug
     }
 
     if (loading) {
@@ -113,14 +163,14 @@ const SettingsEditor = () => {
                                     Wähle aus, welche Seite beim Aufruf der Hauptdomain (/) angezeigt werden soll.
                                 </p>
                             </div>
-                            <div className="w-full max-w-md">
+                            <div className="w-full max-w-md space-y-3">
                                 <select
-                                    value={settings.homePageSlug || ''}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, homePageSlug: e.target.value }))}
+                                    value={getCurrentHomePageType()}
+                                    onChange={(e) => handleHomePageTypeChange(e.target.value)}
                                     className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-slate-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5"
                                 >
-                                    <option value="">Standard Landing Page</option>
                                     <option value="blog">Blog (Alle Artikel)</option>
+                                    <option value="post">Spezifischer Blog-Artikel</option>
                                     <optgroup label="CMS Seiten">
                                         {availablePages.map(page => (
                                             <option key={page.id} value={page.slug}>
@@ -129,6 +179,32 @@ const SettingsEditor = () => {
                                         ))}
                                     </optgroup>
                                 </select>
+
+                                {/* Show post selector when "post" is selected */}
+                                {getCurrentHomePageType() === 'post' && (
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Blog-Artikel als Startseite
+                                        </label>
+                                        <select
+                                            value={settings.homePagePost || ''}
+                                            onChange={(e) => setSettings(prev => ({ ...prev, homePagePost: e.target.value }))}
+                                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-slate-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5"
+                                        >
+                                            <option value="">Artikel auswählen...</option>
+                                            {availablePosts.map(post => (
+                                                <option key={`${post.pageSlug}-${post.slug}`} value={post.slug}>
+                                                    {post.title} ({post.pageTitle})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {availablePosts.length === 0 && (
+                                            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                                                Keine veröffentlichten Blog-Artikel gefunden.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
