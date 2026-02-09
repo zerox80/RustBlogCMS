@@ -14,7 +14,7 @@
 //! # Usage
 //! Before using any authentication functions, initialize the JWT secret:
 //! ```rust,no_run
-//! use linux_tutorial_cms::auth;
+//! use rust_blog_backend::security::auth;
 //! auth::init_jwt_secret().expect("Failed to initialize JWT secret");
 //! ```
 
@@ -102,7 +102,7 @@ const AUTH_COOKIE_TTL_SECONDS: i64 = 24 * 60 * 60;
 ///
 /// # Example
 /// ```rust,no_run
-/// use linux_tutorial_cms::auth;
+/// use rust_blog_backend::security::auth;
 /// auth::init_jwt_secret().expect("Failed to initialize JWT secret");
 /// ```
 pub fn init_jwt_secret() -> Result<(), String> {
@@ -226,7 +226,7 @@ impl Claims {
 ///
 /// # Example
 /// ```rust,no_run
-/// use linux_tutorial_cms::auth;
+/// use rust_blog_backend::security::auth;
 /// let token = auth::create_jwt("admin".to_string(), "admin".to_string())?;
 /// # Ok::<(), jsonwebtoken::errors::Error>(())
 /// ```

@@ -21,14 +21,15 @@
 //!
 //! ## Initialization
 //! ```rust,no_run
-//! use linux_tutorial_cms::csrf;
+//! use rust_blog_backend::security::csrf;
 //! csrf::init_csrf_secret().expect("Failed to initialize CSRF secret");
 //! ```
 //!
 //! ## Protection
 //! ```rust,no_run
 //! use axum::{Router, routing::post, middleware};
-//! use linux_tutorial_cms::csrf::CsrfGuard;
+//! use rust_blog_backend::security::csrf::CsrfGuard;
+//! async fn handler() {}
 //!
 //! let app = Router::new()
 //!     .route("/api/resource", post(handler))
@@ -103,7 +104,7 @@ static CSRF_SECRET: OnceLock<Vec<u8>> = OnceLock::new();
 ///
 /// # Example
 /// ```rust,no_run
-/// use linux_tutorial_cms::csrf;
+/// use rust_blog_backend::security::csrf;
 /// csrf::init_csrf_secret().expect("Failed to initialize CSRF secret");
 /// ```
 pub fn init_csrf_secret() -> Result<(), String> {
@@ -451,7 +452,8 @@ fn build_csrf_removal() -> Cookie<'static> {
 /// # Usage
 /// ```rust,no_run
 /// use axum::{Router, routing::post, middleware};
-/// use linux_tutorial_cms::csrf::CsrfGuard;
+/// use rust_blog_backend::security::csrf::CsrfGuard;
+/// async fn handler() {}
 ///
 /// let app = Router::new()
 ///     .route("/api/resource", post(handler))

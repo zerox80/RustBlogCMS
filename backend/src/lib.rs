@@ -93,8 +93,8 @@
  *
  * Example as a library:
  * ```rust
- * use linux_tutorial_cms::db;
- * use linux_tutorial_cms::auth;
+ * use rust_blog_backend::db;
+ * use rust_blog_backend::security::auth;
  *
  * #[tokio::main]
  * async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -111,3 +111,4 @@ pub mod handlers; // HTTP request handlers
 pub mod middleware; // HTTP middleware
 pub mod models; // Data structures and API models
 pub mod repositories; // Database repositories
+pub mod routes; // Route definitions

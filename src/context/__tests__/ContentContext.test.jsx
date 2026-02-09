@@ -11,6 +11,7 @@ vi.mock('../../api/client', () => ({
     listPublishedPages: vi.fn(),
     updateSiteContentSection: vi.fn(),
     getPublishedPage: vi.fn(),
+    getPublishedPost: vi.fn(),
   },
 }));
 
