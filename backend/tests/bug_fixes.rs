@@ -1,4 +1,4 @@
-use linux_tutorial_backend::models::{Tutorial, TutorialSummaryResponse};
+use rust_blog_backend::models::{Tutorial, TutorialSummaryResponse};
 use sqlx::SqlitePool;
 use std::env;
 
@@ -37,7 +37,7 @@ async fn test_bug_fixes() -> anyhow::Result<()> {
     assert_eq!(tutorials.len(), 1);
 
     // Test TryFrom conversion for Summary (Resilience check)
-    let summary: TutorialSummaryResponse = tutorials[0]
+    let summary: TutorialSummaryResponse = tutorials[0].clone()
         .try_into()
         .expect("Should not fail even with invalid JSON");
     assert_eq!(summary.id, "test-1");

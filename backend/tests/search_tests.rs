@@ -11,15 +11,25 @@ mod search_tests {
         assert!(long_query.len() > 500);
     }
 
-    use linux_tutorial_backend::handlers::search::sanitize_fts_query;
+    use rust_blog_backend::handlers::search::sanitize_fts_query;
 
     #[test]
     fn test_search_query_sanitization() {
         let query = "<script>alert('xss')</script>";
-        // Query should be escaped before being used in FTS
+        // Query should be sanitized for FTS (special chars removed, wrapped in quotes)
         let sanitized = sanitize_fts_query(query).unwrap();
-        assert!(!sanitized.contains("script"));
+        
+        // The sanitization splits by whitespace and filters characters.
+        // It keeps alphanumeric and safe symbols like ().
+        // So "<script>alert('xss')</script>" becomes "scriptalert(xss)/script" (one token)
+        // Then it's wrapped in quotes and appended with * for prefix matching.
+        
         assert!(!sanitized.contains("<"));
         assert!(!sanitized.contains(">"));
+        assert!(!sanitized.contains("'"));
+        
+        // "script" is a valid search term in a coding blog, so it SHOULD be present.
+        assert!(sanitized.contains("script"));
+        assert!(sanitized.contains("alert"));
     }
 }

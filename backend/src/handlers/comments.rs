@@ -28,7 +28,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use html_escape;
+
 
 /// Request payload for creating a comment
 #[derive(Deserialize)]
@@ -104,7 +104,10 @@ fn sanitize_comment_content(raw: &str) -> Result<String, (StatusCode, Json<Error
         ));
     }
 
-    let sanitized = html_escape::encode_safe(trimmed).to_string();
+    // Fix Bug 5: Double Escaping
+    // We rely on the frontend (React) to handle XSS protection for display.
+    // Storing raw text allows for better searchability and future flexibility (e.g. markdown support).
+    let sanitized = trimmed.to_string();
 
     Ok(sanitized)
 }
@@ -342,7 +345,9 @@ async fn create_comment_internal(
         } else {
             c.sub.clone()
         };
-        (display_name, c.sub.clone())
+        // Fix Bug 2: Admin Rate Limit Logic Flaw
+        // Admin posts are stored with author="Administrator", so we must use that for rate limiting checks too.
+        (display_name.clone(), display_name)
     } else {
         // Guest comment
         match payload.author {
@@ -385,9 +390,9 @@ async fn create_comment_internal(
                     ));
                 }
 
-                // Use name for rate limiting since DB doesn't store IP.
-                // This is a tradeoff as guests can rotate names, but it prevents the current bug where rate limiting is skipped entirely.
-                (trimmed.to_string(), trimmed.to_string())
+                // Fix Bug 1: Guest Rate Limit Bypass
+                // We use the IP address as the rate limit key for guests to prevent name-change bypass.
+                (trimmed.to_string(), _ip_address)
             }
             None => {
                 return Err((

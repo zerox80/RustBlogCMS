@@ -3,7 +3,7 @@ use sqlx::FromRow;
 use std::convert::TryFrom;
 
 /// Represents a coding tutorial.
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 pub struct Tutorial {
     /// Unique UUID.
     pub id: String,

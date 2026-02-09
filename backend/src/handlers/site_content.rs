@@ -140,8 +140,34 @@ fn validate_header_structure(content: &Value) -> Result<(), &'static str> {
     }
     
     // Check if navItems is an array.
-    if !obj.get("navItems").map(|v| v.is_array()).unwrap_or(false) {
-        return Err("Field 'navItems' must be an array");
+    let nav_items = obj.get("navItems").and_then(|v| v.as_array()).ok_or("Field 'navItems' must be an array")?;
+
+    // Fix Bug 4: Header Validation Incomplete
+    // Validate that each item in the array has at least an 'id' and 'label', and a valid target ('path', 'slug', 'url', etc.)
+    for (_i, item) in nav_items.iter().enumerate() {
+        let item_obj = item.as_object().ok_or("Nav item must be an object")?;
+        
+        if !item_obj.contains_key("id") || !item_obj.contains_key("label") {
+             return Err("Nav item missing required fields 'id' or 'label'");
+        }
+
+        // Check for at least one target field if it's not a section header (type="section" might not need a path)
+        let has_target = item_obj.contains_key("path") 
+            || item_obj.contains_key("slug") 
+            || item_obj.contains_key("url")
+            || item_obj.contains_key("value")
+            || item_obj.get("type").map(|v| v == "section").unwrap_or(false);
+
+        if !has_target {
+             return Err("Nav item must have a target (path, slug, url, or value) or be type='section'");
+        }
+
+        // Validate slug is not empty if present
+        if let Some(slug) = item_obj.get("slug").and_then(|v| v.as_str()) {
+            if slug.trim().is_empty() {
+                return Err("Nav item slug cannot be empty");
+            }
+        }
     }
     Ok(())
 }

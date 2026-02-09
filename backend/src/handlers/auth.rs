@@ -30,7 +30,7 @@ use axum::{
 };
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use sha2::{Digest, Sha256};
-use sqlx;
+
 use std::{env, sync::OnceLock, time::Duration};
 use std::net::SocketAddr;
 use axum_extra::extract::cookie::CookieJar;
