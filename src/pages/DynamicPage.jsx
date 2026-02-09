@@ -20,11 +20,15 @@ import DynamicPagePostList from '../components/dynamic-page/DynamicPagePostList'
  * - List Integration: Automatically renders posts associated with the specific page.
  * - Loading States: Handles transitions, 404s, and API errors gracefully.
  */
-const DynamicPage = () => {
-  const { slug = '' } = useParams()
+const DynamicPage = ({ slug: propSlug }) => {
+  const { slug: paramSlug } = useParams()
   const navigate = useNavigate()
   const { pages } = useContent()
-  const normalizedSlug = useMemo(() => normalizeSlug(slug), [slug])
+  
+  // Use propSlug if available (e.g. when used as Home), otherwise use paramSlug from router
+  const activeSlug = propSlug || paramSlug
+  const normalizedSlug = useMemo(() => normalizeSlug(activeSlug), [activeSlug])
+  
   const cachedPage = pages.cache?.[normalizedSlug]
   const [pageData, setPageData] = useState(cachedPage ?? null)
   const [loading, setLoading] = useState(!cachedPage)

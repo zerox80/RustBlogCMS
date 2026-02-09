@@ -10,9 +10,23 @@ const SettingsEditor = () => {
     })
     const [message, setMessage] = useState(null)
 
+    const [availablePages, setAvailablePages] = useState([])
+
     useEffect(() => {
         fetchSettings()
+        fetchPages()
     }, [])
+
+    const fetchPages = async () => {
+        try {
+            const data = await api.listPages()
+            if (data && data.items) {
+                setAvailablePages(data.items)
+            }
+        } catch (error) {
+            console.error('Error fetching pages:', error)
+        }
+    }
 
     const fetchSettings = async () => {
         try {
@@ -86,6 +100,37 @@ const SettingsEditor = () => {
                                     }`}
                             />
                         </button>
+                    </div>
+
+                    {/* Start Page Settings */}
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <h3 className="text-base font-medium text-gray-900 dark:text-white">
+                                    Startseite
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Wähle aus, welche Seite beim Aufruf der Hauptdomain (/) angezeigt werden soll.
+                                </p>
+                            </div>
+                            <div className="w-full max-w-md">
+                                <select
+                                    value={settings.homePageSlug || ''}
+                                    onChange={(e) => setSettings(prev => ({ ...prev, homePageSlug: e.target.value }))}
+                                    className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-slate-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5"
+                                >
+                                    <option value="">Standard Landing Page</option>
+                                    <option value="blog">Blog (Alle Artikel)</option>
+                                    <optgroup label="CMS Seiten">
+                                        {availablePages.map(page => (
+                                            <option key={page.id} value={page.slug}>
+                                                {page.title} ({page.slug})
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
