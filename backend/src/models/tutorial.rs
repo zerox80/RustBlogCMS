@@ -173,7 +173,7 @@ impl TryFrom<Tutorial> for TutorialSummaryResponse {
 }
 
 /// Standard error response.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
     /// The error message.
     pub error: String,

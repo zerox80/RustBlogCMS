@@ -286,7 +286,7 @@ pub struct UpdateSitePostRequest {
 }
 
 /// Item in the navigation menu.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NavigationItemResponse {
     /// Page ID.
     pub id: String,
@@ -299,7 +299,7 @@ pub struct NavigationItemResponse {
 }
 
 /// Full navigation structure.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NavigationResponse {
     /// List of navigation link items.
     pub items: Vec<NavigationItemResponse>,
