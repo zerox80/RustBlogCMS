@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import PostCard from '../components/dynamic-page/PostCard'
-import { api } from '../api/client'
+import { useContent } from '../context/ContentContext'
 
 /**
  * Blog Home Page - Shows all published posts from all pages.
  * 
  * This replaces the previous landing-style Hero component with a clean
- * blog listing view. Posts are fetched from all CMS pages and displayed
- * in a unified list.
+ * blog listing view. Uses the ContentContext which already has the navigation
+ * data to avoid excessive API calls.
  */
 const Home = () => {
+  const { navigation, pages } = useContent()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -19,30 +20,38 @@ const Home = () => {
     const fetchAllPosts = async () => {
       try {
         setLoading(true)
-        // Fetch all pages
-        const pagesData = await api.listPages()
-        if (!pagesData?.items) {
+
+        // Get page slugs from navigation (already loaded by ContentContext)
+        const navItems = navigation?.items || []
+        if (navItems.length === 0) {
           setPosts([])
+          setLoading(false)
           return
         }
 
-        // Fetch posts from each page
+        // Fetch all pages in parallel - but with a small delay to avoid rate limiting
         const allPosts = []
-        for (const page of pagesData.items) {
+
+        for (const navItem of navItems) {
           try {
-            const postsData = await api.listPublishedPosts(page.slug)
-            if (postsData?.items) {
-              postsData.items.forEach(post => {
+            // Use the ContentContext's fetch which caches results
+            const pageData = await pages.fetch(navItem.slug)
+            if (pageData?.posts) {
+              pageData.posts.forEach(post => {
                 allPosts.push({
                   ...post,
-                  pageSlug: page.slug,
-                  pageTitle: page.title
+                  pageSlug: navItem.slug,
+                  pageTitle: navItem.title
                 })
               })
             }
           } catch (e) {
-            // Page might have no posts, that's ok
+            // Page might have no posts or fail, continue with others
+            console.log(`Could not load posts for ${navItem.slug}:`, e.message)
           }
+
+          // Small delay between requests to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100))
         }
 
         // Sort by creation date, newest first
@@ -56,8 +65,11 @@ const Home = () => {
       }
     }
 
-    fetchAllPosts()
-  }, [])
+    // Only fetch when navigation is loaded
+    if (navigation?.items) {
+      fetchAllPosts()
+    }
+  }, [navigation, pages])
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
