@@ -1,4 +1,4 @@
-use rust_blog_backend::models::user::{User, LoginRequest, LoginResponse, UserResponse};
+use rust_blog_backend::models::user::{LoginRequest, LoginResponse, User, UserResponse};
 use serde_json::json;
 
 #[test]

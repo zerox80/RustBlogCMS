@@ -1,4 +1,4 @@
-use rust_blog_backend::models::site::{SitePage, SitePost, CreateSitePostRequest};
+use rust_blog_backend::models::site::{CreateSitePostRequest, SitePage, SitePost};
 use serde_json::json;
 
 #[test]

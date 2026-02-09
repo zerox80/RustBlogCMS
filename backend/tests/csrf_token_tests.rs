@@ -1,11 +1,14 @@
-use rust_blog_backend::security::csrf::{issue_csrf_token, init_csrf_secret};
 use rust_blog_backend::models::user::LoginRequest;
+use rust_blog_backend::security::csrf::{init_csrf_secret, issue_csrf_token};
 use std::env;
 
 #[test]
 fn test_csrf_token_lifecycle() {
     // Setup secret
-    env::set_var("CSRF_SECRET", "this_is_a_very_long_test_secret_for_csrf_checks_12345");
+    env::set_var(
+        "CSRF_SECRET",
+        "this_is_a_very_long_test_secret_for_csrf_checks_12345",
+    );
     let _ = init_csrf_secret();
 
     let request = LoginRequest {
