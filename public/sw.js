@@ -1,4 +1,4 @@
-const CACHE_NAME = 'linux-tutorial-v1';
+const CACHE_NAME = 'rust-blog-v1';
 
 const urlsToCache = [
   '/',
@@ -200,7 +200,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('Linux Tutorial CMS', options)
+    self.registration.showNotification('Rust Blog CMS', options)
   );
 });
 */

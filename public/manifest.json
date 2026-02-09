@@ -1,7 +1,7 @@
 {
-  "name": "Linux Tutorial CMS",
-  "short_name": "Linux Tutorial",
-  "description": "Learn Linux from scratch - Interactive, modern, and practical",
+  "name": "Rust Blog CMS",
+  "short_name": "Rust Blog",
+  "description": "A modern, fully customizable CMS for creating beautiful blog websites with React and Rust",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -15,7 +15,10 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["education", "productivity"],
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "lang": "de-DE",
   "dir": "ltr",
   "scope": "/",

@@ -11,7 +11,7 @@ const SEO = ({
   publishedTime,
   modifiedTime,
 }) => {
-  const siteTitle = 'Linux Tutorial CMS';
+  const siteTitle = 'Rust Blog CMS';
   const fullTitle = title ? `${title} | ${siteTitle}` : siteTitle;
   const defaultDescription = 'Lerne Linux von Grund auf - Interaktiv, modern und praxisnah';
   const defaultImage = '/linux-icon.svg';
@@ -21,12 +21,12 @@ const SEO = ({
   const metaUrl = url || window.location.href;
   return (
     <Helmet>
-      {}
+      { }
       <title>{fullTitle}</title>
       <meta name="description" content={metaDescription} />
       {keywords && <meta name="keywords" content={keywords} />}
       {author && <meta name="author" content={author} />}
-      {}
+      { }
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={metaDescription} />
       <meta property="og:type" content={type} />
@@ -36,12 +36,12 @@ const SEO = ({
       <meta property="og:locale" content="de_DE" />
       {publishedTime && <meta property="article:published_time" content={publishedTime} />}
       {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
-      {}
+      { }
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={metaDescription} />
       <meta name="twitter:image" content={`${baseUrl}${metaImage}`} />
-      {}
+      { }
       <meta name="robots" content="index, follow" />
       <meta name="googlebot" content="index, follow" />
       <link rel="canonical" href={metaUrl} />

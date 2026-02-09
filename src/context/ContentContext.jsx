@@ -113,7 +113,7 @@ export const DEFAULT_CONTENT = {
     },
   },
   login: {
-    title: 'Linux Tutorial',
+    title: 'Rust Blog',
     subtitle: 'Admin Login',
     icon: 'Terminal',
     buttonLabel: 'Anmelden',

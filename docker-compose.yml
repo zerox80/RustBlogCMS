@@ -1,6 +1,6 @@
-# Docker Compose Configuration for Linux Tutorial CMS
+# Docker Compose Configuration for Rust Blog CMS
 #
-# This file defines the complete containerized deployment of the Linux Tutorial CMS.
+# This file defines the complete containerized deployment of the Rust Blog CMS.
 # It orchestrates three main services: Rust backend, React frontend, and Nginx reverse proxy.
 #
 # Architecture Overview:
@@ -35,7 +35,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: linux-tutorial-backend
+    container_name: rust-blog-backend
     restart: unless-stopped
 
     # Resource limits for stability and resource management
@@ -94,7 +94,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: linux-tutorial-frontend
+    container_name: rust-blog-frontend
     restart: unless-stopped
 
     # Resource limits (lightweight - serves static content only)
@@ -121,7 +121,7 @@ services:
   ##############################################################################
   nginx:
     image: nginx:alpine
-    container_name: linux-tutorial-nginx
+    container_name: rust-blog-nginx
     restart: unless-stopped
 
     # Port mapping: Host:Container

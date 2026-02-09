@@ -138,7 +138,7 @@ const Login = () => {
                 <IconComponent className="w-10 h-10 text-primary-400 drop-shadow-neon" />
               </div>
               <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
-                {loginContent.title || 'Linux Tutorial'}
+                {loginContent.title || 'Rust Blog'}
               </h1>
               <p className="text-surface-300 text-sm font-medium">
                 {loginContent.subtitle || 'Admin Login'}

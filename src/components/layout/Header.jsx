@@ -174,7 +174,7 @@ const Header = () => {
                     )}
 
                     <a
-                        href="https://github.com/zerox80/LinuxTutorialCMS"
+                        href="https://github.com/zerox80/RustBlogCMS"
                         target="_blank"
                         rel="noreferrer"
                         className="text-slate-400 hover:text-white transition-colors"

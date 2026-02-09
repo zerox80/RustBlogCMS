@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zerox80/LinuxTutorialCMS"
+    "url": "https://github.com/zerox80/RustBlogCMS"
   },
   "keywords": [
     "cms",
@@ -21,7 +21,7 @@
   ],
   "type": "module",
   "_scripts": {
-    "_comment": "NPM Scripts for Linux Tutorial CMS Development Workflow",
+    "_comment": "NPM Scripts for Rust Blog CMS Development Workflow",
     "_development": {
       "dev": "vite - Start development server with hot module replacement",
       "preview": "vite preview - Preview production build locally"
