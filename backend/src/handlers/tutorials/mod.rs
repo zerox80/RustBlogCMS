@@ -614,7 +614,7 @@ pub async fn update_tutorial(
         &color,
         &topics_json,
         &topics_vec,
-        tutorial.version, // Fix: Pass current version, not new_version
+        tutorial.version as i32, // Fix: Pass current version, not new_version
     )
     .await
     .map_err(|e| {

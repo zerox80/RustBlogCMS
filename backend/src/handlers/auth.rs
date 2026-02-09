@@ -32,6 +32,9 @@ use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use sha2::{Digest, Sha256};
 use sqlx;
 use std::{env, sync::OnceLock, time::Duration};
+use std::net::SocketAddr;
+use axum_extra::extract::cookie::CookieJar;
+use rand::Rng;
 
 /// Global salt for hashing login attempt identifiers.
 /// Initialized once at startup via init_login_attempt_salt().
@@ -404,6 +407,17 @@ pub async fn login(
         ));
     }
 
+    // Bug Fix 3: Probabilistic cleanup of expired tokens (1% chance)
+    // This prevents the token_blacklist table from growing effectively unbounded.
+    if rand::thread_rng().gen_bool(0.01) {
+        let pool_clone = pool.clone();
+        tokio::spawn(async move {
+            if let Err(e) = repositories::token_blacklist::cleanup_expired(&pool_clone).await {
+                tracing::error!("Failed to cleanup expired tokens: {}", e);
+            }
+        });
+    }
+
     Ok((
         headers,
         Json(LoginResponse {
@@ -497,17 +511,41 @@ pub async fn me(
 pub async fn logout(
     State(pool): State<DbPool>,
     headers: HeaderMap,
+    jar: CookieJar,
     _csrf: csrf::CsrfGuard,
     claims: auth::Claims,
 ) -> (StatusCode, HeaderMap) {
-    // Extract token to blacklist it
-    if let Some(token) = auth::extract_token(&headers) {
+    let mut tokens_to_blacklist = Vec::new();
+
+    // 1. Extract from Header
+    if let Some(auth_header) = headers.get(axum::http::header::AUTHORIZATION) {
+         if let Ok(value) = auth_header.to_str() {
+             if let Some(token) = value.strip_prefix("Bearer ").map(|t| t.trim()) {
+                 if !token.is_empty() {
+                     tokens_to_blacklist.push(token.to_string());
+                 }
+             }
+         }
+    }
+
+    // 2. Extract from Cookie
+    if let Some(cookie) = jar.get(auth::AUTH_COOKIE_NAME) {
+        let token = cookie.value();
+        // Avoid duplicates
+        if !tokens_to_blacklist.contains(&token.to_string()) {
+            tokens_to_blacklist.push(token.to_string());
+        }
+    }
+
+    // 3. Blacklist all found tokens
+    for token in tokens_to_blacklist {
         if let Err(e) =
             repositories::token_blacklist::blacklist_token(&pool, &token, claims.exp as i64).await
         {
             tracing::error!("Failed to blacklist token on logout: {}", e);
         }
     }
+
 
     let mut headers = HeaderMap::new();
     auth::append_auth_cookie(&mut headers, auth::build_cookie_removal());

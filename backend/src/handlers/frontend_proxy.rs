@@ -86,41 +86,49 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
     let safe_title = html_escape::encode_text(&title);
     let safe_description = html_escape::encode_text(&description);
 
-    // Replace Title
-    injected_html = injected_html.replace(
-        "<title>Linux Tutorial - Lerne Linux Schritt für Schritt</title>",
-        &format!("<title>{}</title>", safe_title),
-    );
+    // Replace Title using Regex
+    let title_regex = regex::Regex::new(r"<title>.*?</title>")
+        .unwrap_or_else(|_| regex::Regex::new("").unwrap()); // Fallback (should not happen with valid regex)
+    
+    injected_html = title_regex
+        .replace(&injected_html, format!("<title>{}</title>", safe_title))
+        .to_string();
 
-    // Replace Meta Description
-    // Note: This regex-like replacement is brittle if the HTML formatting changes.
-    // For now, we assume the exact string from index.html or use a more robust regex if needed.
-    // Since we don't have regex crate here yet, we'll try to replace the known default description.
-    // If it's dynamic, we might need a more robust approach, but for now let's try replacing the known default.
-    let default_desc = "Lerne Linux von Grund auf - Interaktiv, modern und praxisnah. Umfassende Tutorials für Einsteiger und Fortgeschrittene.";
-    injected_html = injected_html.replace(
-        &format!("content=\"{}\"", default_desc),
-        &format!("content=\"{}\"", safe_description),
-    );
+    // Replace Meta Description using Regex
+    // Matches <meta name="description" content="..."> allowing for whitespace variations
+    let desc_regex = regex::Regex::new(r#"(?i)<meta\s+name=["']description["']\s+content=["'].*?["']\s*/?>"#)
+        .unwrap_or_else(|_| regex::Regex::new("").unwrap());
 
-    // Also replace OG tags if possible.
-    // A better approach for robust replacement without full HTML parsing:
-    // We can replace the whole <head> block or specific known lines if we are sure about the structure.
-    // Given the index.html structure, we can try to replace specific lines.
+    injected_html = desc_regex
+        .replace(
+            &injected_html, 
+            format!(r#"<meta name="description" content="{}">"#, safe_description)
+        )
+        .to_string();
 
     // Replace OG Title
-    injected_html = injected_html.replace(
-        "content=\"Linux Tutorial - Lerne Linux Schritt für Schritt\"",
-        &format!("content=\"{}\"", safe_title),
-    );
+    // Matches <meta property="og:title" content="...">
+    let og_title_regex = regex::Regex::new(r#"(?i)<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*/?>"#)
+        .unwrap_or_else(|_| regex::Regex::new("").unwrap());
 
-    // Replace OG Description (reusing the description replacement above might handle this if content matches)
-    // The default OG description in index.html is shorter: "Lerne Linux von Grund auf - Interaktiv, modern und praxisnah."
-    let default_og_desc = "Lerne Linux von Grund auf - Interaktiv, modern und praxisnah.";
-    injected_html = injected_html.replace(
-        &format!("content=\"{}\"", default_og_desc),
-        &format!("content=\"{}\"", safe_description),
-    );
+    injected_html = og_title_regex
+        .replace(
+            &injected_html,
+            format!(r#"<meta property="og:title" content="{}">"#, safe_title)
+        )
+        .to_string();
+
+    // Replace OG Description
+    // Matches <meta property="og:description" content="...">
+    let og_desc_regex = regex::Regex::new(r#"(?i)<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*/?>"#)
+        .unwrap_or_else(|_| regex::Regex::new("").unwrap());
+
+    injected_html = og_desc_regex
+        .replace(
+            &injected_html,
+            format!(r#"<meta property="og:description" content="{}">"#, safe_description)
+        )
+        .to_string();
 
     Html(injected_html).into_response()
 }

@@ -332,7 +332,7 @@ async fn create_comment_internal(
     post_id: Option<String>,
     payload: CreateCommentRequest,
     claims: Option<auth::Claims>,
-    ip_address: String,
+    _ip_address: String,
 ) -> Result<Json<Comment>, (StatusCode, Json<ErrorResponse>)> {
     let comment_content = sanitize_comment_content(&payload.content)?;
 
@@ -385,8 +385,9 @@ async fn create_comment_internal(
                     ));
                 }
 
-                // Use IP address for rate limiting guests, but store provided name as author
-                (trimmed.to_string(), ip_address)
+                // Use name for rate limiting since DB doesn't store IP.
+                // This is a tradeoff as guests can rotate names, but it prevents the current bug where rate limiting is skipped entirely.
+                (trimmed.to_string(), trimmed.to_string())
             }
             None => {
                 return Err((
