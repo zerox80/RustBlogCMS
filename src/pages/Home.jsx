@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import PostCard from '../components/dynamic-page/PostCard'
-import { useContent } from '../context/ContentContext'
+import { api } from '../api/client'
 
 /**
- * Blog Home Page - Shows all published posts from all pages.
+ * Blog Home Page - Shows all published posts from ALL pages.
  * 
- * This replaces the previous landing-style Hero component with a clean
- * blog listing view. Uses the ContentContext which already has the navigation
- * data to avoid excessive API calls.
+ * Uses listPublishedPages to get all pages (not just navigation items)
+ * and then fetches posts from each page.
  */
 const Home = () => {
-  const { navigation, pages } = useContent()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -21,37 +19,39 @@ const Home = () => {
       try {
         setLoading(true)
 
-        // Get page slugs from navigation (already loaded by ContentContext)
-        const navItems = navigation?.items || []
-        if (navItems.length === 0) {
+        // Get ALL published pages, not just navigation items
+        const pagesData = await api.listPublishedPages()
+        const allPages = pagesData?.items || []
+
+        if (allPages.length === 0) {
           setPosts([])
           setLoading(false)
           return
         }
 
-        // Fetch all pages in parallel - but with a small delay to avoid rate limiting
+        // Fetch posts from each page with delay to avoid rate limiting
         const allPosts = []
 
-        for (const navItem of navItems) {
+        for (const page of allPages) {
           try {
-            // Use the ContentContext's fetch which caches results
-            const pageData = await pages.fetch(navItem.slug)
+            // Fetch the full page data which includes posts
+            const pageData = await api.getPublishedPage(page.slug)
             if (pageData?.posts) {
               pageData.posts.forEach(post => {
                 allPosts.push({
                   ...post,
-                  pageSlug: navItem.slug,
-                  pageTitle: navItem.title
+                  pageSlug: page.slug,
+                  pageTitle: page.title
                 })
               })
             }
           } catch (e) {
             // Page might have no posts or fail, continue with others
-            console.log(`Could not load posts for ${navItem.slug}:`, e.message)
+            console.log(`Could not load posts for ${page.slug}:`, e.message)
           }
 
           // Small delay between requests to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100))
+          await new Promise(resolve => setTimeout(resolve, 150))
         }
 
         // Sort by creation date, newest first
@@ -65,11 +65,8 @@ const Home = () => {
       }
     }
 
-    // Only fetch when navigation is loaded
-    if (navigation?.items) {
-      fetchAllPosts()
-    }
-  }, [navigation, pages])
+    fetchAllPosts()
+  }, [])
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
