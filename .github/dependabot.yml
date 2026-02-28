@@ -79,13 +79,3 @@ updates:
         update-types:
           - "patch"
           - "minor"
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "friday"
-      time: "07:00"
-      timezone: "America/New_York"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps"
