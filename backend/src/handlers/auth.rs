@@ -346,8 +346,8 @@ pub async fn login(
     };
 
     let jitter = {
-        use rand::Rng;
-        rand::thread_rng().gen_range(100..300)
+        let mut rng = rand::rng();
+        rng.random_range(100..300)
     };
     tokio::time::sleep(Duration::from_millis(jitter)).await;
 
@@ -417,7 +417,12 @@ pub async fn login(
 
     // Bug Fix 3: Probabilistic cleanup of expired tokens (1% chance)
     // This prevents the token_blacklist table from growing effectively unbounded.
-    if rand::thread_rng().gen_bool(0.01) {
+    let should_cleanup_blacklist = {
+        let mut rng = rand::rng();
+        rng.random_bool(0.01)
+    };
+
+    if should_cleanup_blacklist {
         let pool_clone = pool.clone();
         tokio::spawn(async move {
             if let Err(e) = repositories::token_blacklist::cleanup_expired(&pool_clone).await {

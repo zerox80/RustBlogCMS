@@ -20,7 +20,7 @@ use tower_http::services::ServeDir;
 /// - **Static Assets**: Serves the `uploads` directory safely via `tower-http`.
 pub fn routes(
     upload_dir: String,
-    admin_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
+    _admin_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
     public_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
 ) -> Router<DbPool> {
     Router::new()
