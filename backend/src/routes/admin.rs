@@ -47,6 +47,7 @@ pub fn routes(
             "/api/pages/{page_id}/posts",
             get(site_posts::list_posts_for_page).post(site_posts::create_post),
         )
+        .route("/api/content/{section}", put(site_content::update_site_content))
         .route(
             "/api/posts/{id}",
             get(site_posts::get_post)

@@ -33,9 +33,9 @@ pub struct LoginRequest {
 /// Response payload for a successful login.
 #[derive(Debug, Serialize)]
 pub struct LoginResponse {
-    /// JWT token for authenticated session access.
-    pub token: String,
     /// Public details of the logged-in user.
+    ///
+    /// The authenticated session itself is established via HttpOnly cookies.
     pub user: UserResponse,
 }
 

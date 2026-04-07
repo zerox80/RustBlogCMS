@@ -5,7 +5,7 @@
  * 
  * Key Features:
  * - **Base URL Resolution**: Automatically determines the API base URL based on environment (Vite env vars or window location).
- * - **Authentication**: Manages JWT tokens, automatically attaching them to requests and handling 401 Unauthorized responses.
+ * - **Authentication**: Relies on HttpOnly session cookies instead of keeping bearer tokens in JavaScript memory.
  * - **CSRF Protection**: Automatically extracts and includes the `x-csrf-token` header for mutating requests.
  * - **AbortController Integration**: Supports request cancellation via `AbortController` signals.
  * - **Timeout Handling**: Implements request timeouts (default 15s) with cleanup.
@@ -72,29 +72,6 @@ const getCsrfToken = () => {
     ?.split('=')[1] ?? null
 }
 class ApiClient {
-  constructor() {
-    this.token = null
-  }
-  setToken(token) {
-    if (!token) {
-      this.token = null;
-      return;
-    }
-
-    if (typeof token === 'string' && token.trim().length > 0) {
-      this.token = token;
-    } else {
-      console.warn('Attempted to set invalid JWT token; ignoring', token);
-      this.token = null;
-    }
-  }
-  getHeaders() {
-    const headers = {}
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`
-    }
-    return headers
-  }
   async request(endpoint, options = {}) {
     const {
       timeout = 15000,
@@ -157,7 +134,6 @@ class ApiClient {
         }
       })
     }
-    applyHeaders(this.getHeaders())
     applyHeaders(optionHeaders)
     const config = {
       ...rest,
@@ -228,9 +204,6 @@ class ApiClient {
         }
       }
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          this.setToken(null)
-        }
         const error = new Error(
           payload?.error || payload?.message || response.statusText || 'Request failed',
         )
@@ -248,9 +221,6 @@ class ApiClient {
         throw timeoutError
       }
       console.error('API Error:', error)
-      if (error.status === 401 || error.status === 403) {
-        this.setToken(null)
-      }
       throw error
     }
   }
@@ -260,17 +230,10 @@ class ApiClient {
       body: { username, password },
       ...options,
     })
-    if (data.token) {
-      this.setToken(data.token)
-    }
     return data
   }
   async logout(options = {}) {
-    try {
-      await this.request('/auth/logout', { method: 'POST', ...options })
-    } finally {
-      this.setToken(null)
-    }
+    return this.request('/auth/logout', { method: 'POST', ...options })
   }
   async me(options = {}) {
     return this.request('/auth/me', options)

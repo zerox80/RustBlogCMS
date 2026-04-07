@@ -58,18 +58,29 @@ async fn main() {
     }
 
     // Configure CORS (Cross-Origin Resource Sharing)
-    let cors_origins = env::var("CORS_ALLOWED_ORIGINS")
-        .map(|val| {
-            val.split(',')
-                .map(|s| s.trim().to_string())
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_else(|_| {
-            cors::DEV_DEFAULT_FRONTEND_ORIGINS
-                .iter()
-                .map(|&s| s.to_string())
-                .collect()
-        });
+    let cors_origins = match env::var("CORS_ALLOWED_ORIGINS") {
+        Ok(val) => Some(val),
+        Err(_) => match env::var("FRONTEND_ORIGINS") {
+            Ok(val) => {
+                tracing::warn!(
+                    "FRONTEND_ORIGINS is deprecated. Use CORS_ALLOWED_ORIGINS instead."
+                );
+                Some(val)
+            }
+            Err(_) => None,
+        },
+    }
+    .map(|val| {
+        val.split(',')
+            .map(|s| s.trim().to_string())
+            .collect::<Vec<_>>()
+    })
+    .unwrap_or_else(|| {
+        cors::DEV_DEFAULT_FRONTEND_ORIGINS
+            .iter()
+            .map(|&s| s.to_string())
+            .collect()
+    });
 
     let allowed_origins = cors::parse_allowed_origins(cors_origins.iter().map(|s| s.as_str()));
 

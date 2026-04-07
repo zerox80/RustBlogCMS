@@ -24,6 +24,7 @@
 
 use crate::{
     db::DbPool,
+    middleware::security as security_middleware,
     models::*,
     repositories,
     security::{auth, csrf},
@@ -240,7 +241,7 @@ fn validate_password(password: &str) -> Result<(), String> {
 /// On success (200 OK):
 /// - Sets auth cookie (ltcms_session)
 /// - Sets CSRF cookie (ltcms_csrf)
-/// - Returns LoginResponse with JWT token and user info
+/// - Returns LoginResponse with user info
 ///
 /// # Errors
 /// - 400 Bad Request: Invalid username/password format
@@ -263,6 +264,7 @@ fn validate_password(password: &str) -> Result<(), String> {
 /// - Lockout countdown shown to user
 pub async fn login(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<(HeaderMap, Json<LoginResponse>), (StatusCode, Json<ErrorResponse>)> {
@@ -279,7 +281,8 @@ pub async fn login(
     // If we only used username, an attacker could lock out 'admin' by spamming bad passwords.
     // If we only used IP, an attacker could rotate IPs to brute force.
     // Using both is a balanced approach.
-    let attempt_key = hash_login_identifier(&format!("{}:{}", addr.ip(), username));
+    let client_ip = security_middleware::extract_client_ip(&headers, addr.ip());
+    let attempt_key = hash_login_identifier(&format!("{}:{}", client_ip, username));
 
     let attempt_record = repositories::users::get_login_attempt(&pool, &attempt_key)
         .await
@@ -426,7 +429,6 @@ pub async fn login(
     Ok((
         headers,
         Json(LoginResponse {
-            token,
             user: UserResponse {
                 username: user_record.username,
                 role: user_record.role,
@@ -607,7 +609,7 @@ mod tests {
 
         let addr = "127.0.0.1:1234".parse().unwrap();
 
-        let result = login(State(pool), ConnectInfo(addr), Json(payload)).await;
+        let result = login(State(pool), HeaderMap::new(), ConnectInfo(addr), Json(payload)).await;
 
         assert!(result.is_err());
         let (status, Json(body)) = result.unwrap_err();

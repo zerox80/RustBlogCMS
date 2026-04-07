@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuth = async () => {
       try {
-        const userData = await api.me();
+        const userData = await api.me({ signal: controller.signal });
         setUser(userData);
         setIsAuthenticated(true);
       } catch (err) {
@@ -34,12 +34,6 @@ export const AuthProvider = ({ children }) => {
         console.error('Auth check failed:', err);
         setUser(null);
         setIsAuthenticated(false);
-        // We don't clear the token here automatically to avoid clearing it on transient network errors,
-        // but for the purpose of UI state, we treat them as not authenticated.
-        // However, if it's a 401, the api client might have already cleared it or we should ensure it's cleared.
-        if (err?.status === 401) {
-          api.setToken(null);
-        }
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false)
@@ -66,13 +60,11 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Ungueltige Antwort vom Server')
       }
 
-      api.setToken(response.token ?? null)
       setIsAuthenticated(true)
       setUser(response.user)
 
       return { success: true }
     } catch (err) {
-      api.setToken(null)
       setIsAuthenticated(false)
       setUser(null)
 
@@ -93,7 +85,6 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsAuthenticated(false)
       setUser(null)
-      api.setToken(null)
       setError(null)
     }
   }

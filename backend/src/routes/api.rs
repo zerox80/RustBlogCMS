@@ -31,10 +31,7 @@ pub fn routes(
         .route("/api/search/topics", get(search::get_all_topics))
         .route("/api/tutorials/{id}/comments", get(comments::list_comments))
         .route("/api/content", get(site_content::list_site_content))
-        .route(
-            "/api/content/{section}",
-            get(site_content::get_site_content).put(site_content::update_site_content),
-        )
+        .route("/api/content/{section}", get(site_content::get_site_content))
         .route(
             "/api/posts/{id}/comments",
             get(comments::list_post_comments)

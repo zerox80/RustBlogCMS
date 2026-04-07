@@ -7,6 +7,7 @@
 use axum::{
     extract::Request,
     http::{
+        HeaderMap,
         header::{
             CACHE_CONTROL, CONTENT_SECURITY_POLICY, EXPIRES, PRAGMA, STRICT_TRANSPORT_SECURITY,
             X_CONTENT_TYPE_OPTIONS, X_FRAME_OPTIONS,
@@ -16,7 +17,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use std::env;
+use std::{env, net::IpAddr};
 
 // Custom HTTP header constants for security policies
 const PERMISSIONS_POLICY: HeaderName = HeaderName::from_static("permissions-policy");
@@ -46,6 +47,38 @@ pub fn parse_env_bool(key: &str, default: bool) -> bool {
             }
         })
         .unwrap_or(default)
+}
+
+fn trusted_client_ip_from_headers(headers: &HeaderMap) -> Option<IpAddr> {
+    headers
+        .get(X_FORWARDED_FOR_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .find(|segment| !segment.is_empty())
+                .and_then(|segment| segment.parse::<IpAddr>().ok())
+        })
+        .or_else(|| {
+            headers
+                .get(X_REAL_IP_HEADER)
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.trim().parse::<IpAddr>().ok())
+        })
+}
+
+/// Resolves the effective client IP for rate limiting and audit purposes.
+///
+/// When proxy headers are not explicitly trusted, the socket peer address is used.
+/// When they are trusted, the first IP from `X-Forwarded-For` is preferred, with
+/// `X-Real-IP` as a fallback.
+pub fn extract_client_ip(headers: &HeaderMap, fallback: IpAddr) -> IpAddr {
+    if !parse_env_bool("TRUST_PROXY_IP_HEADERS", false) {
+        return fallback;
+    }
+
+    trusted_client_ip_from_headers(headers).unwrap_or(fallback)
 }
 
 /// Middleware to strip potentially spoofable forwarded headers from incoming requests.
@@ -159,4 +192,35 @@ pub async fn security_headers(request: Request, next: Next) -> Response {
     headers.insert(X_XSS_PROTECTION, HeaderValue::from_static("0"));
 
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::{IpAddr, Ipv4Addr};
+
+    #[test]
+    fn test_trusted_client_ip_uses_x_forwarded_for_first_hop() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            X_FORWARDED_FOR_HEADER,
+            HeaderValue::from_static("198.51.100.24, 10.0.0.10"),
+        );
+
+        assert_eq!(
+            trusted_client_ip_from_headers(&headers),
+            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 24)))
+        );
+    }
+
+    #[test]
+    fn test_trusted_client_ip_falls_back_to_x_real_ip() {
+        let mut headers = HeaderMap::new();
+        headers.insert(X_REAL_IP_HEADER, HeaderValue::from_static("203.0.113.7"));
+
+        assert_eq!(
+            trusted_client_ip_from_headers(&headers),
+            Some(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 7)))
+        );
+    }
 }

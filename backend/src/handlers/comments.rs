@@ -21,11 +21,12 @@
 //! - Tutorial ID validation prevents injection
 
 use crate::{
-    db::DbPool, handlers::tutorials::validate_tutorial_id, models::*, repositories, security::auth,
+    db::DbPool, handlers::tutorials::validate_tutorial_id, middleware::security as security_middleware,
+    models::*, repositories, security::auth,
 };
 use axum::{
     extract::{ConnectInfo, Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -71,7 +72,7 @@ pub struct Comment {
     pub post_id: Option<String>,
     /// Display name of the author
     pub author: String,
-    /// The comment content (HTML escaped)
+    /// The comment content as plain text
     pub content: String,
     /// RFC3339 formatted creation timestamp
     pub created_at: String,
@@ -83,7 +84,7 @@ pub struct Comment {
 
 /// Validates and sanitizes comment content
 ///
-/// Trims whitespace, checks length constraints, and escapes HTML characters.
+/// Trims whitespace and checks length constraints.
 fn sanitize_comment_content(raw: &str) -> Result<String, (StatusCode, Json<ErrorResponse>)> {
     let trimmed = raw.trim();
 
@@ -189,6 +190,7 @@ pub async fn list_comments(
 /// Validates the tutorial existence and delegates to internal creation logic.
 pub async fn create_comment(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(tutorial_id): Path<String>,
     _csrf: crate::security::csrf::CsrfGuard,
@@ -220,13 +222,15 @@ pub async fn create_comment(
         ));
     }
 
+    let client_ip = security_middleware::extract_client_ip(&headers, addr.ip());
+
     create_comment_internal(
         pool,
         Some(tutorial_id),
         None,
         payload,
         None,
-        addr.ip().to_string(),
+        client_ip.to_string(),
     )
     .await
 }
@@ -304,6 +308,7 @@ pub async fn list_post_comments(
 /// Supports both authenticated users and guest comments.
 pub async fn create_post_comment(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(post_id): Path<String>,
     auth::OptionalClaims(claims): auth::OptionalClaims,
@@ -332,13 +337,15 @@ pub async fn create_post_comment(
         ));
     }
 
+    let client_ip = security_middleware::extract_client_ip(&headers, addr.ip());
+
     create_comment_internal(
         pool,
         None,
         Some(post_id),
         payload,
         claims,
-        addr.ip().to_string(),
+        client_ip.to_string(),
     )
     .await
 }
@@ -352,7 +359,7 @@ async fn create_comment_internal(
     post_id: Option<String>,
     payload: CreateCommentRequest,
     claims: Option<auth::Claims>,
-    _ip_address: String,
+    ip_address: String,
 ) -> Result<Json<Comment>, (StatusCode, Json<ErrorResponse>)> {
     let comment_content = sanitize_comment_content(&payload.content)?;
 
@@ -408,7 +415,7 @@ async fn create_comment_internal(
 
                 // Fix Bug 1: Guest Rate Limit Bypass
                 // We use the IP address as the rate limit key for guests to prevent name-change bypass.
-                (trimmed.to_string(), _ip_address)
+                (trimmed.to_string(), ip_address)
             }
             None => {
                 return Err((

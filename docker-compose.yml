@@ -61,7 +61,7 @@ services:
       # Application settings
       - RUST_LOG=${RUST_LOG:-info}                    # Log level (info, debug, warn, error)
       - PORT=8489                                     # Internal port (within container)
-      - FRONTEND_ORIGINS=${FRONTEND_ORIGINS:-http://localhost:8489}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:8489}
 
       # Administrator account (REQUIRED - must be set in host environment)
       - ADMIN_USERNAME=${ADMIN_USERNAME:?ADMIN_USERNAME must be set in environment}
@@ -69,6 +69,7 @@ services:
 
       # Security settings
       - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-true}  # HTTPS-only cookies in production
+      - TRUST_PROXY_IP_HEADERS=${TRUST_PROXY_IP_HEADERS:-true}  # Trust bundled nginx forwarded headers
       - UPLOAD_DIR=/data/uploads
 
     # Data persistence

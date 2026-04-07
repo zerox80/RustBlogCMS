@@ -70,3 +70,23 @@ async fn test_login_route_exists() {
     // Should return 401 or 200, but not 404.
     assert_ne!(response.status(), StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn test_site_content_update_requires_auth() {
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    let app = routes::create_routes(pool.clone(), "test_uploads".to_string()).with_state(pool);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/content/hero")
+                .method("PUT")
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{"content":{"title":"Updated hero"}}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}

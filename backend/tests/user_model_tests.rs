@@ -43,7 +43,6 @@ fn test_user_response_serialization() {
 #[test]
 fn test_login_response_serialization() {
     let response = LoginResponse {
-        token: "fake_token".to_string(),
         user: UserResponse {
             username: "testuser".to_string(),
             role: "admin".to_string(),
@@ -51,6 +50,5 @@ fn test_login_response_serialization() {
     };
 
     let serialized = serde_json::to_string(&response).unwrap();
-    assert!(serialized.contains("\"token\":\"fake_token\""));
-    assert!(serialized.contains("\"user\":{\"username\":\"testuser\",\"role\":\"admin\"}"));
+    assert_eq!(serialized, "{\"user\":{\"username\":\"testuser\",\"role\":\"admin\"}}");
 }
