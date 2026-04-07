@@ -38,7 +38,7 @@ use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use sha2::{Digest, Sha256};
 
 use axum_extra::extract::cookie::CookieJar;
-use rand::Rng;
+use rand::RngExt;
 use std::net::SocketAddr;
 use std::{env, sync::OnceLock, time::Duration};
 
