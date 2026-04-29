@@ -35,7 +35,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.4", features = ["v4", "fast-rng", "macro-diagnostics"] }
 infer = "0.19"
 url = "2.5"
-idna_adapter = "=1.2.1"
+idna_adapter = "=1.2.2"
 regex = { version = "1.10", default-features = false, features = ["std"] }
 anyhow = "1.0"
 time = "0.3"
