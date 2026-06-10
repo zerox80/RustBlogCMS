@@ -46,22 +46,44 @@ pub async fn record_failed_login(
     username_hash: &str,
     long_block: &str,
     short_block: &str,
+    attempted_at: &str,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO login_attempts (username, fail_count, blocked_until) VALUES (?, 1, NULL) \
+        "INSERT INTO login_attempts (username, fail_count, blocked_until, last_attempt_at) \
+         VALUES (?, 1, NULL, ?) \
          ON CONFLICT(username) DO UPDATE SET fail_count = login_attempts.fail_count + 1, \
          blocked_until = CASE \
              WHEN login_attempts.fail_count + 1 >= 5 THEN ? \
              WHEN login_attempts.fail_count + 1 >= 3 THEN ? \
              ELSE NULL \
-         END",
+         END, \
+         last_attempt_at = excluded.last_attempt_at",
     )
     .bind(username_hash)
+    .bind(attempted_at)
     .bind(long_block)
     .bind(short_block)
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// Deletes login attempt records that have not seen activity for over a day.
+///
+/// Lockouts last at most 60 seconds, so day-old rows only hold stale fail
+/// counters. Without this cleanup the table grows without bound (rows are
+/// otherwise only removed on a successful login), which an attacker could
+/// exploit to bloat the database. Rows with a NULL last_attempt_at predate
+/// the column and are safe to drop as well.
+pub async fn cleanup_stale_login_attempts(pool: &DbPool) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "DELETE FROM login_attempts \
+         WHERE last_attempt_at IS NULL \
+            OR datetime(last_attempt_at) < datetime('now', '-1 day')",
+    )
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
 }
 
 pub async fn clear_login_attempts(pool: &DbPool, username_hash: &str) -> Result<(), sqlx::Error> {

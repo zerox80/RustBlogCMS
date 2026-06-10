@@ -33,8 +33,13 @@ pub async fn is_token_blacklisted(pool: &DbPool, token: &str) -> Result<bool, sq
 
 /// Deletes expired tokens from the blacklist to prevent unbounded table growth.
 pub async fn cleanup_expired(pool: &DbPool) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query("DELETE FROM token_blacklist WHERE expires_at < datetime('now')")
-        .execute(pool)
-        .await?;
+    // expires_at is stored as RFC3339 ("2026-06-10T12:00:00+00:00") while
+    // datetime('now') yields "2026-06-10 12:00:00". A plain string comparison
+    // of the two formats is wrong ('T' > ' '), so normalize the stored value
+    // with datetime() before comparing.
+    let result =
+        sqlx::query("DELETE FROM token_blacklist WHERE datetime(expires_at) < datetime('now')")
+            .execute(pool)
+            .await?;
     Ok(result.rows_affected())
 }
