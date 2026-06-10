@@ -22,6 +22,35 @@ const MAX_FILE_SIZE: usize = 10 * 1024 * 1024;
 /// List of allowed file extensions for image uploads
 const ALLOWED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp"];
 
+/// Validates that the file content (magic bytes) matches the claimed extension.
+///
+/// SECURITY: The detected type must itself be an allowed image type AND match
+/// the provided extension. Files whose content is detected as a disallowed type
+/// (e.g. PDF, ZIP, EXE renamed to .png) and files with unrecognizable content
+/// are both rejected.
+fn validate_magic_bytes(ext: &str, first_chunk: &[u8]) -> Result<(), String> {
+    let kind = infer::get(first_chunk)
+        .ok_or_else(|| "Could not determine file type from magic bytes".to_string())?;
+
+    let detected_ext = kind.extension();
+    // Normalize "jpeg" vs "jpg" for comparison
+    let normalized_detected = if detected_ext == "jpeg" {
+        "jpg"
+    } else {
+        detected_ext
+    };
+    let normalized_ext = if ext == "jpeg" { "jpg" } else { ext };
+
+    if normalized_detected != normalized_ext {
+        return Err(format!(
+            "File content does not match extension. Expected '{}', but detected '{}'",
+            ext, detected_ext
+        ));
+    }
+
+    Ok(())
+}
+
 /// Processes a multipart form-data request to upload an image.
 /// Implements strict security validations before saving to disk.
 pub async fn upload_image(
@@ -91,40 +120,11 @@ pub async fn upload_image(
                 }
             };
 
-            // VALIDATION: Verify the file content matches an allowed image type
-            if let Some(kind) = infer::get(&first_chunk) {
-                let detected_ext = kind.extension();
-                // Normalize "jpeg" vs "jpg" for comparison
-                let normalized_detected = if detected_ext == "jpeg" {
-                    "jpg"
-                } else {
-                    detected_ext
-                };
-                let normalized_ext = if ext == "jpeg" { "jpg" } else { ext.as_str() };
-
-                // SECURITY: Reject if the content type (magic bytes) represents an extension we don't allow,
-                // or if it obviously contradicts the provided file extension.
-                if ALLOWED_EXTENSIONS.contains(&normalized_detected)
-                    && normalized_detected != normalized_ext
-                {
-                    return Err((
-                        StatusCode::BAD_REQUEST,
-                        Json(ErrorResponse {
-                            error: format!(
-                                "File extension mismatch. Expected '{}', but detected '{}'",
-                                ext, detected_ext
-                            ),
-                        }),
-                    ));
-                }
-            } else {
-                // REJECT if we can't determine what it is; this is safer than allowing mystery blobs.
-                return Err((
-                    StatusCode::BAD_REQUEST,
-                    Json(ErrorResponse {
-                        error: "Could not determine file type from magic bytes".to_string(),
-                    }),
-                ));
+            // VALIDATION: Verify the file content matches the claimed image type.
+            // Rejects disallowed types (PDF, ZIP, EXE, ...) regardless of extension,
+            // mismatched image types, and unrecognizable content.
+            if let Err(e) = validate_magic_bytes(&ext, &first_chunk) {
+                return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
             }
 
             // Generate a random ID for the filename to prevent path injection and name collisions
@@ -286,4 +286,47 @@ pub async fn upload_image(
             error: "No file found in request".to_string(),
         }),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Magic byte prefixes of real file formats
+    const PNG_MAGIC: &[u8] = &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
+    const JPEG_MAGIC: &[u8] = &[0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, b'J', b'F', b'I', b'F'];
+    const GIF_MAGIC: &[u8] = b"GIF89a";
+    const PDF_MAGIC: &[u8] = b"%PDF-1.7\n";
+    const ZIP_MAGIC: &[u8] = &[0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00];
+    const EXE_MAGIC: &[u8] = &[0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00];
+
+    #[test]
+    fn accepts_matching_image_types() {
+        assert!(validate_magic_bytes("png", PNG_MAGIC).is_ok());
+        assert!(validate_magic_bytes("gif", GIF_MAGIC).is_ok());
+        // jpeg/jpg are interchangeable
+        assert!(validate_magic_bytes("jpg", JPEG_MAGIC).is_ok());
+        assert!(validate_magic_bytes("jpeg", JPEG_MAGIC).is_ok());
+    }
+
+    #[test]
+    fn rejects_disallowed_types_with_image_extension() {
+        // Previously these slipped through because the detected type was not
+        // in the whitelist and the mismatch check never fired.
+        assert!(validate_magic_bytes("png", PDF_MAGIC).is_err());
+        assert!(validate_magic_bytes("jpg", ZIP_MAGIC).is_err());
+        assert!(validate_magic_bytes("gif", EXE_MAGIC).is_err());
+    }
+
+    #[test]
+    fn rejects_mismatched_image_types() {
+        assert!(validate_magic_bytes("jpg", PNG_MAGIC).is_err());
+        assert!(validate_magic_bytes("png", GIF_MAGIC).is_err());
+    }
+
+    #[test]
+    fn rejects_unrecognizable_content() {
+        assert!(validate_magic_bytes("png", b"just some plain text").is_err());
+        assert!(validate_magic_bytes("png", &[]).is_err());
+    }
 }
