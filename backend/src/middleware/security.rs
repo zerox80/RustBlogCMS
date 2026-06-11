@@ -106,7 +106,8 @@ pub async fn strip_untrusted_forwarded_headers(mut request: Request, next: Next)
 /// Implementations:
 /// - **Cache-Control**: Dynamic based on path (public vs sensitive).
 /// - **CSP**: Strict policy to prevent XSS and data injection.
-/// - **HSTS**: Enforce HTTPS for a year (only if request arrived via HTTPS).
+/// - **HSTS**: Enforce HTTPS for a year (if the request arrived via HTTPS
+///   through a trusted proxy, or if ENABLE_HSTS=true is set).
 /// - **X-Content-Type-Options**: Prevent MIME-sniffing.
 /// - **X-Frame-Options**: Prevent clickjacking.
 /// - **Referrer-Policy**: Protect user privacy during navigation.
@@ -165,7 +166,12 @@ pub async fn security_headers(request: Request, next: Next) -> Response {
     headers.insert(CONTENT_SECURITY_POLICY, HeaderValue::from_static(csp));
 
     // Step 3: Transport Security (HSTS)
-    if is_https {
+    // The x-forwarded-proto check only works when proxy headers are trusted
+    // (TRUST_PROXY_IP_HEADERS=true); otherwise strip_untrusted_forwarded_headers
+    // removes the header before this middleware runs. ENABLE_HSTS lets
+    // deployments behind a TLS-terminating proxy opt in explicitly.
+    let hsts_enabled = is_https || parse_env_bool("ENABLE_HSTS", false);
+    if hsts_enabled {
         headers.insert(
             STRICT_TRANSPORT_SECURITY,
             HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
