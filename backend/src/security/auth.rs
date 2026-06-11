@@ -267,20 +267,13 @@ pub fn create_jwt(username: String, role: String) -> Result<String, jsonwebtoken
 /// - Token replay after expiration (expiration check)
 /// - Malformed tokens (parsing validation)
 pub fn verify_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
-    // Get the initialized JWT secret
-    let secret = get_jwt_secret();
-
     // Configure validation rules
     let mut validation = Validation::default();
     validation.leeway = 60; // Allow 60 seconds of clock skew
     validation.validate_exp = true; // Ensure token hasn't expired
 
-    // Decode and validate the token
-    let token_data = decode::<Claims>(
-        token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &validation,
-    )?;
+    // Decode and validate the token using the cached decoding key
+    let token_data = decode::<Claims>(token, &DECODING_KEY, &validation)?;
 
     Ok(token_data.claims)
 }
