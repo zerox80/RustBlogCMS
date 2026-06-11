@@ -14,6 +14,12 @@ pub struct Comment {
     pub post_id: Option<String>,
     /// Display name of the author.
     pub author: String,
+    /// Username of the authenticated author, used for authorization checks
+    /// (e.g. deleting one's own comment). NULL for guest comments and for
+    /// rows created before the author_username migration. Never serialized
+    /// to avoid leaking usernames in API responses.
+    #[serde(skip_serializing, default)]
+    pub author_username: Option<String>,
     /// The comment body, supports Markdown syntax.
     pub content: String,
     /// ISO 8601 timestamp of creation.

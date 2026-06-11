@@ -469,12 +469,17 @@ async fn create_comment_internal(
         false
     };
 
+    // Store the immutable username for authenticated authors so authorization
+    // (e.g. deleting one's own comment) doesn't depend on the display name.
+    let author_username = claims.as_ref().map(|c| c.sub.as_str());
+
     let comment = repositories::comments::create_comment(
         &pool,
         &id,
         tutorial_id,
         post_id,
         &author,
+        author_username,
         &comment_content,
         &now,
         is_admin,
@@ -540,14 +545,14 @@ pub async fn delete_comment(
 
     // Check permissions: Admin or Author
     let is_admin = claims.role == "admin";
-    // We compare display names/usernames. Ideally, we should compare user IDs if available in comments.
-    // Assuming 'author' in comments table stores the username/display name which matches claims.sub
-    // or we need to be careful if display names are mutable.
-    // For this implementation, we'll assume claims.sub matches the stored author name for simplicity,
-    // or we might need to fetch the user to verify.
-    // However, `comment_author_display_name` uses `claims.sub` by default.
-    // Let's assume strict username matching for now.
-    let is_author = comment.author == claims.sub;
+    // Authorization is based on the stored author_username (the immutable
+    // username captured at creation time). Rows created before the
+    // author_username migration have NULL there; for those we fall back to
+    // the legacy display-name comparison.
+    let is_author = match &comment.author_username {
+        Some(author_username) => *author_username == claims.sub,
+        None => comment.author == claims.sub,
+    };
 
     if !is_admin && !is_author {
         return Err((

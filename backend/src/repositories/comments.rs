@@ -12,7 +12,7 @@ pub async fn list_comments(
 ) -> Result<Vec<Comment>, sqlx::Error> {
     // Dynamic query building for different sort orders
     let mut query_builder = sqlx::QueryBuilder::new(
-        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin FROM comments WHERE tutorial_id = "
+        "SELECT id, tutorial_id, post_id, author, author_username, content, created_at, votes, is_admin FROM comments WHERE tutorial_id = "
     );
     query_builder.push_bind(tutorial_id);
 
@@ -44,7 +44,7 @@ pub async fn list_post_comments(
     sort: Option<&str>,
 ) -> Result<Vec<Comment>, sqlx::Error> {
     let mut query_builder = sqlx::QueryBuilder::new(
-        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin FROM comments WHERE post_id = "
+        "SELECT id, tutorial_id, post_id, author, author_username, content, created_at, votes, is_admin FROM comments WHERE post_id = "
     );
     query_builder.push_bind(post_id);
 
@@ -74,17 +74,19 @@ pub async fn create_comment(
     tutorial_id: Option<String>,
     post_id: Option<String>,
     author: &str,
+    author_username: Option<&str>,
     content: &str,
     created_at: &str,
     is_admin: bool,
 ) -> Result<Comment, sqlx::Error> {
     sqlx::query(
-        "INSERT INTO comments (id, tutorial_id, post_id, author, content, created_at, votes, is_admin) VALUES (?, ?, ?, ?, ?, ?, 0, ?)"
+        "INSERT INTO comments (id, tutorial_id, post_id, author, author_username, content, created_at, votes, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)"
     )
     .bind(id)
     .bind(&tutorial_id)
     .bind(&post_id)
     .bind(author)
+    .bind(author_username)
     .bind(content)
     .bind(created_at)
     .bind(is_admin)
@@ -96,6 +98,7 @@ pub async fn create_comment(
         tutorial_id,
         post_id,
         author: author.to_string(),
+        author_username: author_username.map(|s| s.to_string()),
         content: content.to_string(),
         created_at: created_at.to_string(),
         votes: 0,
