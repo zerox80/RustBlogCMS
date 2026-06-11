@@ -11,7 +11,7 @@
 //! # Features
 //! - Pagination support (default 50 comments, configurable via query params)
 //! - Author attribution from JWT claims
-//! - Content length validation (1-2000 characters)
+//! - Content length validation (1-1000 characters)
 //! - Foreign key cascade deletion (comments deleted with tutorial)
 //!
 //! # Security

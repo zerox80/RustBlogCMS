@@ -4,8 +4,8 @@ pub mod handlers; // HTTP request handlers organized by feature
 pub mod middleware; // Middleware modules
 pub mod models; // Data structures and database models
 pub mod repositories; // Repository modules
-pub mod routes;
-pub mod security; // Authentication, authorization, and CSRF protection // Route definitions
+pub mod routes; // Route definitions
+pub mod security; // Authentication, authorization, and CSRF protection
 
 use crate::middleware::{cors, security as security_middleware};
 
