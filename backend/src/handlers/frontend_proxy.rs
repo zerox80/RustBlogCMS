@@ -11,11 +11,39 @@ use axum::{
     extract::State,
     response::{Html, IntoResponse},
 };
+use regex::Regex;
 use reqwest::Client;
 use std::env;
+use std::sync::LazyLock;
 
 /// Internal URL for the frontend service in the container network
 const DEFAULT_FRONTEND_URL: &str = "http://frontend";
+
+/// Shared HTTP client for proxying requests to the frontend service.
+/// Reused across requests to benefit from connection pooling.
+static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
+
+/// Matches the <title> tag for replacement with database-driven values.
+static TITLE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"<title>.*?</title>").expect("valid title regex"));
+
+/// Matches <meta name="description" content="..."> allowing whitespace variations.
+static DESC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?i)<meta\s+name=["']description["']\s+content=["'].*?["']\s*/?>"#)
+        .expect("valid description regex")
+});
+
+/// Matches <meta property="og:title" content="...">.
+static OG_TITLE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?i)<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*/?>"#)
+        .expect("valid og:title regex")
+});
+
+/// Matches <meta property="og:description" content="...">.
+static OG_DESC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?i)<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*/?>"#)
+        .expect("valid og:description regex")
+});
 
 /// Core handler to serve the application entry point (index.html).
 ///
@@ -30,8 +58,7 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
     let index_url = format!("{}/index.html", frontend_url);
 
     // Proxied Fetch: Retrieve the template from the frontend service
-    let client = Client::new();
-    let html_content = match client.get(&index_url).send().await {
+    let html_content = match HTTP_CLIENT.get(&index_url).send().await {
         Ok(resp) => match resp.text().await {
             Ok(text) => text,
             Err(e) => {
@@ -86,21 +113,13 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
     let safe_title = html_escape::encode_text(&title);
     let safe_description = html_escape::encode_text(&description);
 
-    // Replace Title using Regex
-    let title_regex =
-        regex::Regex::new(r"<title>.*?</title>").unwrap_or_else(|_| regex::Regex::new("").unwrap()); // Fallback (should not happen with valid regex)
-
-    injected_html = title_regex
+    // Replace Title
+    injected_html = TITLE_REGEX
         .replace(&injected_html, format!("<title>{}</title>", safe_title))
         .to_string();
 
-    // Replace Meta Description using Regex
-    // Matches <meta name="description" content="..."> allowing for whitespace variations
-    let desc_regex =
-        regex::Regex::new(r#"(?i)<meta\s+name=["']description["']\s+content=["'].*?["']\s*/?>"#)
-            .unwrap_or_else(|_| regex::Regex::new("").unwrap());
-
-    injected_html = desc_regex
+    // Replace Meta Description
+    injected_html = DESC_REGEX
         .replace(
             &injected_html,
             format!(
@@ -111,12 +130,7 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
         .to_string();
 
     // Replace OG Title
-    // Matches <meta property="og:title" content="...">
-    let og_title_regex =
-        regex::Regex::new(r#"(?i)<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*/?>"#)
-            .unwrap_or_else(|_| regex::Regex::new("").unwrap());
-
-    injected_html = og_title_regex
+    injected_html = OG_TITLE_REGEX
         .replace(
             &injected_html,
             format!(r#"<meta property="og:title" content="{}">"#, safe_title),
@@ -124,13 +138,7 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
         .to_string();
 
     // Replace OG Description
-    // Matches <meta property="og:description" content="...">
-    let og_desc_regex = regex::Regex::new(
-        r#"(?i)<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*/?>"#,
-    )
-    .unwrap_or_else(|_| regex::Regex::new("").unwrap());
-
-    injected_html = og_desc_regex
+    injected_html = OG_DESC_REGEX
         .replace(
             &injected_html,
             format!(
