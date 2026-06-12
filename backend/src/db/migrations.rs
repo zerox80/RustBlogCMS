@@ -89,6 +89,15 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
         tx.commit().await?;
     }
 
+    // Apply comment author schema migration (add author_username)
+    {
+        let mut tx = pool.begin().await?;
+        if let Err(err) = apply_comment_author_migration(&mut tx).await {
+            tracing::error!("Failed to apply comment author migration: {}", err);
+        }
+        tx.commit().await?;
+    }
+
     // Create site-related schema (pages, posts, content)
     ensure_site_page_schema(pool).await?;
 
@@ -529,6 +538,32 @@ async fn apply_vote_migration(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sq
     if !has_is_admin {
         tracing::info!("Adding is_admin column to comments table");
         sqlx::query("ALTER TABLE comments ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE")
+            .execute(&mut **tx)
+            .await?;
+    }
+
+    Ok(())
+}
+
+/// Adds the author_username column to comments.
+///
+/// Stores the immutable username of authenticated comment authors so that
+/// author-based authorization (e.g. deleting one's own comment) no longer
+/// relies on the mutable public display name. NULL for guest comments and
+/// for rows created before this migration.
+async fn apply_comment_author_migration(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let has_author_username: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='author_username'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_author_username {
+        tracing::info!("Adding author_username column to comments table");
+        sqlx::query("ALTER TABLE comments ADD COLUMN author_username TEXT")
             .execute(&mut **tx)
             .await?;
     }

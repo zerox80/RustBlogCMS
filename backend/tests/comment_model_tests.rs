@@ -8,6 +8,7 @@ fn test_comment_serialization() {
         tutorial_id: Some("t1".to_string()),
         post_id: None,
         author: "Author".to_string(),
+        author_username: Some("author_user".to_string()),
         content: "Content".to_string(),
         created_at: "2023-01-01".to_string(),
         votes: 10,
@@ -18,6 +19,8 @@ fn test_comment_serialization() {
     assert!(serialized.contains("\"id\":\"c1\""));
     assert!(serialized.contains("\"tutorial_id\":\"t1\""));
     assert!(serialized.contains("\"post_id\":null"));
+    // author_username is authorization-internal and must never be serialized
+    assert!(!serialized.contains("author_username"));
 }
 
 #[test]
