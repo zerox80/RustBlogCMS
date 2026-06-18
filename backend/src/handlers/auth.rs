@@ -340,18 +340,25 @@ pub async fn login(
         let now = Utc::now();
         let long_block = (now + ChronoDuration::seconds(60)).to_rfc3339();
         let short_block = (now + ChronoDuration::seconds(10)).to_rfc3339();
+        let attempted_at = now.to_rfc3339();
 
-        repositories::users::record_failed_login(&pool, &attempt_key, &long_block, &short_block)
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to record login attempt for hashed key: {}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Internal server error".to_string(),
-                    }),
-                )
-            })?;
+        repositories::users::record_failed_login(
+            &pool,
+            &attempt_key,
+            &long_block,
+            &short_block,
+            &attempted_at,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to record login attempt for hashed key: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Internal server error".to_string(),
+                }),
+            )
+        })?;
 
         return Err((
             StatusCode::UNAUTHORIZED,
@@ -400,18 +407,22 @@ pub async fn login(
         ));
     }
 
-    // Bug Fix 3: Probabilistic cleanup of expired tokens (1% chance)
-    // This prevents the token_blacklist table from growing effectively unbounded.
-    let should_cleanup_blacklist = {
+    // Bug Fix 3: Probabilistic cleanup of expired records (1% chance)
+    // This prevents the token_blacklist and login_attempts tables from
+    // growing effectively unbounded.
+    let should_cleanup = {
         let mut rng = rand::rng();
         rng.random_bool(0.01)
     };
 
-    if should_cleanup_blacklist {
+    if should_cleanup {
         let pool_clone = pool.clone();
         tokio::spawn(async move {
             if let Err(e) = repositories::token_blacklist::cleanup_expired(&pool_clone).await {
                 tracing::error!("Failed to cleanup expired tokens: {}", e);
+            }
+            if let Err(e) = repositories::users::cleanup_stale_login_attempts(&pool_clone).await {
+                tracing::error!("Failed to cleanup stale login attempts: {}", e);
             }
         });
     }

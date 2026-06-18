@@ -89,6 +89,15 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
         tx.commit().await?;
     }
 
+    // Apply login attempt schema migrations (add last_attempt_at)
+    {
+        let mut tx = pool.begin().await?;
+        if let Err(err) = apply_login_attempt_migrations(&mut tx).await {
+            tracing::error!("Failed to apply login attempt migrations: {}", err);
+        }
+        tx.commit().await?;
+    }
+
     // Create site-related schema (pages, posts, content)
     ensure_site_page_schema(pool).await?;
 
@@ -529,6 +538,29 @@ async fn apply_vote_migration(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sq
     if !has_is_admin {
         tracing::info!("Adding is_admin column to comments table");
         sqlx::query("ALTER TABLE comments ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE")
+            .execute(&mut **tx)
+            .await?;
+    }
+
+    Ok(())
+}
+
+/// Adds the last_attempt_at column to login_attempts so stale rows can be
+/// cleaned up (the table previously grew without bound: rows were only
+/// removed on a successful login).
+async fn apply_login_attempt_migrations(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let has_last_attempt_at: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('login_attempts') WHERE name='last_attempt_at'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_last_attempt_at {
+        tracing::info!("Adding last_attempt_at column to login_attempts table");
+        sqlx::query("ALTER TABLE login_attempts ADD COLUMN last_attempt_at TEXT")
             .execute(&mut **tx)
             .await?;
     }
