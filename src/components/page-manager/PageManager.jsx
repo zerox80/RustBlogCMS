@@ -28,7 +28,13 @@ const PageManager = () => {
 
   return (
     <div className="space-y-8">
-      <PageManagerHeader onRefresh={pagesActions.refresh} refreshing={loading} onCreate={pageForm.openCreate} />
+      <PageManagerHeader
+        onRefresh={pagesActions.refresh}
+        refreshing={loading}
+        onExportMarkdown={pagesActions.exportMarkdown}
+        markdownExporting={pagesActions.markdownExporting}
+        onCreate={pageForm.openCreate}
+      />
       <PageStats
         navigation={navigation}
         publishedSlugs={publishedSlugList}

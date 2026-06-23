@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../../api/client'
 import { useContent } from '../../../context/ContentContext'
+import {
+  buildPagesMarkdownExport,
+  buildPagesMarkdownFilename,
+  downloadMarkdownFile,
+} from '../../../utils/markdownExport'
 
 const usePageManagerState = () => {
   const { navigation, pages: publishedPages } = useContent()
@@ -8,6 +13,7 @@ const usePageManagerState = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedPageId, setSelectedPageId] = useState(null)
+  const [markdownExporting, setMarkdownExporting] = useState(false)
 
   const [pageFormMode, setPageFormMode] = useState(null)
   const [pageFormData, setPageFormData] = useState(null)
@@ -24,6 +30,7 @@ const usePageManagerState = () => {
 
   const pagesAbortRef = useRef(null)
   const postsAbortRef = useRef(null)
+  const markdownExportingRef = useRef(false)
   const isMountedRef = useRef(true)
 
   const normalizedPublishedSlugs = useMemo(() => {
@@ -196,6 +203,38 @@ const usePageManagerState = () => {
     [loadPages, refreshNavigation, publishedPages],
   )
 
+  const handleExportMarkdown = useCallback(async () => {
+    if (markdownExportingRef.current) {
+      return
+    }
+
+    try {
+      markdownExportingRef.current = true
+      setMarkdownExporting(true)
+      const pagesData = await api.listPages()
+      const pageItems = Array.isArray(pagesData?.items) ? pagesData.items : []
+      const pagesWithPosts = await Promise.all(
+        pageItems.map(async (page) => {
+          const postsData = await api.listPosts(page.id)
+          return {
+            page,
+            posts: Array.isArray(postsData?.items) ? postsData.items : [],
+          }
+        }),
+      )
+
+      const markdown = buildPagesMarkdownExport(pagesWithPosts)
+      downloadMarkdownFile(markdown, buildPagesMarkdownFilename())
+    } catch (err) {
+      alert(err?.message || 'Markdown-Export konnte nicht erstellt werden')
+    } finally {
+      markdownExportingRef.current = false
+      if (isMountedRef.current) {
+        setMarkdownExporting(false)
+      }
+    }
+  }, [])
+
   const submitPageForm = useCallback(
     async (payload) => {
       try {
@@ -336,6 +375,8 @@ const usePageManagerState = () => {
     pagesActions: {
       refresh: loadPages,
       delete: handleDeletePage,
+      exportMarkdown: handleExportMarkdown,
+      markdownExporting,
     },
     refreshNavigation,
   }
