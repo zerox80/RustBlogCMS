@@ -36,7 +36,7 @@ uuid = { version = "1.4", features = ["v4", "fast-rng", "macro-diagnostics"] }
 infer = "0.19"
 url = "2.5"
 idna_adapter = "=1.2.1"
-regex = { version = "1.10", default-features = false, features = ["std"] }
+regex = { version = "1.10", default-features = false, features = ["std", "unicode-case"] }
 anyhow = "1.0"
 time = "0.3"
 
