@@ -1,9 +1,9 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Heart } from 'lucide-react'
 import { useContent } from '../../context/ContentContext'
 import { navigateContentTarget } from '../../utils/contentNavigation'
-import { getIconComponent } from '../../utils/iconMap'
+import { renderIcon } from '../../utils/iconMap'
 import { sanitizeExternalUrl } from '../../utils/urlValidation'
 
 /**
@@ -69,35 +69,17 @@ import EditableText from '../cms/EditableText'
 const Footer = () => {
     const { getSection, navigation } = useContent()
     const footerContent = getSection('footer') ?? {}
-    const currentYear = new Date().getFullYear()
     const navigate = useNavigate()
     const location = useLocation()
 
-    const BrandIcon = useMemo(
-        () => getIconComponent(footerContent?.brand?.icon, 'Terminal'),
-        [footerContent?.brand?.icon],
-    )
-
     const contactLinks = Array.isArray(footerContent?.contactLinks) ? footerContent.contactLinks : []
 
-    const staticNavigationItems = useMemo(
-        () => (Array.isArray(navigation?.static) ? navigation.static : []),
-        [navigation?.static],
-    )
-
-    const dynamicNavigationItems = useMemo(
-        () => (Array.isArray(navigation?.dynamic) ? navigation.dynamic : []),
-        [navigation?.dynamic],
-    )
-
-    const effectiveNavigationItems = useMemo(() => {
-        const combined = [...staticNavigationItems, ...dynamicNavigationItems]
-        if (combined.length > 0) {
-            return combined
-        }
-        const allItems = Array.isArray(navigation?.items) ? navigation.items : []
-        return allItems
-    }, [staticNavigationItems, dynamicNavigationItems, navigation?.items])
+    const staticNavigationItems = Array.isArray(navigation?.static) ? navigation.static : []
+    const dynamicNavigationItems = Array.isArray(navigation?.dynamic) ? navigation.dynamic : []
+    const combinedNavigationItems = [...staticNavigationItems, ...dynamicNavigationItems]
+    const effectiveNavigationItems = combinedNavigationItems.length > 0
+        ? combinedNavigationItems
+        : Array.isArray(navigation?.items) ? navigation.items : []
 
     /**
      * Normalizes various link target types into a standard browser href.
@@ -129,7 +111,7 @@ const Footer = () => {
         }
     }, [])
 
-    const quickLinks = useMemo(() => {
+    const quickLinks = (() => {
         const contentLinks = Array.isArray(footerContent?.quickLinks) ? footerContent.quickLinks : []
         const normalizedContentLinks = contentLinks
             .map((link, index) => {
@@ -229,7 +211,7 @@ const Footer = () => {
                 return null
             })
             .filter(Boolean)
-    }, [buildTargetHref, effectiveNavigationItems, footerContent?.quickLinks])
+    })()
 
     /**
      * Centralized click handler for footer links.
@@ -279,7 +261,7 @@ const Footer = () => {
                     <div>
                         <div className="flex items-center space-x-3 mb-4">
                             <div className="bg-gradient-to-r from-primary-600 to-primary-800 p-2 rounded-lg">
-                                <BrandIcon className="w-6 h-6 text-white" />
+                                {renderIcon(footerContent?.brand?.icon, 'Terminal', { className: 'w-6 h-6 text-white' })}
                             </div>
                             <span className="text-xl font-bold text-white">
                                 <EditableText
@@ -338,7 +320,7 @@ const Footer = () => {
                             {contactLinks.length > 0 ? (
                                 contactLinks.map((contact, index) => {
                                     const safeHref = sanitizeExternalUrl(contact.href || contact.url)
-                                    const ContactIcon = getIconComponent(resolveContactFallbackIcon(contact), 'Terminal')
+                                    const contactIconName = resolveContactFallbackIcon(contact)
 
                                     if (!safeHref) {
                                         return (
@@ -346,7 +328,7 @@ const Footer = () => {
                                                 key={contact.label || `contact-${index}`}
                                                 className="flex items-center space-x-2 text-gray-500"
                                             >
-                                                <ContactIcon className="w-5 h-5" />
+                                                {renderIcon(contactIconName, 'Terminal', { className: 'w-5 h-5' })}
                                                 <span>
                                                     <EditableText section="footer" field={`contactLinks.${index}.label`} value={contact.label || 'Kontakt'} />
                                                 </span>
@@ -365,7 +347,7 @@ const Footer = () => {
                                             rel={isExternal ? 'noopener noreferrer' : undefined}
                                             className="flex items-center space-x-2 hover:text-primary-400 transition-colors duration-200"
                                         >
-                                            <ContactIcon className="w-5 h-5" />
+                                            {renderIcon(contactIconName, 'Terminal', { className: 'w-5 h-5' })}
                                             <span>
                                                 <EditableText section="footer" field={`contactLinks.${index}.label`} value={contact.label || safeHref || 'Kontakt'} />
                                             </span>

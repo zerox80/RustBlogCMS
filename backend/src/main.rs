@@ -19,7 +19,6 @@ use std::io::ErrorKind;
 use std::net::SocketAddr;
 use tokio::signal;
 use tower_http::cors::CorsLayer;
-use tracing_subscriber;
 
 // Custom HTTP header constants for security policies
 use axum::http::{
@@ -62,9 +61,7 @@ async fn main() {
         Ok(val) => Some(val),
         Err(_) => match env::var("FRONTEND_ORIGINS") {
             Ok(val) => {
-                tracing::warn!(
-                    "FRONTEND_ORIGINS is deprecated. Use CORS_ALLOWED_ORIGINS instead."
-                );
+                tracing::warn!("FRONTEND_ORIGINS is deprecated. Use CORS_ALLOWED_ORIGINS instead.");
                 Some(val)
             }
             Err(_) => None,
@@ -120,7 +117,7 @@ async fn main() {
             security_middleware::security_headers,
         ))
         .layer(cors_layer)
-        .layer(DefaultBodyLimit::max(10 * 1024 * 1024)) // 10MB body limit
+        .layer(DefaultBodyLimit::max(11 * 1024 * 1024)) // 10MB uploads plus multipart overhead
         .with_state(pool.clone());
 
     // Apply trusted proxy middleware if configured

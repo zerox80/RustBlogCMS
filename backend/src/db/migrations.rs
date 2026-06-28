@@ -57,7 +57,7 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
 
     tx.commit().await?;
 
-    // Apply comment schema migrations (add post_id)
+    // Apply comment schema migrations (add post_id and rate_limit_key)
     {
         let mut tx = pool.begin().await?;
         if let Err(err) = apply_comment_migrations(&mut tx).await {
@@ -493,6 +493,27 @@ async fn apply_comment_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<()
             .await?;
     }
 
+    let has_rate_limit_key: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='rate_limit_key'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_rate_limit_key {
+        tracing::info!("Adding rate_limit_key column to comments table");
+        sqlx::query("ALTER TABLE comments ADD COLUMN rate_limit_key TEXT NOT NULL DEFAULT ''")
+            .execute(&mut **tx)
+            .await?;
+    }
+
+    sqlx::query("UPDATE comments SET rate_limit_key = author WHERE rate_limit_key = ''")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_comments_rate_limit ON comments(rate_limit_key)")
+        .execute(&mut **tx)
+        .await?;
+
     Ok(())
 }
 
@@ -563,6 +584,7 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
             tutorial_id TEXT,
             post_id TEXT,
             author TEXT NOT NULL,
+            rate_limit_key TEXT NOT NULL DEFAULT '',
             content TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             votes INTEGER NOT NULL DEFAULT 0,
@@ -577,8 +599,8 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
     // 3. Migrate data from the old schema to the new one
     sqlx::query(
         r#"
-        INSERT INTO comments (id, tutorial_id, post_id, author, content, created_at, votes, is_admin)
-        SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin FROM comments_old
+        INSERT INTO comments (id, tutorial_id, post_id, author, rate_limit_key, content, created_at, votes, is_admin)
+        SELECT id, tutorial_id, post_id, author, COALESCE(NULLIF(rate_limit_key, ''), author), content, created_at, votes, is_admin FROM comments_old
         "#,
     )
     .execute(&mut **tx)
@@ -594,6 +616,9 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
         .execute(&mut **tx)
         .await?;
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id)")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_comments_rate_limit ON comments(rate_limit_key)")
         .execute(&mut **tx)
         .await?;
 

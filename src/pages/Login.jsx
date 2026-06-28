@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useContent } from '../context/ContentContext'
 import { getIconComponent } from '../utils/iconMap'
-import { Terminal, Lock, User, AlertCircle, ArrowRight } from 'lucide-react'
+import { Lock, User, AlertCircle, ArrowRight } from 'lucide-react'
 
 /**
  * Secure Admin Login Page.

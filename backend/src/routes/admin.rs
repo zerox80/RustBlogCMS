@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tower_governor::{governor::GovernorConfig, key_extractor::SmartIpKeyExtractor, GovernorLayer};
 use tower_http::limit::RequestBodyLimitLayer;
 
-const ADMIN_BODY_LIMIT: usize = 8 * 1024 * 1024;
+const ADMIN_BODY_LIMIT: usize = 11 * 1024 * 1024;
 
 /// Admin Route Module
 ///
@@ -20,7 +20,7 @@ const ADMIN_BODY_LIMIT: usize = 8 * 1024 * 1024;
 /// # Middleware Stacking (Critical)
 /// Layers are applied from bottom to top:
 /// 1. `GovernorLayer`: Prevents brute force on admin actions.
-/// 2. `RequestBodyLimitLayer`: Prevents DoS via large payloads (8MB cap for uploads).
+/// 2. `RequestBodyLimitLayer`: Prevents DoS while allowing 10MB uploads plus multipart overhead.
 /// 3. `auth_middleware`: Ensures a valid JWT is present.
 /// 4. `enforce_csrf`: Validates session integrity (Double-Submit Cookie).
 pub fn routes(
@@ -47,7 +47,10 @@ pub fn routes(
             "/api/pages/{page_id}/posts",
             get(site_posts::list_posts_for_page).post(site_posts::create_post),
         )
-        .route("/api/content/{section}", put(site_content::update_site_content))
+        .route(
+            "/api/content/{section}",
+            put(site_content::update_site_content),
+        )
         .route(
             "/api/posts/{id}",
             get(site_posts::get_post)

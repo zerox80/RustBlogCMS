@@ -105,7 +105,7 @@ pub(crate) fn validate_color(color: &str) -> Result<(), String> {
     fn validate_segment(segment: &str, prefix: &str) -> bool {
         // Handle responsive modifiers (e.g., dark:from-..., md:hover:to-...)
         // We look at the last part after ':' or the whole string if no ':'
-        let base_class = segment.split(':').last().unwrap_or(segment);
+        let base_class = segment.split(':').next_back().unwrap_or(segment);
 
         if !base_class.starts_with(prefix) {
             return false;

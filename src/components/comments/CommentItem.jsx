@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 import { ShieldCheck, ThumbsUp, Trash2 } from 'lucide-react'
 
 const CommentItem = ({ comment, canManageComments, onVote, onDelete }) => {
@@ -49,6 +50,20 @@ const CommentItem = ({ comment, canManageComments, onVote, onDelete }) => {
             </p>
         </div>
     )
+}
+
+CommentItem.propTypes = {
+    comment: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        author: PropTypes.string.isRequired,
+        content: PropTypes.string.isRequired,
+        created_at: PropTypes.string.isRequired,
+        is_admin: PropTypes.bool,
+        votes: PropTypes.number,
+    }).isRequired,
+    canManageComments: PropTypes.bool.isRequired,
+    onVote: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
 }
 
 export default CommentItem

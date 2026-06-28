@@ -599,7 +599,13 @@ mod tests {
 
         let addr = "127.0.0.1:1234".parse().unwrap();
 
-        let result = login(State(pool), HeaderMap::new(), ConnectInfo(addr), Json(payload)).await;
+        let result = login(
+            State(pool),
+            HeaderMap::new(),
+            ConnectInfo(addr),
+            Json(payload),
+        )
+        .await;
 
         assert!(result.is_err());
         let (status, Json(body)) = result.unwrap_err();

@@ -79,8 +79,7 @@ const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
               {children}
             </li>
           ),
-          blockquote: ({ children, ...props }) => {
-            const alertType = props['data-alert-type']
+          blockquote: ({ children, 'data-alert-type': alertType, ...props }) => {
             if (alertType) {
               const type = alertType.toUpperCase()
               let icon
@@ -120,7 +119,7 @@ const MarkdownRenderer = ({ content, className = '', withBreaks = false }) => {
               }
 
               return (
-                <div className={classes} {...props}>
+                <div className={classes} data-alert-type={alertType} {...props}>
                   <div className="flex items-center gap-3 mb-2 font-semibold select-none">
                     {icon}
                     <span>{title}</span>

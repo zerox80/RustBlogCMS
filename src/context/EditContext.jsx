@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useMemo } from 'react'
+import { createContext, useContext, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useAuth } from './AuthContext'
 
@@ -11,27 +11,24 @@ const EditContext = createContext(null)
  * It also handles automatic cleanup (disabling edit mode) upon logout.
  */
 export const EditProvider = ({ children }) => {
-    const { isAuthenticated } = useAuth()
-    const [isEditing, setIsEditing] = useState(false)
+    const { isAuthenticated, user } = useAuth()
+    const activeSession = isAuthenticated ? user : null
+    const [editingSession, setEditingSession] = useState(null)
+    const isEditing = Boolean(activeSession && editingSession === activeSession)
 
     /**
      * Toggles the interactive editing UI.
      * Prevents enabling if not logged in.
      */
     const toggleEditMode = () => {
-        if (!isAuthenticated && !isEditing) {
+        if (!activeSession) {
             console.warn('CMS: Cannot enable edit mode: User not authenticated')
             return
         }
-        setIsEditing((prev) => !prev)
+        setEditingSession((currentSession) => (
+            currentSession === activeSession ? null : activeSession
+        ))
     }
-
-    // Security Lifecycle: Auto-disable edit mode if user session ends
-    useMemo(() => {
-        if (!isAuthenticated) {
-            setIsEditing(false)
-        }
-    }, [isAuthenticated])
 
     return (
         <EditContext.Provider value={{ isEditing, toggleEditMode }}>

@@ -50,5 +50,8 @@ fn test_login_response_serialization() {
     };
 
     let serialized = serde_json::to_string(&response).unwrap();
-    assert_eq!(serialized, "{\"user\":{\"username\":\"testuser\",\"role\":\"admin\"}}");
+    assert_eq!(
+        serialized,
+        "{\"user\":{\"username\":\"testuser\",\"role\":\"admin\"}}"
+    );
 }

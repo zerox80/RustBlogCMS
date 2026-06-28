@@ -15,13 +15,6 @@
  * @returns {JSX.Element} Theme toggle button with appropriate icon
  */
 
-// Import icon components from Lucide React icon library
-import React from 'react';
-import { Moon, Sun } from 'lucide-react';
-
-// Import custom hook to access theme context
-import { useTheme } from '../../context/ThemeContext';
-
 /**
  * ThemeToggle Functional Component (Placeholder)
  * 

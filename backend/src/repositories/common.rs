@@ -18,28 +18,26 @@ pub fn validate_slug(slug: &str) -> Result<(), sqlx::Error> {
     const MAX_SLUG_LENGTH: usize = 100;
 
     if slug.len() > MAX_SLUG_LENGTH {
-        return Err(sqlx::Error::Protocol(
-            format!("Invalid slug. Maximum length is {MAX_SLUG_LENGTH} characters: '{slug}'")
-                .into(),
-        ));
+        return Err(sqlx::Error::Protocol(format!(
+            "Invalid slug. Maximum length is {MAX_SLUG_LENGTH} characters: '{slug}'"
+        )));
     }
 
     if slug_regex().is_match(slug) {
         Ok(())
     } else {
-        Err(sqlx::Error::Protocol(
-            format!("Invalid slug. Only lowercase letters, numbers and single hyphens allowed: '{slug}'")
-                .into(),
-        ))
+        Err(sqlx::Error::Protocol(format!(
+            "Invalid slug. Only lowercase letters, numbers and single hyphens allowed: '{slug}'"
+        )))
     }
 }
 
 pub fn serialize_json_value(value: &Value) -> Result<String, sqlx::Error> {
     serde_json::to_string(value)
-        .map_err(|e| sqlx::Error::Protocol(format!("Failed to serialize JSON: {e}").into()))
+        .map_err(|e| sqlx::Error::Protocol(format!("Failed to serialize JSON: {e}")))
 }
 
 pub fn deserialize_json_value(value: &str) -> Result<Value, sqlx::Error> {
     serde_json::from_str(value)
-        .map_err(|e| sqlx::Error::Protocol(format!("Failed to deserialize JSON: {e}").into()))
+        .map_err(|e| sqlx::Error::Protocol(format!("Failed to deserialize JSON: {e}")))
 }

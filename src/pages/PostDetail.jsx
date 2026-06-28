@@ -1,11 +1,11 @@
 
 import React, { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
 import { formatDate } from '../utils/postUtils'
 import { Helmet } from 'react-helmet-async'
 import MarkdownRenderer from '../components/markdown/MarkdownRenderer'
-import { Calendar, Clock, User, ArrowLeft, Share2, Bookmark } from 'lucide-react'
+import { Calendar, Clock, User, Share2, Bookmark } from 'lucide-react'
 
 /**
  * In-depth Blog Post Viewer.
@@ -20,8 +20,6 @@ const PostDetail = () => {
   const { pageSlug, postSlug } = useParams()
   const { pages } = useContent()
   const [post, setPost] = useState(null)
-  const [activeSection, setActiveSection] = useState('')
-  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -34,35 +32,6 @@ const PostDetail = () => {
     }
     fetchPost()
   }, [pageSlug, postSlug, pages])
-
-  /**
-   * Navigation Strategy: Ensures the user returns to a logical place.
-   * 
-   * If there is browser history (e.g., they came from the listing), it goes back.
-   * If they landed here directly (e.g., via link share), it goes to the Home page.
-   */
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1)
-      return
-    }
-    navigate('/')
-  }
-
-  // Interaction: Scroll-Spy for the Table of Contents.
-  // Observes all H2 and H3 elements within the article to track reading progress.
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.id)
-        }
-      })
-    }, { rootMargin: '-100px 0px -60% 0px' })
-
-    document.querySelectorAll('h2, h3').forEach(heading => observer.observe(heading))
-    return () => observer.disconnect()
-  }, [post])
 
   if (!post) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
 

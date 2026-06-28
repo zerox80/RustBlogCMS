@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, Github } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +6,7 @@ import { useContent } from '../../context/ContentContext'
 import { useEdit } from '../../context/EditContext'
 import { useAuth } from '../../context/AuthContext'
 import EditableText from '../cms/EditableText'
-import { getIconComponent } from '../../utils/iconMap'
+import { renderIcon } from '../../utils/iconMap'
 
 /**
  * The global site header with advanced scroll-aware behavior.
@@ -21,26 +21,21 @@ const Header = () => {
     const { t } = useTranslation()
     const { navigation, getSection } = useContent()
     const { isEditing, toggleEditMode } = useEdit()
-    const { isAuthenticated, user } = useAuth()
+    const { isAuthenticated } = useAuth()
     const headerContent = getSection('header') ?? {}
 
-    // Resolve dynamic brand icon
-    const BrandIcon = React.useMemo(
-        () => getIconComponent(headerContent?.brand?.icon, 'Terminal'),
-        [headerContent?.brand?.icon]
-    )
     const [isScrolled, setIsScrolled] = useState(false)
     const [isVisible, setIsVisible] = useState(true)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     // Use refs for scroll tracking to avoid re-renders/dependency loops
-    const lastScrollY = React.useRef(0)
-    const scrollUpAccumulator = React.useRef(0)
+    const lastScrollY = useRef(0)
+    const scrollUpAccumulator = useRef(0)
     const SCROLL_UP_THRESHOLD = 200 // Pixels to scroll up before showing header
 
     const location = useLocation()
 
-    const scrollTimeout = React.useRef(null)
+    const scrollTimeout = useRef(null)
 
     useEffect(() => {
         /**
@@ -136,7 +131,7 @@ const Header = () => {
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-2 group">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-neon-cyan to-neon-violet flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-neon-cyan/20 group-hover:shadow-neon-cyan/40 transition-shadow">
-                        <BrandIcon className="w-5 h-5" />
+                        {renderIcon(headerContent?.brand?.icon, 'Terminal', { className: 'w-5 h-5' })}
                     </div>
                     <span className="font-bold text-lg text-white tracking-tight group-hover:text-neon-cyan transition-colors hidden sm:block">
                         <EditableText section="header" field="brand.name" value={headerContent?.brand?.name || 'Zero Point'} />

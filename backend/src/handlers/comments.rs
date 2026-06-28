@@ -21,8 +21,8 @@
 //! - Tutorial ID validation prevents injection
 
 use crate::{
-    db::DbPool, handlers::tutorials::validate_tutorial_id, middleware::security as security_middleware,
-    models::*, repositories, security::auth,
+    db::DbPool, handlers::tutorials::validate_tutorial_id,
+    middleware::security as security_middleware, models::*, repositories, security::auth,
 };
 use axum::{
     extract::{ConnectInfo, Path, Query, State},
@@ -193,6 +193,7 @@ pub async fn create_comment(
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(tutorial_id): Path<String>,
+    claims: auth::Claims,
     _csrf: crate::security::csrf::CsrfGuard,
     Json(payload): Json<CreateCommentRequest>,
 ) -> Result<Json<Comment>, (StatusCode, Json<ErrorResponse>)> {
@@ -229,7 +230,7 @@ pub async fn create_comment(
         Some(tutorial_id),
         None,
         payload,
-        None,
+        Some(claims),
         client_ip.to_string(),
     )
     .await
@@ -369,8 +370,7 @@ async fn create_comment_internal(
         } else {
             c.sub.clone()
         };
-        // Fix Bug 2: Admin Rate Limit Logic Flaw
-        // Admin posts are stored with author="Administrator", so we must use that for rate limiting checks too.
+        // Admin posts are stored with the display author, so rate limiting must use the same key.
         (display_name.clone(), display_name)
     } else {
         // Guest comment
@@ -413,8 +413,7 @@ async fn create_comment_internal(
                     ));
                 }
 
-                // Fix Bug 1: Guest Rate Limit Bypass
-                // We use the IP address as the rate limit key for guests to prevent name-change bypass.
+                // Use the IP address as the guest rate-limit key to prevent name-change bypasses.
                 (trimmed.to_string(), ip_address)
             }
             None => {
@@ -475,6 +474,7 @@ async fn create_comment_internal(
         tutorial_id,
         post_id,
         &author,
+        &rate_limit_key,
         &comment_content,
         &now,
         is_admin,
@@ -696,4 +696,107 @@ pub async fn vote_comment(
     };
 
     Ok(Json(response_comment))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::SqlitePool;
+
+    async fn setup_comments_pool() -> SqlitePool {
+        let pool = SqlitePool::connect("sqlite::memory:")
+            .await
+            .expect("create in-memory sqlite pool");
+
+        sqlx::query(
+            r#"
+            CREATE TABLE comments (
+                id TEXT PRIMARY KEY,
+                tutorial_id TEXT,
+                post_id TEXT,
+                author TEXT NOT NULL,
+                rate_limit_key TEXT NOT NULL DEFAULT '',
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                votes INTEGER NOT NULL DEFAULT 0,
+                is_admin BOOLEAN NOT NULL DEFAULT FALSE
+            )
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("create comments table");
+
+        pool
+    }
+
+    #[tokio::test]
+    async fn admin_tutorial_comment_uses_claims_without_author_payload() {
+        let pool = setup_comments_pool().await;
+        let claims = auth::Claims {
+            sub: "admin".to_string(),
+            role: "admin".to_string(),
+            exp: usize::MAX,
+        };
+
+        let result = create_comment_internal(
+            pool,
+            Some("tutorial-1".to_string()),
+            None,
+            CreateCommentRequest {
+                content: "Admin note".to_string(),
+                author: None,
+            },
+            Some(claims),
+            "127.0.0.1".to_string(),
+        )
+        .await;
+        let Json(comment) = match result {
+            Ok(comment) => comment,
+            Err((status, _)) => panic!("admin comment failed with status {status}"),
+        };
+
+        assert_eq!(comment.author, "Administrator");
+        assert!(comment.is_admin);
+    }
+
+    #[tokio::test]
+    async fn guest_rate_limit_uses_ip_even_when_author_changes() {
+        let pool = setup_comments_pool().await;
+
+        let first_result = create_comment_internal(
+            pool.clone(),
+            None,
+            Some("post-1".to_string()),
+            CreateCommentRequest {
+                content: "First comment".to_string(),
+                author: Some("Alice".to_string()),
+            },
+            None,
+            "203.0.113.5".to_string(),
+        )
+        .await;
+        if let Err((status, _)) = first_result {
+            panic!("first guest comment failed with status {status}");
+        }
+
+        let result = create_comment_internal(
+            pool,
+            None,
+            Some("post-1".to_string()),
+            CreateCommentRequest {
+                content: "Second comment".to_string(),
+                author: Some("Bob".to_string()),
+            },
+            None,
+            "203.0.113.5".to_string(),
+        )
+        .await;
+        let err = match result {
+            Ok(_) => panic!("same client IP should still be rate limited"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.0, StatusCode::TOO_MANY_REQUESTS);
+    }
 }

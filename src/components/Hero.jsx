@@ -1,8 +1,7 @@
-import { useMemo } from 'react'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
-import { getIconComponent } from '../utils/iconMap'
+import { renderIcon } from '../utils/iconMap'
 import { scrollToSection } from '../utils/scrollToSection'
 import { sanitizeExternalUrl } from '../utils/urlValidation'
 
@@ -28,7 +27,6 @@ const Hero = () => {
   const location = useLocation()
   const { getSection } = useContent()
   const heroContent = getSection('hero') ?? {}
-  const HeroIcon = useMemo(() => getIconComponent(heroContent.icon, 'Terminal'), [heroContent.icon])
   const features = Array.isArray(heroContent.features) ? heroContent.features : []
 
   /**
@@ -107,7 +105,7 @@ const Hero = () => {
             <span>{heroContent.badgeText}</span>
           </div>
           <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur">
-            <HeroIcon className="w-12 h-12 text-white" />
+            {renderIcon(heroContent.icon, 'Terminal', { className: 'w-12 h-12 text-white' })}
           </div>
           <div className="space-y-6">
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white">
@@ -145,14 +143,13 @@ const Hero = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto text-left">
             {features.map((feature, i) => {
-              const FeatureIcon = getIconComponent(feature.icon, 'Terminal')
               return (
                 <div
                   key={i}
                   className="rounded-2xl border border-white/15 bg-white/5 p-6 backdrop-blur transition-colors duration-300 hover:border-primary-400/40"
                 >
                   <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.color || 'from-blue-500 to-cyan-500'} mb-4 shadow-md`}>
-                    <FeatureIcon className="w-6 h-6 text-white" />
+                    {renderIcon(feature.icon, 'Terminal', { className: 'w-6 h-6 text-white' })}
                   </div>
                   <h3 className="font-semibold text-lg text-white mb-2">{feature.title}</h3>
                   <p className="text-sm text-slate-200 leading-relaxed">{feature.description}</p>

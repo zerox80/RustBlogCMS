@@ -68,23 +68,26 @@ pub async fn list_post_comments(
         .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_comment(
     pool: &DbPool,
     id: &str,
     tutorial_id: Option<String>,
     post_id: Option<String>,
     author: &str,
+    rate_limit_key: &str,
     content: &str,
     created_at: &str,
     is_admin: bool,
 ) -> Result<Comment, sqlx::Error> {
     sqlx::query(
-        "INSERT INTO comments (id, tutorial_id, post_id, author, content, created_at, votes, is_admin) VALUES (?, ?, ?, ?, ?, ?, 0, ?)"
+        "INSERT INTO comments (id, tutorial_id, post_id, author, rate_limit_key, content, created_at, votes, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)"
     )
     .bind(id)
     .bind(&tutorial_id)
     .bind(&post_id)
     .bind(author)
+    .bind(rate_limit_key)
     .bind(content)
     .bind(created_at)
     .bind(is_admin)
@@ -104,7 +107,9 @@ pub async fn create_comment(
 }
 
 pub async fn get_comment(pool: &DbPool, id: &str) -> Result<Option<Comment>, sqlx::Error> {
-    sqlx::query_as::<_, Comment>("SELECT * FROM comments WHERE id = ?")
+    sqlx::query_as::<_, Comment>(
+        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin FROM comments WHERE id = ?",
+    )
         .bind(id)
         .fetch_optional(pool)
         .await
@@ -166,12 +171,12 @@ pub async fn add_vote(pool: &DbPool, comment_id: &str, voter_id: &str) -> Result
 
 pub async fn get_last_comment_time(
     pool: &DbPool,
-    author: &str,
+    rate_limit_key: &str,
 ) -> Result<Option<String>, sqlx::Error> {
     let last_comment: Option<(String,)> = sqlx::query_as(
-        "SELECT created_at FROM comments WHERE author = ? ORDER BY created_at DESC LIMIT 1",
+        "SELECT created_at FROM comments WHERE rate_limit_key = ? ORDER BY created_at DESC LIMIT 1",
     )
-    .bind(author)
+    .bind(rate_limit_key)
     .fetch_optional(pool)
     .await?;
 

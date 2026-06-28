@@ -26,28 +26,9 @@ const AppRoutes = () => {
     const settings = getSection('settings') || {}
     const homePageSlug = settings.homePageSlug || 'blog'
 
-    // Determine the home page component based on settings
-    let HomePageComponent
-
-    if (homePageSlug === 'blog' || !homePageSlug) {
-        // Default: Show the blog listing
-        HomePageComponent = () => (
-            <>
-                <Header />
-                <Home />
-                <Footer />
-            </>
-        )
-    } else {
-        // Show a specific CMS page
-        HomePageComponent = () => (
-            <>
-                <Header />
-                <DynamicPage slug={homePageSlug} />
-                <Footer />
-            </>
-        )
-    }
+    const homePageContent = homePageSlug === 'blog' || !homePageSlug
+        ? <Home />
+        : <DynamicPage slug={homePageSlug} />
 
     return (
         <Routes>
@@ -55,7 +36,9 @@ const AppRoutes = () => {
                 path="/"
                 element={
                     <ErrorBoundary>
-                        <HomePageComponent />
+                        <Header />
+                        {homePageContent}
+                        <Footer />
                     </ErrorBoundary>
                 }
             />
