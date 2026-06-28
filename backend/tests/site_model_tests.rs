@@ -10,8 +10,8 @@ fn test_site_post_defaults() {
     });
 
     let request: CreateSitePostRequest = serde_json::from_value(data).unwrap();
-    assert_eq!(request.allow_comments, true); // Default should be true
-    assert_eq!(request.is_published, false); // Default should be false
+    assert!(request.allow_comments); // Default should be true
+    assert!(!request.is_published); // Default should be false
 }
 
 #[test]

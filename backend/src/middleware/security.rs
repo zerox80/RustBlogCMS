@@ -7,12 +7,11 @@
 use axum::{
     extract::Request,
     http::{
-        HeaderMap,
         header::{
             CACHE_CONTROL, CONTENT_SECURITY_POLICY, EXPIRES, PRAGMA, STRICT_TRANSPORT_SECURITY,
             X_CONTENT_TYPE_OPTIONS, X_FRAME_OPTIONS,
         },
-        HeaderName, HeaderValue, Method,
+        HeaderMap, HeaderName, HeaderValue, Method,
     },
     middleware::Next,
     response::Response,

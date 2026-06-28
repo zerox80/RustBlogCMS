@@ -57,35 +57,24 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
 
     tx.commit().await?;
 
-    // Apply comment schema migrations (add post_id)
+    // Apply comment schema migrations (add post_id and rate_limit_key)
     {
         let mut tx = pool.begin().await?;
-        if let Err(err) = apply_comment_migrations(&mut tx).await {
-            tracing::error!("Failed to apply comment migrations: {}", err);
-            // Don't fail startup if migration fails (might already exist)
-            // But for safety, we should probably log and continue or fail depending on severity.
-            // Here we log and continue as it might be a "column already exists" error which is fine.
-            // Better approach: check if column exists inside the migration function.
-        }
+        apply_comment_migrations(&mut tx).await?;
         tx.commit().await?;
     }
 
     // Apply vote tracking schema migration
     {
         let mut tx = pool.begin().await?;
-        if let Err(err) = apply_vote_migration(&mut tx).await {
-            tracing::error!("Failed to apply vote migration: {}", err);
-        }
+        apply_vote_migration(&mut tx).await?;
         tx.commit().await?;
     }
 
     // Fix comment schema (make tutorial_id nullable)
     {
         let mut tx = pool.begin().await?;
-        if let Err(err) = fix_comment_schema(&mut tx).await {
-            tracing::error!("Failed to fix comment schema: {}", err);
-            // We might want to fail here if it's critical, but let's log for now.
-        }
+        fix_comment_schema(&mut tx).await?;
         tx.commit().await?;
     }
 
@@ -493,6 +482,27 @@ async fn apply_comment_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<()
             .await?;
     }
 
+    let has_rate_limit_key: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='rate_limit_key'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_rate_limit_key {
+        tracing::info!("Adding rate_limit_key column to comments table");
+        sqlx::query("ALTER TABLE comments ADD COLUMN rate_limit_key TEXT NOT NULL DEFAULT ''")
+            .execute(&mut **tx)
+            .await?;
+    }
+
+    sqlx::query("UPDATE comments SET rate_limit_key = author WHERE rate_limit_key = ''")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_comments_rate_limit ON comments(rate_limit_key)")
+        .execute(&mut **tx)
+        .await?;
+
     Ok(())
 }
 
@@ -563,6 +573,7 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
             tutorial_id TEXT,
             post_id TEXT,
             author TEXT NOT NULL,
+            rate_limit_key TEXT NOT NULL DEFAULT '',
             content TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             votes INTEGER NOT NULL DEFAULT 0,
@@ -577,8 +588,8 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
     // 3. Migrate data from the old schema to the new one
     sqlx::query(
         r#"
-        INSERT INTO comments (id, tutorial_id, post_id, author, content, created_at, votes, is_admin)
-        SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin FROM comments_old
+        INSERT INTO comments (id, tutorial_id, post_id, author, rate_limit_key, content, created_at, votes, is_admin)
+        SELECT id, tutorial_id, post_id, author, COALESCE(NULLIF(rate_limit_key, ''), author), content, created_at, votes, is_admin FROM comments_old
         "#,
     )
     .execute(&mut **tx)
@@ -594,6 +605,9 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
         .execute(&mut **tx)
         .await?;
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id)")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_comments_rate_limit ON comments(rate_limit_key)")
         .execute(&mut **tx)
         .await?;
 
@@ -622,4 +636,96 @@ async fn apply_site_post_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_migrations;
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    #[tokio::test]
+    async fn run_migrations_backfills_rate_limit_key_for_legacy_comments() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("create sqlite pool");
+
+        sqlx::query(
+            r#"
+            CREATE TABLE tutorials (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                icon TEXT NOT NULL,
+                color TEXT NOT NULL,
+                topics TEXT NOT NULL,
+                content TEXT NOT NULL DEFAULT '',
+                version INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("create legacy tutorials table");
+
+        sqlx::query(
+            r#"
+            INSERT INTO tutorials (id, title, description, icon, color, topics, content)
+            VALUES ('tutorial-1', 'Legacy Tutorial', 'Legacy description', 'book', '#000000', 'legacy', 'Legacy content')
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("insert legacy tutorial");
+
+        sqlx::query(
+            r#"
+            CREATE TABLE comments (
+                id TEXT PRIMARY KEY,
+                tutorial_id TEXT NOT NULL,
+                author TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("create legacy comments table");
+
+        sqlx::query(
+            r#"
+            INSERT INTO comments (id, tutorial_id, author, content, created_at)
+            VALUES ('legacy-comment', 'tutorial-1', 'Legacy Author', 'Old comment', '2024-01-01T00:00:00Z')
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("insert legacy comment");
+
+        run_migrations(&pool)
+            .await
+            .expect("migrate legacy comments table");
+
+        let has_rate_limit_key: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='rate_limit_key'",
+        )
+        .fetch_one(&pool)
+        .await
+        .map(|count: i64| count > 0)
+        .expect("check rate_limit_key column");
+
+        assert!(has_rate_limit_key);
+
+        let (rate_limit_key,): (String,) =
+            sqlx::query_as("SELECT rate_limit_key FROM comments WHERE id = 'legacy-comment'")
+                .fetch_one(&pool)
+                .await
+                .expect("read migrated comment");
+
+        assert_eq!(rate_limit_key, "Legacy Author");
+    }
 }

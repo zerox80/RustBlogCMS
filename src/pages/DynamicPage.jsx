@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import PropTypes from 'prop-types'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 import { useContent } from '../context/ContentContext'
@@ -171,6 +172,10 @@ const DynamicPage = ({ slug: propSlug }) => {
       </div>
     </main>
   )
+}
+
+DynamicPage.propTypes = {
+  slug: PropTypes.string,
 }
 
 export default DynamicPage

@@ -181,7 +181,7 @@ pub async fn search_tutorials(
     }
 
     // Set reasonable bounds on total results
-    let limit = params.limit.min(100).max(1);
+    let limit = params.limit.clamp(1, 100);
 
     // Sanitize the user input for FTS5 engine
     let search_query = sanitize_fts_query(params.q.trim())

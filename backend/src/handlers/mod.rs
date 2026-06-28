@@ -1,4 +1,4 @@
-/**
+/*
  * HTTP Handlers Module
  *
  * This module contains all HTTP request handlers for the Rust Blog CMS API.

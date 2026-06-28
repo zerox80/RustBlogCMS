@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import { useEdit } from '../../context/EditContext'
 import { useContent } from '../../context/ContentContext'
 import { Image } from 'lucide-react'
@@ -101,6 +102,15 @@ const EditableImage = ({
             )}
         </div>
     )
+}
+
+EditableImage.propTypes = {
+    section: PropTypes.string.isRequired,
+    field: PropTypes.string.isRequired,
+    src: PropTypes.string.isRequired,
+    alt: PropTypes.string.isRequired,
+    className: PropTypes.string,
+    containerClassName: PropTypes.string,
 }
 
 export default EditableImage

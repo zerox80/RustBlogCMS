@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { AlertCircle, FileText, RefreshCw, X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { sanitizeSlug, isValidSlug } from '../../utils/slug'
 import { sanitizeInteger } from './formUtils'
-import { useAuth } from '../../context/AuthContext'
 import { api } from '../../api/client'
 
 const formatDateTimeLocal = (value) => {
@@ -74,7 +73,6 @@ const PostForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
         slug: sanitizedSlug,
         excerpt: excerpt.trim() || null,
         content_markdown: content,
-        order_index: sanitizeInteger(orderIndex),
         order_index: sanitizeInteger(orderIndex),
         is_published: isPublished,
         allow_comments: allowComments,

@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import {
   Terminal,
   FolderTree,
@@ -64,4 +65,8 @@ export const getIconComponent = (iconName, fallback = 'Terminal') => {
     return Terminal
   }
   return ICON_MAP[fallback]
+}
+
+export const renderIcon = (iconName, fallback = 'Terminal', props = {}) => {
+  return createElement(getIconComponent(iconName, fallback), props)
 }

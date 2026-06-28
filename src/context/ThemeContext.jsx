@@ -95,7 +95,7 @@ export const ThemeProvider = ({ children }) => {
     // Optional: Persist 'dark' just in case, though we force it anyway
     try {
       window.localStorage?.setItem('theme', 'dark');
-    } catch (error) {
+    } catch {
       // Ignore
     }
   }, []);

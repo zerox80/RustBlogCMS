@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { AlertCircle, ArrowLeft, Check, Loader2, RefreshCw, Plus, Trash2, Code } from 'lucide-react'
 import {
@@ -1062,16 +1062,6 @@ const SiteContentEditor = () => {
   const [jsonError, setJsonError] = useState(null)
   const [status, setStatus] = useState(null)
   const [showJson, setShowJson] = useState(false)
-
-  const activeContent = useMemo(() => {
-    if (!selectedSection) {
-      return null
-    }
-    if (content && content[selectedSection] !== undefined) {
-      return content[selectedSection]
-    }
-    return getSection(selectedSection)
-  }, [content, getSection, selectedSection])
 
   const handleSectionSelect = useCallback((section) => {
     setSelectedSection(section)

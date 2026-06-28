@@ -35,6 +35,7 @@ pub async fn check_tutorial_exists(pool: &DbPool, id: &str) -> Result<bool, sqlx
 }
 
 /// Creates a new tutorial and its associated topics within a single transaction.
+#[allow(clippy::too_many_arguments)]
 pub async fn create_tutorial(
     pool: &DbPool,
     id: &str,
@@ -86,6 +87,7 @@ pub async fn create_tutorial(
 ///
 /// Returns `Ok(None)` if a conflict occurred (version mismatch), otherwise
 /// returns the updated record.
+#[allow(clippy::too_many_arguments)]
 pub async fn update_tutorial(
     pool: &DbPool,
     id: &str,

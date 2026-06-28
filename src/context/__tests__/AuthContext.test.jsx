@@ -9,7 +9,6 @@ vi.mock('../../api/client', () => ({
     me: vi.fn(),
     login: vi.fn(),
     logout: vi.fn(),
-    setToken: vi.fn(),
   },
 }));
 
@@ -68,9 +67,8 @@ describe('AuthContext', () => {
     // Setup initial state as unauthenticated
     api.me.mockRejectedValue(new Error('Not logged in'));
     const mockUser = { id: 1, username: 'admin' };
-    const mockToken = 'fake-token';
 
-    api.login.mockResolvedValue({ user: mockUser, token: mockToken });
+    api.login.mockResolvedValue({ user: mockUser });
 
     const { result } = renderHook(() => useAuth(), {
       wrapper: AuthProvider,
@@ -87,7 +85,6 @@ describe('AuthContext', () => {
 
     expect(loginResult).toEqual({ success: true });
     expect(api.login).toHaveBeenCalledWith('admin', 'password');
-    expect(api.setToken).toHaveBeenCalledWith(mockToken);
     expect(result.current.isAuthenticated).toBe(true);
     expect(result.current.user).toEqual(mockUser);
   });
@@ -110,7 +107,6 @@ describe('AuthContext', () => {
     });
 
     expect(loginResult).toEqual({ success: false, error: 'Invalid credentials' });
-    expect(api.setToken).toHaveBeenCalledWith(null);
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
     expect(result.current.error).toBe('Invalid credentials');
@@ -135,7 +131,6 @@ describe('AuthContext', () => {
     });
 
     expect(api.logout).toHaveBeenCalled();
-    expect(api.setToken).toHaveBeenCalledWith(null);
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
   });

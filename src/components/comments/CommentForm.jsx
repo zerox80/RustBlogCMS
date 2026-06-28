@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 import { Send, Smile } from 'lucide-react'
 import EmojiPicker from 'emoji-picker-react'
 
@@ -75,6 +76,22 @@ const CommentForm = ({
             </div>
         </form>
     )
+}
+
+CommentForm.propTypes = {
+    onSubmit: PropTypes.func.isRequired,
+    newComment: PropTypes.string.isRequired,
+    setNewComment: PropTypes.func.isRequired,
+    guestName: PropTypes.string.isRequired,
+    setGuestName: PropTypes.func.isRequired,
+    isLoading: PropTypes.bool.isRequired,
+    isAuthenticated: PropTypes.bool.isRequired,
+    showEmojiPicker: PropTypes.bool.isRequired,
+    setShowEmojiPicker: PropTypes.func.isRequired,
+    onEmojiClick: PropTypes.func.isRequired,
+    emojiPickerRef: PropTypes.shape({
+        current: PropTypes.any,
+    }).isRequired,
 }
 
 export default CommentForm

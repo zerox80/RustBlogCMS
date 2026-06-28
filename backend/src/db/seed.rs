@@ -329,13 +329,10 @@ pub async fn insert_default_tutorials_tx(
         }
 
         let topics_json = serde_json::to_string(&topics_vec).map_err(|e| {
-            sqlx::Error::Protocol(
-                format!(
-                    "Failed to serialize topics for default tutorial '{}': {}",
-                    id, e
-                )
-                .into(),
-            )
+            sqlx::Error::Protocol(format!(
+                "Failed to serialize topics for default tutorial '{}': {}",
+                id, e
+            ))
         })?;
 
         sqlx::query(

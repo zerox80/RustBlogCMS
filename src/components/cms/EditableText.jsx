@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import { useEdit } from '../../context/EditContext'
 import { useContent } from '../../context/ContentContext'
 
@@ -104,6 +105,15 @@ const EditableText = ({
             )}
         </Component>
     )
+}
+
+EditableText.propTypes = {
+    section: PropTypes.string.isRequired,
+    field: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    multiline: PropTypes.bool,
+    className: PropTypes.string,
+    as: PropTypes.elementType,
 }
 
 export default EditableText

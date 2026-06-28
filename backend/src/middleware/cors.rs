@@ -35,21 +35,19 @@ where
                 tracing::warn!(
                     "Ignoring invalid origin (must start with http:// or https://): '{trimmed}'"
                 );
-                return None;
-            }
-
-            // ENFORCEMENT: Verify the string is at least a valid URL to avoid corruption.
-            if let Err(e) = url::Url::parse(trimmed) {
+                None
+            } else if let Err(e) = url::Url::parse(trimmed) {
+                // ENFORCEMENT: Verify the string is at least a valid URL to avoid corruption.
                 tracing::warn!("Ignoring malformed origin URL '{trimmed}': {e}");
-                return None;
-            }
-
-            // Final conversion to Axum-compatible HeaderValue
-            match HeaderValue::from_str(trimmed) {
-                Ok(value) => Some(value),
-                Err(err) => {
-                    tracing::warn!("Ignoring invalid origin header value '{trimmed}': {err}");
-                    return None;
+                None
+            } else {
+                // Final conversion to Axum-compatible HeaderValue
+                match HeaderValue::from_str(trimmed) {
+                    Ok(value) => Some(value),
+                    Err(err) => {
+                        tracing::warn!("Ignoring invalid origin header value '{trimmed}': {err}");
+                        None
+                    }
                 }
             }
         })

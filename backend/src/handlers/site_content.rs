@@ -148,7 +148,7 @@ fn validate_header_structure(content: &Value) -> Result<(), &'static str> {
 
     // Fix Bug 4: Header Validation Incomplete
     // Validate that each item in the array has at least an 'id' and 'label', and a valid target ('path', 'slug', 'url', etc.)
-    for (_i, item) in nav_items.iter().enumerate() {
+    for item in nav_items {
         let item_obj = item.as_object().ok_or("Nav item must be an object")?;
 
         if !item_obj.contains_key("id") || !item_obj.contains_key("label") {

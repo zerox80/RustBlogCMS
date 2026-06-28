@@ -66,7 +66,7 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
   const getParsedState = (jsonString, fallback) => {
     try {
       return JSON.parse(jsonString) || fallback
-    } catch (e) {
+    } catch {
       return fallback
     }
   }
@@ -364,7 +364,8 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
                           derivedTitle !== previous ? derivedTitle : previous,
                         )
                       }
-                    } catch (err) {
+                    } catch {
+                      // Ignore invalid JSON while the user is editing the raw field.
                     }
                   }}
                 />

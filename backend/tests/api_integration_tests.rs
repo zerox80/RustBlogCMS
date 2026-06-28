@@ -1,10 +1,43 @@
 use axum::{
     body::Body,
+    extract::ConnectInfo,
     http::{Request, StatusCode},
 };
-use rust_blog_backend::routes;
+use rust_blog_backend::{
+    handlers, routes,
+    security::{auth, csrf},
+};
 use sqlx::SqlitePool;
+use std::env;
+use std::net::SocketAddr;
 use tower::ServiceExt; // for `oneshot`
+
+fn init_test_secrets() {
+    env::set_var(
+        "LOGIN_ATTEMPT_SALT",
+        "this_is_a_test_salt_for_login_attempts_at_least_32_chars",
+    );
+    let _ = handlers::auth::init_login_attempt_salt();
+
+    env::set_var(
+        "JWT_SECRET",
+        "this_is_a_test_jwt_secret_with_adequate_entropy_123_ABC_!!!",
+    );
+    let _ = auth::init_jwt_secret();
+
+    env::set_var(
+        "CSRF_SECRET",
+        "this_is_a_very_long_secret_key_for_testing_purposes_only_at_least_32_bytes",
+    );
+    let _ = csrf::init_csrf_secret();
+}
+
+fn with_connect_info(mut request: Request<Body>) -> Request<Body> {
+    request
+        .extensions_mut()
+        .insert(ConnectInfo(SocketAddr::from(([127, 0, 0, 1], 3000))));
+    request
+}
 
 #[tokio::test]
 async fn test_api_health_check() {
@@ -35,12 +68,12 @@ async fn test_api_health_check() {
     // Let's assume there is a public route, e.g. getting tutorials.
 
     let response = app
-        .oneshot(
+        .oneshot(with_connect_info(
             Request::builder()
                 .uri("/api/tutorials")
                 .body(Body::empty())
                 .unwrap(),
-        )
+        ))
         .await
         .unwrap();
 
@@ -52,18 +85,19 @@ async fn test_api_health_check() {
 
 #[tokio::test]
 async fn test_login_route_exists() {
+    init_test_secrets();
     let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
     let app = routes::create_routes(pool.clone(), "test_uploads".to_string()).with_state(pool);
 
     let response = app
-        .oneshot(
+        .oneshot(with_connect_info(
             Request::builder()
                 .uri("/api/auth/login")
                 .method("POST")
                 .header("Content-Type", "application/json")
                 .body(Body::from(r#"{"username":"admin","password":"password"}"#))
                 .unwrap(),
-        )
+        ))
         .await
         .unwrap();
 
@@ -77,14 +111,14 @@ async fn test_site_content_update_requires_auth() {
     let app = routes::create_routes(pool.clone(), "test_uploads".to_string()).with_state(pool);
 
     let response = app
-        .oneshot(
+        .oneshot(with_connect_info(
             Request::builder()
                 .uri("/api/content/hero")
                 .method("PUT")
                 .header("Content-Type", "application/json")
                 .body(Body::from(r#"{"content":{"title":"Updated hero"}}"#))
                 .unwrap(),
-        )
+        ))
         .await
         .unwrap();
 
