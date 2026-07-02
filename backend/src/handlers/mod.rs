@@ -142,16 +142,16 @@
 
 // Core System Handlers
 pub mod auth; // Authentication and authorization
+pub mod common; // Helpers shared across handler modules
 pub mod search; // Full-text search functionality
 
 // Content Management Handlers
-pub mod tutorials;
-pub mod upload;
-// Tutorial CRUD operations
 pub mod comments; // Comment system management
+pub mod tutorials; // Tutorial CRUD operations
+pub mod upload; // Image upload
 
 // Site Content Handlers
-pub mod frontend_proxy;
+pub mod frontend_proxy; // Frontend proxy for server-side injection
 pub mod site_content; // Dynamic site content sections
 pub mod site_pages; // Static page management
-pub mod site_posts; // Blog post management // Frontend proxy for server-side injection
+pub mod site_posts; // Blog post management

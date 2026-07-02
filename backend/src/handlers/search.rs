@@ -29,7 +29,6 @@
 use crate::{db::DbPool, models::*};
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
     Json,
 };
 use serde::Deserialize;
@@ -102,16 +101,11 @@ pub fn sanitize_fts_query(raw: &str) -> Result<String, String> {
         // We use implicit AND by joining tokens with spaces
         let mut query_parts = Vec::new();
         for (i, token) in tokens.iter().enumerate() {
-            // Fix Bug 3: Search Query Crash/Error
-            // Prevent "*" from being treated as a prefix match on an empty string which causes FTS5 syntax error.
-            // If a token is just "*" or has no alphanumeric characters (and is not a valid operator), we should be careful.
-            // The previous logic wrapped * in quotes "*" then appended *, resulting in "*"* which is invalid.
-
             let is_last = i == tokens.len() - 1;
 
             if token == "*" {
-                // Skip standalone wildcard tokens as they are invalid in FTS5 standard query syntax
-                // or just treat them as literal if wrapped in quotes, but FTS5 doesn't like "*"*
+                // A standalone wildcard would become the invalid FTS5 syntax
+                // `"*"*` (a prefix match on an empty quoted string), so skip it.
                 continue;
             }
 
@@ -159,33 +153,22 @@ fn escape_like_pattern(value: &str) -> String {
 pub async fn search_tutorials(
     State(pool): State<DbPool>,
     Query(params): Query<SearchQuery>,
-) -> Result<Json<Vec<TutorialResponse>>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<Vec<TutorialResponse>>, ApiError> {
     // Basic validation: search query can't be just whitespace
     if params.q.trim().is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "Search query cannot be empty".to_string(),
-            }),
-        ));
+        return Err(bad_request("Search query cannot be empty"));
     }
 
     // Limit length to prevent resource exhaustion attacks
     if params.q.len() > 500 {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "Search query too long".to_string(),
-            }),
-        ));
+        return Err(bad_request("Search query too long"));
     }
 
     // Set reasonable bounds on total results
     let limit = params.limit.clamp(1, 100);
 
     // Sanitize the user input for FTS5 engine
-    let search_query = sanitize_fts_query(params.q.trim())
-        .map_err(|err| (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: err })))?;
+    let search_query = sanitize_fts_query(params.q.trim()).map_err(bad_request)?;
 
     // If an optional topic filter is provided, prepare a LIKE pattern
     let topic_pattern = params.topic.as_ref().and_then(|topic| {
@@ -242,16 +225,7 @@ pub async fn search_tutorials(
         .fetch_all(&pool)
         .await
     }
-    .map_err(|e| {
-        // Log the error and return a safe JSON response
-        tracing::error!("Search error: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to search tutorials".to_string(),
-            }),
-        )
-    })?;
+    .map_err(internal_error("Failed to search tutorials"))?;
 
     // Convert raw tutorial records into mapped responses
     let mut responses = Vec::with_capacity(tutorials.len());
@@ -259,12 +233,7 @@ pub async fn search_tutorials(
         // Try to convert each record; this handles JSON parsing of topics
         let response: TutorialResponse = tutorial.try_into().map_err(|err: String| {
             tracing::error!("Tutorial data corruption detected: {}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to parse tutorial data".to_string(),
-                }),
-            )
+            internal_error_plain("Failed to parse tutorial data")
         })?;
         responses.push(response);
     }
@@ -275,21 +244,13 @@ pub async fn search_tutorials(
 /// Retrieves a list of all unique topics currently available in tutorials.
 pub async fn get_all_topics(
     State(pool): State<DbPool>,
-) -> Result<Json<Vec<String>>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<Vec<String>>, ApiError> {
     // Select unique topics from the denormalized tutorial_topics table
     let topics: Vec<(String,)> =
         sqlx::query_as("SELECT DISTINCT topic FROM tutorial_topics ORDER BY topic ASC")
             .fetch_all(&pool)
             .await
-            .map_err(|e| {
-                tracing::error!("Failed to fetch topics: {}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Failed to fetch topics".to_string(),
-                    }),
-                )
-            })?;
+            .map_err(internal_error("Failed to fetch topics"))?;
 
     // Extract strings from the tuple and return as a list
     Ok(Json(topics.into_iter().map(|(t,)| t).collect()))

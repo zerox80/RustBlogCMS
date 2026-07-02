@@ -10,7 +10,9 @@
 //! - Versioning: Optimistic concurrency control via version numbers
 //! - Identifiers: Custom slugs or auto-generated UUIDs
 
-use crate::{db::DbPool, models::*, repositories, security::auth};
+use crate::{
+    db::DbPool, handlers::common::ensure_admin, models::*, repositories, security::auth,
+};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -232,7 +234,7 @@ fn default_tutorial_limit() -> i64 {
 pub async fn list_tutorials(
     State(pool): State<DbPool>,
     Query(params): Query<TutorialListQuery>,
-) -> Result<Json<Vec<TutorialSummaryResponse>>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<Vec<TutorialSummaryResponse>>, ApiError> {
     // Clamp pagination parameters
     let limit = params.limit.clamp(1, 100);
     let offset = params.offset.max(0);
@@ -240,29 +242,15 @@ pub async fn list_tutorials(
     // Optimized repository call: Fetches summary data without markdown content
     let tutorials = repositories::tutorials::list_tutorials(&pool, limit, offset)
         .await
-        .map_err(|e| {
-            tracing::error!("Database error during list_tutorials: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to fetch tutorials".to_string(),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to fetch tutorials"))?;
 
     // Transform database records into summary response models
     let mut responses = Vec::with_capacity(tutorials.len());
     for tutorial in tutorials {
         // TryInto implementation handles JSON parsing of the 'topics' field
-        let response: TutorialSummaryResponse = tutorial.try_into().map_err(|err: String| {
-            tracing::error!("Tutorial summary data corruption detected: {}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to parse stored tutorial data".to_string(),
-                }),
-            )
-        })?;
+        let response: TutorialSummaryResponse = tutorial
+            .try_into()
+            .map_err(internal_error("Failed to parse stored tutorial data"))?;
         responses.push(response);
     }
 
@@ -274,50 +262,22 @@ pub async fn list_tutorials(
 pub async fn get_tutorial(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
-) -> Result<Json<TutorialResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<TutorialResponse>, ApiError> {
     // Validate ID format before touching the database
-    if let Err(e) = validate_tutorial_id(&id) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
+    validate_tutorial_id(&id).map_err(bad_request)?;
 
     // Attempt to retrieve record from database
     let tutorial = repositories::tutorials::get_tutorial(&pool, &id)
         .await
-        .map_err(|e| {
-            tracing::error!("Database error during get_tutorial {}: {}", id, e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to fetch tutorial".to_string(),
-                }),
-            )
-        })?;
-
-    // Handle 404
-    let tutorial = tutorial.ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: "Tutorial not found".to_string(),
-            }),
-        )
-    })?;
+        .map_err(internal_error("Failed to fetch tutorial"))?
+        // Handle 404
+        .ok_or_else(|| not_found("Tutorial not found"))?;
 
     // Transform database record (Tutorial) into full response model (TutorialResponse)
     // This step parses the 'topics' JSON string into a Vec<String>.
-    let response: TutorialResponse = tutorial.try_into().map_err(|err: String| {
-        tracing::error!(
-            "Tutorial details data corruption detected in {}: {}",
-            id,
-            err
-        );
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to parse stored tutorial data".to_string(),
-            }),
-        )
-    })?;
+    let response: TutorialResponse = tutorial
+        .try_into()
+        .map_err(internal_error("Failed to parse stored tutorial data"))?;
 
     Ok(Json(response))
 }
@@ -329,16 +289,9 @@ pub async fn create_tutorial(
     claims: auth::Claims,
     State(pool): State<DbPool>,
     Json(payload): Json<CreateTutorialRequest>,
-) -> Result<Json<TutorialResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<TutorialResponse>, ApiError> {
     // RBAC: Verify admin privileges
-    if claims.role != "admin" {
-        return Err((
-            StatusCode::FORBIDDEN,
-            Json(ErrorResponse {
-                error: "Insufficient permissions".to_string(),
-            }),
-        ));
-    }
+    ensure_admin(&claims)?;
 
     // Sanitize basic text fields
     let title = payload.title.trim().to_string();
@@ -346,41 +299,23 @@ pub async fn create_tutorial(
     let content = payload.content.trim().to_string();
 
     // Perform deep validation of tutorial metadata
-    if let Err(e) = validate_tutorial_data(&title, &description, &content) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
-    if let Err(e) = validate_icon(&payload.icon) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
-    if let Err(e) = validate_color(&payload.color) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
+    validate_tutorial_data(&title, &description, &content).map_err(bad_request)?;
+    validate_icon(&payload.icon).map_err(bad_request)?;
+    validate_color(&payload.color).map_err(bad_request)?;
 
     // Determine ID: either custom (validated/checked for collisions) or auto-generated UUID
     let id = if let Some(custom_id) = &payload.id {
         let trimmed = custom_id.trim();
-        if let Err(e) = validate_tutorial_id(trimmed) {
-            return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-        }
+        validate_tutorial_id(trimmed).map_err(bad_request)?;
         // Collision detection for custom IDs
         let exists = repositories::tutorials::check_tutorial_exists(&pool, trimmed)
             .await
-            .map_err(|e| {
-                tracing::error!("Database error checking ID existence: {}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Failed to create tutorial".to_string(),
-                    }),
-                )
-            })?;
+            .map_err(internal_error("Failed to create tutorial"))?;
 
         if exists {
-            return Err((
+            return Err(api_error(
                 StatusCode::CONFLICT,
-                Json(ErrorResponse {
-                    error: "Tutorial ID already exists".to_string(),
-                }),
+                "Tutorial ID already exists",
             ));
         }
         trimmed.to_string()
@@ -390,17 +325,9 @@ pub async fn create_tutorial(
     };
 
     // Sanitize and serialize topics
-    let sanitized_topics = sanitize_topics(&payload.topics)
-        .map_err(|e| (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })))?;
-    let topics_json = serde_json::to_string(&sanitized_topics).map_err(|e| {
-        tracing::error!("Failed to serialize topics: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to create tutorial".to_string(),
-            }),
-        )
-    })?;
+    let sanitized_topics = sanitize_topics(&payload.topics).map_err(bad_request)?;
+    let topics_json = serde_json::to_string(&sanitized_topics)
+        .map_err(internal_error("Failed to create tutorial"))?;
 
     // Persist to database
     let tutorial = repositories::tutorials::create_tutorial(
@@ -415,30 +342,12 @@ pub async fn create_tutorial(
         &sanitized_topics,
     )
     .await
-    .map_err(|e| {
-        tracing::error!("Failed to create tutorial {}: {}", id, e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to create tutorial".to_string(),
-            }),
-        )
-    })?;
+    .map_err(internal_error("Failed to create tutorial"))?;
 
     // Final mapping to response model
-    let response: TutorialResponse = tutorial.try_into().map_err(|err: String| {
-        tracing::error!(
-            "Tutorial data corruption detected after create {}: {}",
-            id,
-            err
-        );
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to create tutorial".to_string(),
-            }),
-        )
-    })?;
+    let response: TutorialResponse = tutorial
+        .try_into()
+        .map_err(internal_error("Failed to parse stored tutorial data"))?;
 
     Ok(Json(response))
 }
@@ -450,7 +359,7 @@ pub async fn update_tutorial(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
     Json(payload): Json<UpdateTutorialRequest>,
-) -> Result<Json<TutorialResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<TutorialResponse>, ApiError> {
     tracing::info!("Updating tutorial with id: {}", id);
 
     // RBAC: Verify admin role
@@ -460,40 +369,20 @@ pub async fn update_tutorial(
             id,
             claims.sub
         );
-        return Err((
-            StatusCode::FORBIDDEN,
-            Json(ErrorResponse {
-                error: "Insufficient permissions".to_string(),
-            }),
-        ));
+        return Err(forbidden("Insufficient permissions"));
     }
 
     // Validate ID before database interaction
-    if let Err(e) = validate_tutorial_id(&id) {
+    validate_tutorial_id(&id).map_err(|e| {
         tracing::warn!("Invalid tutorial ID during update: {}", id);
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
+        bad_request(e)
+    })?;
 
     // Step 1: Pre-fetch current state to check existence and current version
     let tutorial = repositories::tutorials::get_tutorial(&pool, &id)
         .await
-        .map_err(|e| {
-            tracing::error!("Database error: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to fetch tutorial".to_string(),
-                }),
-            )
-        })?
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Tutorial not found".to_string(),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to fetch tutorial"))?
+        .ok_or_else(|| not_found("Tutorial not found"))?;
 
     // Step 2: Merge partial updates with existing data
     // Title update
@@ -501,12 +390,7 @@ pub async fn update_tutorial(
         Some(value) => {
             let trimmed = value.trim();
             if trimmed.is_empty() {
-                return Err((
-                    StatusCode::BAD_REQUEST,
-                    Json(ErrorResponse {
-                        error: "Title cannot be empty".to_string(),
-                    }),
-                ));
+                return Err(bad_request("Title cannot be empty"));
             }
             trimmed.to_string()
         }
@@ -518,12 +402,7 @@ pub async fn update_tutorial(
         Some(value) => {
             let trimmed = value.trim();
             if trimmed.is_empty() {
-                return Err((
-                    StatusCode::BAD_REQUEST,
-                    Json(ErrorResponse {
-                        error: "Description cannot be empty".to_string(),
-                    }),
-                ));
+                return Err(bad_request("Description cannot be empty"));
             }
             trimmed.to_string()
         }
@@ -538,12 +417,7 @@ pub async fn update_tutorial(
         Some(value) => {
             let trimmed = value.trim();
             if trimmed.is_empty() {
-                return Err((
-                    StatusCode::BAD_REQUEST,
-                    Json(ErrorResponse {
-                        error: "Content cannot be empty".to_string(),
-                    }),
-                ));
+                return Err(bad_request("Content cannot be empty"));
             }
             trimmed.to_string()
         }
@@ -558,53 +432,28 @@ pub async fn update_tutorial(
     );
 
     // Step 3: Deep validation of merged tutorial state
-    if let Err(e) = validate_tutorial_data(&title, &description, &content) {
+    validate_tutorial_data(&title, &description, &content).map_err(|e| {
         tracing::warn!("Validation failed for tutorial {}: {}", id, e);
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
+        bad_request(e)
+    })?;
 
-    if let Err(e) = validate_icon(&icon) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
-    if let Err(e) = validate_color(&color) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
+    validate_icon(&icon).map_err(bad_request)?;
+    validate_color(&color).map_err(bad_request)?;
 
     // Step 5: Handle topics serialization
     let (topics_json, topics_vec) = if let Some(t) = payload.topics {
         // Sanitize new topics if provided
-        let sanitized = sanitize_topics(&t)
-            .map_err(|e| (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })))?;
+        let sanitized = sanitize_topics(&t).map_err(bad_request)?;
 
-        let serialized = serde_json::to_string(&sanitized).map_err(|e| {
-            tracing::error!("Failed to serialize topics: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to update tutorial".to_string(),
-                }),
-            )
-        })?;
+        let serialized = serde_json::to_string(&sanitized)
+            .map_err(internal_error("Failed to update tutorial"))?;
 
         (serialized, sanitized)
     } else {
         // Carry over existing topics
-        match serde_json::from_str::<Vec<String>>(&tutorial.topics) {
-            Ok(existing_topics) => (tutorial.topics.clone(), existing_topics),
-            Err(e) => {
-                tracing::error!(
-                    "Failed to deserialize topics for tutorial {}: {}",
-                    tutorial.id,
-                    e
-                );
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Failed to read stored tutorial topics".to_string(),
-                    }),
-                ));
-            }
-        }
+        let existing_topics = serde_json::from_str::<Vec<String>>(&tutorial.topics)
+            .map_err(internal_error("Failed to read stored tutorial topics"))?;
+        (tutorial.topics.clone(), existing_topics)
     };
 
     // Step 6: Atomic Update operation in repository
@@ -619,44 +468,23 @@ pub async fn update_tutorial(
         &color,
         &topics_json,
         &topics_vec,
-        tutorial.version as i32, // Fix: Pass current version, not new_version
+        tutorial.version as i32, // The repository checks WHERE version = current_version
     )
     .await
-    .map_err(|e| {
-        tracing::error!("Failed to update tutorial {}: {}", id, e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to update tutorial".to_string(),
-            }),
-        )
-    })?
+    .map_err(internal_error("Failed to update tutorial"))?
     .ok_or_else(|| {
         // If query returns None, it likely means the version ID mismatch (concurrency conflict)
-        (
+        api_error(
             StatusCode::CONFLICT,
-            Json(ErrorResponse {
-                error: "Tutorial was modified by another request. Please refresh and try again."
-                    .to_string(),
-            }),
+            "Tutorial was modified by another request. Please refresh and try again.",
         )
     })?;
 
     // Success mapping
     tracing::info!("Successfully updated tutorial {}", id);
-    let response: TutorialResponse = updated_tutorial.try_into().map_err(|err: String| {
-        tracing::error!(
-            "Tutorial data corruption detected after update {}: {}",
-            id,
-            err
-        );
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to update tutorial".to_string(),
-            }),
-        )
-    })?;
+    let response: TutorialResponse = updated_tutorial
+        .try_into()
+        .map_err(internal_error("Failed to parse stored tutorial data"))?;
 
     Ok(Json(response))
 }
@@ -667,43 +495,21 @@ pub async fn delete_tutorial(
     claims: auth::Claims,
     State(pool): State<DbPool>,
     Path(id): Path<String>,
-) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<StatusCode, ApiError> {
     // RBAC: Verify admin role
-    if claims.role != "admin" {
-        return Err((
-            StatusCode::FORBIDDEN,
-            Json(ErrorResponse {
-                error: "Insufficient permissions".to_string(),
-            }),
-        ));
-    }
+    ensure_admin(&claims)?;
 
     // Validate ID before database interaction
-    if let Err(e) = validate_tutorial_id(&id) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
+    validate_tutorial_id(&id).map_err(bad_request)?;
 
     // Attempt deletion in repository
     let deleted = repositories::tutorials::delete_tutorial(&pool, &id)
         .await
-        .map_err(|e| {
-            tracing::error!("Database error during delete_tutorial {}: {}", id, e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to delete tutorial".to_string(),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to delete tutorial"))?;
 
     // Handle 404
     if !deleted {
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: "Tutorial not found".to_string(),
-            }),
-        ));
+        return Err(not_found("Tutorial not found"));
     }
 
     Ok(StatusCode::NO_CONTENT)

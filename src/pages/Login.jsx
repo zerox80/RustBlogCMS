@@ -100,7 +100,15 @@ const Login = () => {
         // Level 2: 5 attempts -> 60 seconds
         const nextAttempts = loginAttempts + 1
         setLoginAttempts(nextAttempts)
-        setError(result.error)
+
+        // The API responds in English; map the common cases to German here.
+        if (result.status === 401) {
+          setError('Ungültige Anmeldedaten.')
+        } else if (result.status === 429) {
+          setError('Zu viele fehlgeschlagene Versuche. Bitte warte einen Moment.')
+        } else {
+          setError(result.error)
+        }
 
         if (nextAttempts >= 5) {
           setCooldownUntil(now + 60000)

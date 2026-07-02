@@ -16,7 +16,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use std::{env, net::IpAddr};
+use std::{env, net::IpAddr, sync::OnceLock};
 
 // Custom HTTP header constants for security policies
 const PERMISSIONS_POLICY: HeaderName = HeaderName::from_static("permissions-policy");
@@ -81,6 +81,16 @@ fn trusted_client_ip_from_headers(headers: &HeaderMap) -> Option<IpAddr> {
         })
 }
 
+/// Whether proxy-supplied IP headers are trusted for this process.
+///
+/// The environment variable cannot change for the lifetime of the process, so
+/// it is read once and cached instead of hitting the environment on every
+/// request that resolves a client IP.
+pub fn trust_proxy_ip_headers() -> bool {
+    static TRUST_PROXY_IP_HEADERS: OnceLock<bool> = OnceLock::new();
+    *TRUST_PROXY_IP_HEADERS.get_or_init(|| parse_env_bool("TRUST_PROXY_IP_HEADERS", false))
+}
+
 /// Resolves the effective client IP for rate limiting and audit purposes.
 ///
 /// When proxy headers are not explicitly trusted, the socket peer address is used.
@@ -88,7 +98,7 @@ fn trusted_client_ip_from_headers(headers: &HeaderMap) -> Option<IpAddr> {
 /// nginx, never client-controlled), falling back to the last (rightmost) hop
 /// of `X-Forwarded-For` -- the entry appended by our own proxy.
 pub fn extract_client_ip(headers: &HeaderMap, fallback: IpAddr) -> IpAddr {
-    if !parse_env_bool("TRUST_PROXY_IP_HEADERS", false) {
+    if !trust_proxy_ip_headers() {
         return fallback;
     }
 

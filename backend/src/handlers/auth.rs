@@ -250,14 +250,31 @@ pub async fn login(
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(payload): Json<LoginRequest>,
-) -> Result<(HeaderMap, Json<LoginResponse>), (StatusCode, Json<ErrorResponse>)> {
+) -> Result<(HeaderMap, Json<LoginResponse>), ApiError> {
     let username = payload.username.trim().to_string();
 
-    if let Err(e) = validate_username(&username) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
-    }
-    if let Err(e) = validate_login_password(&payload.password) {
-        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse { error: e })));
+    validate_username(&username).map_err(bad_request)?;
+    validate_login_password(&payload.password).map_err(bad_request)?;
+
+    // Probabilistic cleanup (1% of requests) of tables that otherwise grow
+    // unbounded. Runs before the auth outcome is known on purpose: attack
+    // traffic is almost entirely *failed* logins, so tying cleanup to
+    // successful logins would never fire under the load that fills these
+    // tables. Spawned so it never adds latency to the login itself.
+    let should_cleanup = {
+        let mut rng = rand::rng();
+        rng.random_bool(0.01)
+    };
+    if should_cleanup {
+        let pool_clone = pool.clone();
+        tokio::spawn(async move {
+            if let Err(e) = repositories::token_blacklist::cleanup_expired(&pool_clone).await {
+                tracing::error!("Failed to cleanup expired blacklist tokens: {}", e);
+            }
+            if let Err(e) = repositories::users::cleanup_stale_login_attempts(&pool_clone).await {
+                tracing::error!("Failed to cleanup stale login attempts: {}", e);
+            }
+        });
     }
 
     // Rate limit based on (IP + Username) to prevent DoS against specific users
@@ -269,15 +286,7 @@ pub async fn login(
 
     let attempt_record = repositories::users::get_login_attempt(&pool, &attempt_key)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to load login attempts for {}: {}", username, e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Internal server error".to_string(),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to load login attempts"))?;
 
     if let Some(record) = &attempt_record {
         if let Some(blocked_until) = parse_rfc3339_opt(&record.blocked_until) {
@@ -285,15 +294,13 @@ pub async fn login(
             if blocked_until > now {
                 let remaining = (blocked_until - now).num_seconds().max(0);
                 // Do not sleep here to avoid holding connections (DoS prevention)
-                return Err((
+                return Err(api_error(
                     StatusCode::TOO_MANY_REQUESTS,
-                    Json(ErrorResponse {
-                        error: format!(
-                            "Zu viele fehlgeschlagene Versuche. Bitte warte {} Sekunde{}.",
-                            remaining,
-                            if remaining == 1 { "" } else { "n" }
-                        ),
-                    }),
+                    format!(
+                        "Too many failed attempts. Please wait {} second{}.",
+                        remaining,
+                        if remaining == 1 { "" } else { "s" }
+                    ),
                 ));
             }
         }
@@ -301,15 +308,7 @@ pub async fn login(
 
     let user = repositories::users::get_user_by_username(&pool, &username)
         .await
-        .map_err(|e| {
-            tracing::error!("Database error: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Internal server error".to_string(),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to load user"))?;
 
     let hash_to_verify_owned = user.as_ref().map(|u| u.password_hash.clone());
     let hash_to_verify = hash_to_verify_owned
@@ -341,22 +340,9 @@ pub async fn login(
 
         repositories::users::record_failed_login(&pool, &attempt_key, &long_block, &short_block)
             .await
-            .map_err(|e| {
-                tracing::error!("Failed to record login attempt for hashed key: {}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Internal server error".to_string(),
-                    }),
-                )
-            })?;
+            .map_err(internal_error("Failed to record login attempt"))?;
 
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(ErrorResponse {
-                error: "Ungültige Anmeldedaten".to_string(),
-            }),
-        ));
+        return Err(api_error(StatusCode::UNAUTHORIZED, "Invalid credentials"));
     }
 
     if attempt_record.is_some() {
@@ -369,16 +355,8 @@ pub async fn login(
     }
 
     let user_record = user_record.expect("Successful login must have user record");
-    let token =
-        auth::create_jwt(user_record.username.clone(), user_record.role.clone()).map_err(|e| {
-            tracing::error!("JWT creation error: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to create token".to_string(),
-                }),
-            )
-        })?;
+    let token = auth::create_jwt(user_record.username.clone(), user_record.role.clone())
+        .map_err(internal_error("Failed to create token"))?;
 
     let mut headers = HeaderMap::new();
     auth::append_auth_cookie(&mut headers, auth::build_auth_cookie(&token));
@@ -390,28 +368,7 @@ pub async fn login(
             "Failed to issue CSRF token for user {}",
             user_record.username
         );
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Failed to create token".to_string(),
-            }),
-        ));
-    }
-
-    // Bug Fix 3: Probabilistic cleanup of expired tokens (1% chance)
-    // This prevents the token_blacklist table from growing effectively unbounded.
-    let should_cleanup_blacklist = {
-        let mut rng = rand::rng();
-        rng.random_bool(0.01)
-    };
-
-    if should_cleanup_blacklist {
-        let pool_clone = pool.clone();
-        tokio::spawn(async move {
-            if let Err(e) = repositories::token_blacklist::cleanup_expired(&pool_clone).await {
-                tracing::error!("Failed to cleanup expired tokens: {}", e);
-            }
-        });
+        return Err(internal_error_plain("Failed to create token"));
     }
 
     Ok((
@@ -453,9 +410,7 @@ pub async fn login(
 /// # Security
 /// User identity is extracted from the validated JWT token,
 /// not from request parameters, preventing impersonation.
-pub async fn me(
-    claims: auth::Claims,
-) -> Result<(HeaderMap, Json<UserResponse>), (StatusCode, Json<ErrorResponse>)> {
+pub async fn me(claims: auth::Claims) -> Result<(HeaderMap, Json<UserResponse>), ApiError> {
     let mut headers = HeaderMap::new();
 
     // Refresh CSRF token to ensure active sessions always have a valid one
@@ -608,7 +563,7 @@ mod tests {
         assert!(result.is_err());
         let (status, Json(body)) = result.unwrap_err();
         assert_eq!(status, StatusCode::UNAUTHORIZED);
-        assert_eq!(body.error, "Ungültige Anmeldedaten");
+        assert_eq!(body.error, "Invalid credentials");
     }
 
     #[test]

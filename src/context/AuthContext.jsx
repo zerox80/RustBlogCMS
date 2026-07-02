@@ -71,7 +71,8 @@ export const AuthProvider = ({ children }) => {
       const message = err.message || 'Ungueltige Anmeldedaten'
       setError(message)
 
-      return { success: false, error: message }
+      // status lets callers map API errors to localized messages
+      return { success: false, error: message, status: err.status }
     } finally {
       setLoading(false)
     }
