@@ -18,7 +18,7 @@ use tower_http::cors::CorsLayer;
 
 // Custom HTTP header constants for security policies
 use axum::http::{
-    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+    header::{HeaderName, ACCEPT, AUTHORIZATION, CONTENT_TYPE},
     Method,
 };
 
@@ -93,7 +93,14 @@ async fn main() {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION, ACCEPT])
+        .allow_headers([
+            CONTENT_TYPE,
+            AUTHORIZATION,
+            ACCEPT,
+            // Required for the double-submit CSRF pattern: the frontend sends
+            // the token in this header on every state-changing request.
+            HeaderName::from_static("x-csrf-token"),
+        ])
         .allow_credentials(true)
         .allow_origin(allowed_origins);
 
