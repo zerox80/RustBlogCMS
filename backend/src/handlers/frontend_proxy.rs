@@ -150,3 +150,48 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
 
     Html(injected_html).into_response()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression test for the 502 panic fixed by enabling the `unicode-perl`
+    /// regex feature: these statics use `\s`, which requires that feature to
+    /// compile. Without it, `LazyLock` initialization panics (and poisons the
+    /// lock) on first access instead of at `cargo build` time, so this test
+    /// exercises them directly rather than relying on `serve_index`.
+    #[test]
+    fn seo_meta_regexes_compile_and_match() {
+        let html = r#"<html><head><title>Old Title</title>
+<meta name="description" content="Old description">
+<meta property="og:title" content="Old OG Title">
+<meta property="og:description" content="Old OG description">
+</head></html>"#;
+
+        let replaced = TITLE_REGEX
+            .replace(html, "<title>New Title</title>")
+            .to_string();
+        assert!(replaced.contains("<title>New Title</title>"));
+
+        let replaced = DESC_REGEX
+            .replace(&replaced, r#"<meta name="description" content="New description">"#)
+            .to_string();
+        assert!(replaced.contains(r#"content="New description""#));
+
+        let replaced = OG_TITLE_REGEX
+            .replace(
+                &replaced,
+                r#"<meta property="og:title" content="New OG Title">"#,
+            )
+            .to_string();
+        assert!(replaced.contains(r#"content="New OG Title""#));
+
+        let replaced = OG_DESC_REGEX
+            .replace(
+                &replaced,
+                r#"<meta property="og:description" content="New OG description">"#,
+            )
+            .to_string();
+        assert!(replaced.contains(r#"content="New OG description""#));
+    }
+}
