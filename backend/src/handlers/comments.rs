@@ -582,7 +582,7 @@ pub async fn delete_comment(
     // already covered by the is_admin role check.
     let is_admin = claims.role == "admin";
     let is_author = match (&comment.author_username, comment.is_guest) {
-        (Some(username), _) => *username == claims.sub,
+        (Some(username), _) => !comment.is_admin && *username == claims.sub,
         (None, Some(true)) => false,
         (None, None) => !comment.is_admin && comment.author == claims.sub,
         (None, Some(false)) => false,
@@ -926,6 +926,25 @@ mod tests {
         let result = call_delete_comment(pool, "c3", claims_for("different-admin", "admin")).await;
 
         assert_eq!(result.unwrap(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn non_admin_cannot_delete_admin_authored_comment_even_with_same_username() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(
+            &pool,
+            "c7",
+            "Administrator",
+            Some("alice"),
+            Some(false),
+            true,
+        )
+        .await;
+
+        let result = call_delete_comment(pool, "c7", claims_for("alice", "user")).await;
+
+        let (status, _) = result.unwrap_err();
+        assert_eq!(status, StatusCode::FORBIDDEN);
     }
 
     #[tokio::test]

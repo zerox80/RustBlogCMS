@@ -932,7 +932,7 @@ mod tests {
             .await
             .expect("create sqlite pool");
 
-        // Simulate the pre-hashing schema and a raw JWT revoked under it.
+        // Simulate the pre-hashing schema and a raw bearer token revoked under it.
         sqlx::query(
             r#"
             CREATE TABLE token_blacklist (
