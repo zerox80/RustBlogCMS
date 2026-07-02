@@ -93,6 +93,29 @@ pub struct Comment {
     pub is_guest: Option<bool>,
 }
 
+/// Converts the repository's `Comment` model into this handler's response
+/// DTO. Kept as an explicit `From` impl (rather than returning the model
+/// type directly) because the two types intentionally diverge on
+/// serialization: this DTO marks `author_username`/`is_guest` as
+/// `#[serde(skip_serializing)]` so they never reach the client, while the
+/// model type serializes them (it's also used for internal deserialization).
+impl From<crate::models::Comment> for Comment {
+    fn from(c: crate::models::Comment) -> Self {
+        Comment {
+            id: c.id,
+            tutorial_id: c.tutorial_id,
+            post_id: c.post_id,
+            author: c.author,
+            content: c.content,
+            created_at: c.created_at,
+            votes: c.votes,
+            is_admin: c.is_admin,
+            author_username: c.author_username,
+            is_guest: c.is_guest,
+        }
+    }
+}
+
 /// Validates and sanitizes comment content
 ///
 /// Trims whitespace and checks length constraints.
@@ -179,21 +202,7 @@ pub async fn list_comments(
         )
     })?;
 
-    let response_comments: Vec<Comment> = comments
-        .into_iter()
-        .map(|c| Comment {
-            id: c.id,
-            tutorial_id: c.tutorial_id,
-            post_id: c.post_id,
-            author: c.author,
-            content: c.content,
-            created_at: c.created_at,
-            votes: c.votes,
-            is_admin: c.is_admin,
-            author_username: c.author_username,
-            is_guest: c.is_guest,
-        })
-        .collect();
+    let response_comments: Vec<Comment> = comments.into_iter().map(Comment::from).collect();
 
     Ok(Json(response_comments))
 }
@@ -300,21 +309,7 @@ pub async fn list_post_comments(
         )
     })?;
 
-    let response_comments: Vec<Comment> = comments
-        .into_iter()
-        .map(|c| Comment {
-            id: c.id,
-            tutorial_id: c.tutorial_id,
-            post_id: c.post_id,
-            author: c.author,
-            content: c.content,
-            created_at: c.created_at,
-            votes: c.votes,
-            is_admin: c.is_admin,
-            author_username: c.author_username,
-            is_guest: c.is_guest,
-        })
-        .collect();
+    let response_comments: Vec<Comment> = comments.into_iter().map(Comment::from).collect();
 
     Ok(Json(response_comments))
 }
@@ -517,20 +512,7 @@ async fn create_comment_internal(
         )
     })?;
 
-    let response_comment = Comment {
-        id: comment.id,
-        tutorial_id: comment.tutorial_id,
-        post_id: comment.post_id,
-        author: comment.author,
-        content: comment.content,
-        created_at: comment.created_at,
-        votes: comment.votes,
-        is_admin: comment.is_admin,
-        author_username: comment.author_username,
-        is_guest: comment.is_guest,
-    };
-
-    Ok(Json(response_comment))
+    Ok(Json(Comment::from(comment)))
 }
 
 /// Handler for deleting a comment
@@ -573,7 +555,11 @@ pub async fn delete_comment(
     // (author_username), NOT the spoofable free-text `author` display name
     // (guests can type any name, including another real user's username).
     //
-    // Three states, disambiguated by (author_username, is_guest):
+    // Four states, disambiguated by (author_username, is_guest). Every arm
+    // is written out explicitly (no wildcard `_`) so that a row shape no
+    // current insert path produces can never silently fall through to the
+    // spoofable legacy comparison -- it must be reachable only for rows that
+    // are *provably* pre-migration (both columns NULL).
     //   - author_username = Some(u): post-migration authenticated comment.
     //     Compare real identity directly.
     //   - author_username = None, is_guest = Some(true): post-migration guest
@@ -586,13 +572,20 @@ pub async fn delete_comment(
     //     deletion for real users' historical comments. This is an accepted,
     //     time-bounded residual risk limited to rows that already existed
     //     when this fix shipped; it cannot apply to anything created after.
+    //   - author_username = None, is_guest = Some(false): inconsistent state
+    //     that no current code path produces (an authenticated comment
+    //     should always carry author_username). Reject rather than fall
+    //     back to the spoofable comparison, so a future bug or manual data
+    //     edit that produces this shape fails closed instead of silently
+    //     reopening the impersonation hole this migration closes.
     // Admin-authored comments are excluded from all of the above; they're
     // already covered by the is_admin role check.
     let is_admin = claims.role == "admin";
     let is_author = match (&comment.author_username, comment.is_guest) {
         (Some(username), _) => *username == claims.sub,
         (None, Some(true)) => false,
-        (None, _) => !comment.is_admin && comment.author == claims.sub,
+        (None, None) => !comment.is_admin && comment.author == claims.sub,
+        (None, Some(false)) => false,
     };
 
     if !is_admin && !is_author {
@@ -729,21 +722,7 @@ pub async fn vote_comment(
             )
         })?;
 
-    // Convert models::Comment to handlers::comments::Comment
-    let response_comment = Comment {
-        id: comment.id,
-        tutorial_id: comment.tutorial_id,
-        post_id: comment.post_id,
-        author: comment.author,
-        content: comment.content,
-        created_at: comment.created_at,
-        votes: comment.votes,
-        is_admin: comment.is_admin,
-        author_username: comment.author_username,
-        is_guest: comment.is_guest,
-    };
-
-    Ok(Json(response_comment))
+    Ok(Json(Comment::from(comment)))
 }
 
 #[cfg(test)]
@@ -975,5 +954,22 @@ mod tests {
         let result = call_delete_comment(pool, "c5", claims_for("carol", "user")).await;
 
         assert_eq!(result.unwrap(), StatusCode::NO_CONTENT);
+    }
+
+    /// Guards the fail-closed arm added for the (author_username=None,
+    /// is_guest=Some(false)) state: no current insert path produces it (an
+    /// authenticated comment always sets author_username), but nothing in
+    /// the schema forbids it either. If a future bug or manual data edit
+    /// ever produces this shape, ownership must be rejected rather than
+    /// silently falling back to the spoofable `author == claims.sub` match.
+    #[tokio::test]
+    async fn inconsistent_row_with_no_username_but_marked_authenticated_is_rejected() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(&pool, "c6", "carol", None, Some(false), false).await;
+
+        let result = call_delete_comment(pool, "c6", claims_for("carol", "user")).await;
+
+        let (status, _) = result.unwrap_err();
+        assert_eq!(status, StatusCode::FORBIDDEN);
     }
 }

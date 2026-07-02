@@ -1,5 +1,5 @@
 use crate::db::DbPool;
-use sha2::{Digest, Sha256};
+use crate::security::sha256_hex;
 use sqlx;
 
 /// Hashes a raw JWT before it is stored in or queried against the blacklist.
@@ -10,9 +10,7 @@ use sqlx;
 /// the revocation check working (equality is preserved under hashing) while
 /// making the stored value useless for session hijacking.
 fn hash_token(token: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(token.as_bytes());
-    format!("{:x}", hasher.finalize())
+    sha256_hex(token.as_bytes())
 }
 
 /// Adds a JWT to the blacklist to invalidate it before its natural expiration.

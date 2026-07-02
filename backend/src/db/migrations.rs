@@ -667,9 +667,11 @@ async fn apply_comment_author_identity_migration(
 
     if !has_author_username {
         tracing::info!("Adding author_username column to comments table");
-        sqlx::query("ALTER TABLE comments ADD COLUMN author_username TEXT DEFAULT NULL")
-            .execute(&mut **tx)
-            .await?;
+        add_column_if_missing_race_safe(
+            tx,
+            "ALTER TABLE comments ADD COLUMN author_username TEXT DEFAULT NULL",
+        )
+        .await?;
     }
 
     let has_is_guest: bool = sqlx::query_scalar(
@@ -681,12 +683,50 @@ async fn apply_comment_author_identity_migration(
 
     if !has_is_guest {
         tracing::info!("Adding is_guest column to comments table");
-        sqlx::query("ALTER TABLE comments ADD COLUMN is_guest BOOLEAN DEFAULT NULL")
-            .execute(&mut **tx)
-            .await?;
+        add_column_if_missing_race_safe(
+            tx,
+            "ALTER TABLE comments ADD COLUMN is_guest BOOLEAN DEFAULT NULL",
+        )
+        .await?;
     }
 
     Ok(())
+}
+
+/// Runs an `ALTER TABLE ... ADD COLUMN` statement, tolerating a "duplicate
+/// column name" failure.
+///
+/// The existence check above this call and the `ALTER TABLE` itself are not
+/// atomic: if two instances of the app start concurrently against the same
+/// SQLite file (e.g. a rolling deploy with overlapping replicas), both can
+/// observe the column as missing before either commits its `ALTER TABLE`,
+/// and the loser would otherwise fail its whole migration with "duplicate
+/// column name" and abort startup. Since the only possible cause of that
+/// specific error here is a concurrent run of this same idempotent
+/// migration, it is safe to treat it as success rather than propagate it.
+async fn add_column_if_missing_race_safe(
+    tx: &mut Transaction<'_, Sqlite>,
+    alter_statement: &str,
+) -> Result<(), sqlx::Error> {
+    match sqlx::query(alter_statement).execute(&mut **tx).await {
+        Ok(_) => Ok(()),
+        Err(e) if is_duplicate_column_error(&e) => {
+            tracing::warn!(
+                "Column already added by a concurrent migration run, continuing: {}",
+                e
+            );
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Detects SQLite's "duplicate column name" error, which `ALTER TABLE ...
+/// ADD COLUMN` raises when the column already exists.
+fn is_duplicate_column_error(err: &sqlx::Error) -> bool {
+    err.as_database_error()
+        .map(|db_err| db_err.message().contains("duplicate column name"))
+        .unwrap_or(false)
 }
 
 async fn apply_site_post_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
