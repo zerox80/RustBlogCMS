@@ -174,7 +174,10 @@ mod tests {
         assert!(replaced.contains("<title>New Title</title>"));
 
         let replaced = DESC_REGEX
-            .replace(&replaced, r#"<meta name="description" content="New description">"#)
+            .replace(
+                &replaced,
+                r#"<meta name="description" content="New description">"#,
+            )
             .to_string();
         assert!(replaced.contains(r#"content="New description""#));
 
