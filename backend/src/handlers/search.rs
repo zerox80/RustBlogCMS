@@ -199,15 +199,25 @@ pub async fn search_tutorials(
     });
 
     // Execute the search query
+    //
+    // SECURITY/CORRECTNESS: `bm25()` (and other FTS5 auxiliary functions like
+    // `highlight()`/`snippet()`) only recognize the FTS5 virtual table when it
+    // is referenced by its real name, NOT through a JOIN alias -- aliasing
+    // `tutorials_fts` as `fts` here made SQLite fail every single search
+    // (filtered or not) with "no such column: fts", since `bm25(fts)` could
+    // no longer resolve the table it was ranking. Verified directly against
+    // SQLite: `bm25(<alias>)` errors while `bm25(tutorials_fts)` with an
+    // unaliased join succeeds. Also fixed the ESCAPE clause below to a
+    // single-character string, since SQLite rejects a two-character one.
     let tutorials = if let Some(pattern) = topic_pattern {
         // Query variant that includes topic filtering
         sqlx::query_as::<_, Tutorial>(
             r#"
             SELECT t.* FROM tutorials t
-            INNER JOIN tutorials_fts fts ON t.id = fts.tutorial_id
-            WHERE fts MATCH ?
-            AND t.topics LIKE ? ESCAPE '\\'
-            ORDER BY bm25(fts)
+            INNER JOIN tutorials_fts ON t.id = tutorials_fts.tutorial_id
+            WHERE tutorials_fts MATCH ?
+            AND t.topics LIKE ? ESCAPE '\'
+            ORDER BY bm25(tutorials_fts)
             LIMIT ?
             "#,
         )
@@ -221,9 +231,9 @@ pub async fn search_tutorials(
         sqlx::query_as::<_, Tutorial>(
             r#"
             SELECT t.* FROM tutorials t
-            INNER JOIN tutorials_fts fts ON t.id = fts.tutorial_id
-            WHERE fts MATCH ?
-            ORDER BY bm25(fts)
+            INNER JOIN tutorials_fts ON t.id = tutorials_fts.tutorial_id
+            WHERE tutorials_fts MATCH ?
+            ORDER BY bm25(tutorials_fts)
             LIMIT ?
             "#,
         )

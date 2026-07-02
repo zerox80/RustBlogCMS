@@ -15,13 +15,24 @@ use regex::Regex;
 use reqwest::Client;
 use std::env;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 /// Internal URL for the frontend service in the container network
 const DEFAULT_FRONTEND_URL: &str = "http://frontend";
 
+/// Upper bound on how long we wait for the frontend service to respond.
+/// Without this, a hung frontend upstream ties up backend request handlers
+/// indefinitely on every page load (reqwest has no timeout by default).
+const FRONTEND_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
+
 /// Shared HTTP client for proxying requests to the frontend service.
 /// Reused across requests to benefit from connection pooling.
-static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
+static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
+    Client::builder()
+        .timeout(FRONTEND_FETCH_TIMEOUT)
+        .build()
+        .expect("failed to build frontend proxy HTTP client")
+});
 
 /// Matches the <title> tag for replacement with database-driven values.
 static TITLE_REGEX: LazyLock<Regex> =
@@ -109,41 +120,53 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
     // for dynamic database-driven values.
     let mut injected_html = html_content;
 
-    // SECURITY: Thoroughly escape database-sourced text to prevent XSS via meta tags
-    let safe_title = html_escape::encode_text(&title);
-    let safe_description = html_escape::encode_text(&description);
+    // SECURITY: Escape database-sourced text for the context it lands in.
+    // `encode_text` escapes `<`, `>`, and `&` but NOT `"`, so it is only
+    // safe inside element text content (e.g. <title>...</title>). Values
+    // interpolated inside a `content="..."` attribute must additionally
+    // escape double quotes, or a stored value containing `"` could break
+    // out of the attribute and inject new attributes (e.g. event handlers).
+    let safe_title_text = html_escape::encode_text(&title);
+    let safe_title_attr = html_escape::encode_double_quoted_attribute(&title);
+    let safe_description_attr = html_escape::encode_double_quoted_attribute(&description);
 
-    // Replace Title
+    // Replace Title (text content)
     injected_html = TITLE_REGEX
-        .replace(&injected_html, format!("<title>{}</title>", safe_title))
+        .replace(
+            &injected_html,
+            format!("<title>{}</title>", safe_title_text),
+        )
         .to_string();
 
-    // Replace Meta Description
+    // Replace Meta Description (attribute content)
     injected_html = DESC_REGEX
         .replace(
             &injected_html,
             format!(
                 r#"<meta name="description" content="{}">"#,
-                safe_description
+                safe_description_attr
             ),
         )
         .to_string();
 
-    // Replace OG Title
+    // Replace OG Title (attribute content)
     injected_html = OG_TITLE_REGEX
         .replace(
             &injected_html,
-            format!(r#"<meta property="og:title" content="{}">"#, safe_title),
+            format!(
+                r#"<meta property="og:title" content="{}">"#,
+                safe_title_attr
+            ),
         )
         .to_string();
 
-    // Replace OG Description
+    // Replace OG Description (attribute content)
     injected_html = OG_DESC_REGEX
         .replace(
             &injected_html,
             format!(
                 r#"<meta property="og:description" content="{}">"#,
-                safe_description
+                safe_description_attr
             ),
         )
         .to_string();
@@ -196,5 +219,29 @@ mod tests {
             )
             .to_string();
         assert!(replaced.contains(r#"content="New OG description""#));
+    }
+
+    /// Regression test: `encode_text` (used for the old single escaping
+    /// pass) strips `<`/`>`/`&` but leaves `"` untouched. A site_meta value
+    /// containing a double quote would previously break out of the
+    /// `content="..."` attribute and inject arbitrary attributes/markup.
+    /// Attribute-context values must escape `"` as well.
+    #[test]
+    fn attribute_context_escaping_neutralizes_double_quotes() {
+        let malicious = r#"Title" onmouseover="alert(1)"#;
+
+        let text_escaped = html_escape::encode_text(malicious);
+        // encode_text alone is NOT sufficient for attribute context.
+        assert!(text_escaped.contains('"'));
+
+        let attr_escaped = html_escape::encode_double_quoted_attribute(malicious);
+        assert!(
+            !attr_escaped.contains('"'),
+            "attribute-context escaping must neutralize double quotes: {attr_escaped}"
+        );
+
+        let injected = format!(r#"<meta property="og:title" content="{}">"#, attr_escaped);
+        // The payload must not be able to close the content attribute early.
+        assert!(!injected.contains(r#"content="Title" onmouseover"#));
     }
 }
