@@ -78,6 +78,13 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
         tx.commit().await?;
     }
 
+    // Apply comment author identity migration (author_username / is_guest for ownership checks)
+    {
+        let mut tx = pool.begin().await?;
+        apply_comment_author_identity_migration(&mut tx).await?;
+        tx.commit().await?;
+    }
+
     // Create site-related schema (pages, posts, content)
     ensure_site_page_schema(pool).await?;
 
@@ -108,6 +115,17 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
                     "ADMIN_PASSWORD must be at least 12 characters long (NIST recommendation)!"
                 );
                 return Err(sqlx::Error::Protocol("Admin password too weak".into()));
+            }
+
+            // bcrypt only uses the first 72 bytes of the input; anything beyond
+            // that has no effect on the resulting hash. Not treated as an error
+            // since ADMIN_PASSWORD is operator-controlled via a trusted
+            // environment variable, but worth surfacing so a longer passphrase
+            // isn't assumed to add entropy it doesn't.
+            if password.len() > 72 {
+                tracing::warn!(
+                    "ADMIN_PASSWORD exceeds 72 bytes; bcrypt only uses the first 72 bytes for hashing. Characters beyond this limit have no effect on security."
+                );
             }
 
             let existing_user: Option<(i64, String)> =
@@ -615,6 +633,58 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
     sqlx::query("INSERT INTO app_metadata (key, value) VALUES ('comment_schema_fixed_v1', 'true')")
         .execute(&mut **tx)
         .await?;
+
+    Ok(())
+}
+
+/// Adds `author_username` and `is_guest` columns to `comments` for authorization.
+///
+/// `author` is a free-text display name that guests can set almost arbitrarily,
+/// so it must never be used to authorize comment deletion (a registered user
+/// could otherwise delete a guest comment that happens to share their
+/// username). These two columns record the real, unspoofable identity of the
+/// commenter going forward:
+/// - `author_username = Some(username)`: authenticated commenter (their real
+///   username, never the "Administrator" display name used for admins).
+/// - `author_username = NULL, is_guest = Some(true)`: guest commenter, who
+///   never has a real identity to record.
+/// - `author_username = NULL, is_guest = NULL`: pre-migration row of unknown
+///   origin. `is_guest` is required in addition to `author_username` because
+///   guest comments are *permanently* NULL for `author_username` -- without a
+///   separate marker, a NULL-based fallback to the old (spoofable) `author`
+///   string match would stay exploitable for every future guest comment, not
+///   just historical ones. See `delete_comment` for how this three-state
+///   model is used.
+async fn apply_comment_author_identity_migration(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let has_author_username: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='author_username'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_author_username {
+        tracing::info!("Adding author_username column to comments table");
+        sqlx::query("ALTER TABLE comments ADD COLUMN author_username TEXT DEFAULT NULL")
+            .execute(&mut **tx)
+            .await?;
+    }
+
+    let has_is_guest: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='is_guest'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_is_guest {
+        tracing::info!("Adding is_guest column to comments table");
+        sqlx::query("ALTER TABLE comments ADD COLUMN is_guest BOOLEAN DEFAULT NULL")
+            .execute(&mut **tx)
+            .await?;
+    }
 
     Ok(())
 }

@@ -22,4 +22,14 @@ pub struct Comment {
     pub votes: i64,
     /// Whether the comment author is an administrator.
     pub is_admin: bool,
+    /// Real authenticated username of the commenter. `None` for guest
+    /// comments and for pre-migration legacy rows (see `is_guest` to
+    /// disambiguate). NOT the same as `author`, which is a spoofable
+    /// free-text display name. Used for server-side ownership checks only.
+    #[serde(default)]
+    pub author_username: Option<String>,
+    /// Tri-state: `Some(true)` = known guest comment, `Some(false)` = known
+    /// authenticated comment, `None` = pre-migration row of unknown origin.
+    #[serde(default)]
+    pub is_guest: Option<bool>,
 }
