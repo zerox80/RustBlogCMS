@@ -207,8 +207,10 @@ temp/
 
 # Lock files
 *.lock
-!package-lock.json  # Keep package-lock.json for reproducible builds
-!backend/Cargo.lock # Keep Cargo.lock for application builds (IMPORTANT for Docker)
+# Keep package-lock.json for reproducible builds
+!package-lock.json
+# Keep Cargo.lock for application builds (IMPORTANT for Docker)
+!backend/Cargo.lock
 
 # Patch files
 *.patch
