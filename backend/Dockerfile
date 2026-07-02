@@ -35,9 +35,10 @@
 # STAGE 1: RUST BUILD ENVIRONMENT
 # ==============================================================================
 
-# Use latest stable Rust for building
-# Provides access to latest Rust features and optimizations
-FROM rustlang/rust:nightly-bookworm AS builder
+# Use a pinned stable Rust release for reproducible builds.
+# No nightly-only features are used (MSRV 1.82 per Cargo.toml); nightly is a
+# floating, unpinned toolchain and an unnecessary supply-chain risk.
+FROM rust:1.83-bookworm AS builder
 
 # Set working directory for all subsequent commands
 WORKDIR /app
