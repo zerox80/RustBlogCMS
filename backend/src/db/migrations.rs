@@ -85,6 +85,13 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
         tx.commit().await?;
     }
 
+    // Rehash legacy plaintext rows in token_blacklist (raw JWTs -> SHA-256)
+    {
+        let mut tx = pool.begin().await?;
+        apply_token_blacklist_hash_migration(&mut tx).await?;
+        tx.commit().await?;
+    }
+
     // Create site-related schema (pages, posts, content)
     ensure_site_page_schema(pool).await?;
 
@@ -729,6 +736,78 @@ fn is_duplicate_column_error(err: &sqlx::Error) -> bool {
         .unwrap_or(false)
 }
 
+/// Rehashes legacy plaintext rows in `token_blacklist` to SHA-256.
+///
+/// The repository layer used to store raw JWTs in the blacklist and now
+/// stores and looks up only their SHA-256 hashes (see
+/// `repositories::token_blacklist::hash_token`). On a database that predates
+/// that change, existing rows still hold raw tokens, which the hashed lookup
+/// can never match -- without this backfill, every token revoked before the
+/// upgrade (e.g. via logout) would silently become valid again for its
+/// remaining lifetime, undoing the revocation the user already performed.
+///
+/// Gated by an `app_metadata` flag like the other one-time migrations. The
+/// per-row hex check is a second, defensive layer: a raw JWT always contains
+/// `.` separators and can never look like a 64-char hex digest, so
+/// already-hashed rows are never double-hashed even if the flag is somehow
+/// lost (manual metadata edit, partial restore from backup).
+async fn apply_token_blacklist_hash_migration(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let migrated: Option<(String,)> =
+        sqlx::query_as("SELECT value FROM app_metadata WHERE key = 'token_blacklist_hashed_v1'")
+            .fetch_optional(&mut **tx)
+            .await?;
+
+    if migrated.is_some() {
+        return Ok(());
+    }
+
+    let rows: Vec<(String,)> = sqlx::query_as("SELECT token FROM token_blacklist")
+        .fetch_all(&mut **tx)
+        .await?;
+
+    let mut rehashed = 0u64;
+    for (token,) in rows {
+        if is_sha256_hex(&token) {
+            continue;
+        }
+        // UPDATE OR REPLACE: if the hashed form somehow already exists as its
+        // own row, replace it instead of failing the whole startup on a
+        // primary-key conflict. Either way the raw token is gone afterwards.
+        sqlx::query("UPDATE OR REPLACE token_blacklist SET token = ? WHERE token = ?")
+            .bind(crate::security::sha256_hex(token.as_bytes()))
+            .bind(&token)
+            .execute(&mut **tx)
+            .await?;
+        rehashed += 1;
+    }
+
+    if rehashed > 0 {
+        tracing::info!(
+            "Rehashed {} legacy plaintext token_blacklist row(s) to SHA-256",
+            rehashed
+        );
+    }
+
+    // OR REPLACE keeps a concurrent second instance (rolling deploy) from
+    // aborting startup on a duplicate-key conflict for the flag itself.
+    sqlx::query(
+        "INSERT OR REPLACE INTO app_metadata (key, value) VALUES ('token_blacklist_hashed_v1', 'true')",
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+/// True if `s` is exactly a lowercase-or-uppercase 64-character hex string,
+/// i.e. shaped like a SHA-256 digest. Raw JWTs always contain `.` separators,
+/// so they can never satisfy this.
+fn is_sha256_hex(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
 async fn apply_site_post_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     // Check if allow_comments column exists
     let has_allow_comments: bool = sqlx::query_scalar(
@@ -837,5 +916,68 @@ mod tests {
                 .expect("read migrated comment");
 
         assert_eq!(rate_limit_key, "Legacy Author");
+    }
+
+    /// Regression test for the blacklist-hashing upgrade path: a database
+    /// written by a pre-hashing version of the app holds raw JWTs in
+    /// token_blacklist. After migrations run, those rows must be rehashed so
+    /// the (now hash-based) revocation lookup still recognizes them --
+    /// otherwise every token revoked before the upgrade would silently
+    /// become valid again for its remaining lifetime.
+    #[tokio::test]
+    async fn run_migrations_rehashes_legacy_plaintext_blacklist_tokens() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("create sqlite pool");
+
+        // Simulate the pre-hashing schema and a raw JWT revoked under it.
+        sqlx::query(
+            r#"
+            CREATE TABLE token_blacklist (
+                token TEXT PRIMARY KEY,
+                expires_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("create legacy token_blacklist table");
+
+        let raw_token = ["legacy", "plaintext", "revocation-token", "before-hashing"].join("-");
+        sqlx::query("INSERT INTO token_blacklist (token, expires_at) VALUES (?, ?)")
+            .bind(&raw_token)
+            .bind("2999-01-01T00:00:00+00:00")
+            .execute(&pool)
+            .await
+            .expect("insert legacy plaintext token");
+
+        run_migrations(&pool).await.expect("run migrations");
+
+        // The raw token must be gone from storage...
+        let stored: (String,) = sqlx::query_as("SELECT token FROM token_blacklist")
+            .fetch_one(&pool)
+            .await
+            .expect("read migrated blacklist row");
+        assert_ne!(stored.0, raw_token, "raw token must not survive migration");
+        assert_eq!(stored.0, crate::security::sha256_hex(raw_token.as_bytes()));
+
+        // ...while the hash-based revocation check still recognizes it.
+        assert!(
+            crate::repositories::token_blacklist::is_token_blacklisted(&pool, &raw_token)
+                .await
+                .expect("blacklist lookup"),
+            "token revoked before the upgrade must still be treated as revoked"
+        );
+
+        // Idempotence: a second run (flag set, row already hashed) must not
+        // double-hash the stored value.
+        run_migrations(&pool).await.expect("re-run migrations");
+        let stored_again: (String,) = sqlx::query_as("SELECT token FROM token_blacklist")
+            .fetch_one(&pool)
+            .await
+            .expect("read blacklist row after re-run");
+        assert_eq!(stored_again.0, stored.0);
     }
 }
