@@ -57,6 +57,13 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
 
     tx.commit().await?;
 
+    // Apply login attempt schema migrations (add last_attempt_at for cleanup)
+    {
+        let mut tx = pool.begin().await?;
+        apply_login_attempt_migrations(&mut tx).await?;
+        tx.commit().await?;
+    }
+
     // Apply comment schema migrations (add post_id and rate_limit_key)
     {
         let mut tx = pool.begin().await?;
@@ -695,6 +702,43 @@ async fn apply_comment_author_identity_migration(
             "ALTER TABLE comments ADD COLUMN is_guest BOOLEAN DEFAULT NULL",
         )
         .await?;
+    }
+
+    Ok(())
+}
+
+/// Adds the `last_attempt_at` column to `login_attempts`.
+///
+/// Without a timestamp, rows with fewer than 3 failures (blocked_until NULL)
+/// could never be aged out, so the table grew unbounded under attack traffic
+/// from rotating IPs (each IP+username combination is its own row). The
+/// column lets `repositories::users::cleanup_stale_login_attempts` purge rows
+/// that have been inactive long enough that their lockout state is moot.
+/// Pre-existing rows are backfilled with the migration time so they enter the
+/// same aging window instead of staying unpurgeable forever.
+async fn apply_login_attempt_migrations(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let has_last_attempt_at: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('login_attempts') WHERE name='last_attempt_at'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_last_attempt_at {
+        tracing::info!("Adding last_attempt_at column to login_attempts table");
+        add_column_if_missing_race_safe(
+            tx,
+            "ALTER TABLE login_attempts ADD COLUMN last_attempt_at TEXT DEFAULT NULL",
+        )
+        .await?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query("UPDATE login_attempts SET last_attempt_at = ? WHERE last_attempt_at IS NULL")
+            .bind(now)
+            .execute(&mut **tx)
+            .await?;
     }
 
     Ok(())

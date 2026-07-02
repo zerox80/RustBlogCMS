@@ -8,7 +8,8 @@
 use crate::{
     db,
     models::{
-        ErrorResponse, SiteContentListResponse, SiteContentResponse, UpdateSiteContentRequest,
+        api_error, bad_request, forbidden, internal_error, not_found, ApiError,
+        SiteContentListResponse, SiteContentResponse, UpdateSiteContentRequest,
     },
     repositories,
     security::auth,
@@ -48,25 +49,17 @@ fn allowed_sections() -> &'static HashSet<&'static str> {
 }
 
 /// Validates if a section name is within the whitelist of allowed sections.
-fn validate_section(section: &str) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+fn validate_section(section: &str) -> Result<(), ApiError> {
     if allowed_sections().contains(section) {
         Ok(())
     } else {
-        Err((
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: format!("Unknown content section '{section}'"),
-            }),
-        ))
+        Err(not_found(format!("Unknown content section '{section}'")))
     }
 }
 
 /// Dispatches validation to section-specific structure checkers.
 /// Ensures the incoming JSON follows the expected format for that section.
-fn validate_content_structure(
-    section: &str,
-    content: &Value,
-) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+fn validate_content_structure(section: &str, content: &Value) -> Result<(), ApiError> {
     let result = match section {
         "hero" => validate_hero_structure(content),
         "tutorial_section" => validate_tutorial_section_structure(content),
@@ -81,14 +74,7 @@ fn validate_content_structure(
         _ => Ok(()),
     };
 
-    result.map_err(|err| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: format!("Invalid structure for section '{section}': {err}"),
-            }),
-        )
-    })
+    result.map_err(|err| bad_request(format!("Invalid structure for section '{section}': {err}")))
 }
 
 /// Validates the site metadata (SEO) structure.
@@ -146,7 +132,6 @@ fn validate_header_structure(content: &Value) -> Result<(), &'static str> {
         .and_then(|v| v.as_array())
         .ok_or("Field 'navItems' must be an array")?;
 
-    // Fix Bug 4: Header Validation Incomplete
     // Validate that each item in the array has at least an 'id' and 'label', and a valid target ('path', 'slug', 'url', etc.)
     for item in nav_items {
         let item_obj = item.as_object().ok_or("Nav item must be an object")?;
@@ -213,41 +198,26 @@ fn validate_login_structure(content: &Value) -> Result<(), &'static str> {
 }
 
 /// Ensures the size of the serialized JSON doesn't exceed the safe threshold.
-fn validate_content_size(content: &Value) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+fn validate_content_size(content: &Value) -> Result<(), ApiError> {
     match serde_json::to_string(content) {
         // If length is within boundaries, accept it
         Ok(serialized) if serialized.len() <= MAX_CONTENT_BYTES => Ok(()),
         // Otherwise, reject due to payload size
-        Ok(_) => Err((
+        Ok(_) => Err(api_error(
             StatusCode::PAYLOAD_TOO_LARGE,
-            Json(ErrorResponse {
-                error: format!("Content too large (max {MAX_CONTENT_BYTES} bytes)"),
-            }),
+            format!("Content too large (max {MAX_CONTENT_BYTES} bytes)"),
         )),
         // Handle serialization errors
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: format!("Invalid JSON content: {err}"),
-            }),
-        )),
+        Err(err) => Err(bad_request(format!("Invalid JSON content: {err}"))),
     }
 }
 
 /// Maps a database content record to a public response structure.
 /// Involves decoding the stored JSON string back into a JSON object.
-fn map_record(
-    record: crate::models::SiteContent,
-) -> Result<SiteContentResponse, (StatusCode, Json<ErrorResponse>)> {
+fn map_record(record: crate::models::SiteContent) -> Result<SiteContentResponse, ApiError> {
     // Attempt to parse the stored string from the 'content_json' table column
-    let content: Value = serde_json::from_str(&record.content_json).map_err(|err| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: format!("Failed to parse stored content JSON: {err}"),
-            }),
-        )
-    })?;
+    let content: Value = serde_json::from_str(&record.content_json)
+        .map_err(internal_error("Failed to parse stored content"))?;
 
     // Construct the response
     Ok(SiteContentResponse {
@@ -260,19 +230,11 @@ fn map_record(
 /// Handler to fetch all managed site content sections in bulk.
 pub async fn list_site_content(
     State(pool): State<db::DbPool>,
-) -> Result<Json<SiteContentListResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SiteContentListResponse>, ApiError> {
     // Fetch all records from the site_content table
     let records = repositories::content::fetch_all_site_content(&pool)
         .await
-        .map_err(|err| {
-            tracing::error!("Failed to load site content: {}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to load site content".to_string(),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to load site content"))?;
 
     // Convert each record from string-based JSON to object-based JSON
     let mut items = Vec::with_capacity(records.len());
@@ -287,31 +249,16 @@ pub async fn list_site_content(
 pub async fn get_site_content(
     State(pool): State<db::DbPool>,
     Path(section): Path<String>,
-) -> Result<Json<SiteContentResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SiteContentResponse>, ApiError> {
     // Security check: only allow pre-defined sections
     validate_section(&section)?;
 
     // Retrieve from database
     let record = repositories::content::fetch_site_content_by_section(&pool, &section)
         .await
-        .map_err(|err| {
-            tracing::error!("Failed to load site content '{}': {}", section, err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to load site content".to_string(),
-                }),
-            )
-        })?
-        .ok_or_else(|| {
-            // Section name is valid but no content exists yet
-            (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: format!("Content section '{section}' not found"),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to load site content"))?
+        // Section name is valid but no content exists yet
+        .ok_or_else(|| not_found(format!("Content section '{section}' not found")))?;
 
     // Map and return
     Ok(Json(map_record(record)?))
@@ -324,15 +271,10 @@ pub async fn update_site_content(
     State(pool): State<db::DbPool>,
     Path(section): Path<String>,
     Json(payload): Json<UpdateSiteContentRequest>,
-) -> Result<Json<SiteContentResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SiteContentResponse>, ApiError> {
     // RBAC: Verify user has 'admin' role
     if claims.role != "admin" {
-        return Err((
-            StatusCode::FORBIDDEN,
-            Json(ErrorResponse {
-                error: "Insufficient permissions".to_string(),
-            }),
-        ));
+        return Err(forbidden("Insufficient permissions"));
     }
 
     // Comprehensive validation
@@ -343,15 +285,7 @@ pub async fn update_site_content(
     // Upsert (Insert or Update) in database
     let record = repositories::content::upsert_site_content(&pool, &section, &payload.content)
         .await
-        .map_err(|err| {
-            tracing::error!("Failed to update site content '{}': {}", section, err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Failed to update site content".to_string(),
-                }),
-            )
-        })?;
+        .map_err(internal_error("Failed to update site content"))?;
 
     // Return the updated state
     Ok(Json(map_record(record)?))

@@ -9,6 +9,7 @@
 use crate::db;
 use axum::{
     extract::State,
+    http::StatusCode,
     response::{Html, IntoResponse},
 };
 use regex::Regex;
@@ -68,25 +69,31 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
         env::var("FRONTEND_URL").unwrap_or_else(|_| DEFAULT_FRONTEND_URL.to_string());
     let index_url = format!("{}/index.html", frontend_url);
 
-    // Proxied Fetch: Retrieve the template from the frontend service
+    // Proxied Fetch: Retrieve the template from the frontend service.
+    // Upstream failures must surface as 502, not 200: crawlers, caches, and
+    // health checks would otherwise treat the error page as a valid document.
     let html_content = match HTTP_CLIENT.get(&index_url).send().await {
         Ok(resp) => match resp.text().await {
             Ok(text) => text,
             Err(e) => {
                 tracing::error!("Failed to read index.html body: {}", e);
-                return Html(
-                    "<h1>Internal Server Error</h1><p>Failed to load application.</p>".to_string(),
+                return (
+                    StatusCode::BAD_GATEWAY,
+                    Html("<h1>Bad Gateway</h1><p>Failed to load application.</p>".to_string()),
                 )
-                .into_response();
+                    .into_response();
             }
         },
         Err(e) => {
             tracing::error!("Failed to fetch index.html from {}: {}", index_url, e);
-            return Html(
-                "<h1>Internal Server Error</h1><p>Failed to connect to frontend service.</p>"
-                    .to_string(),
+            return (
+                StatusCode::BAD_GATEWAY,
+                Html(
+                    "<h1>Bad Gateway</h1><p>Failed to connect to frontend service.</p>"
+                        .to_string(),
+                ),
             )
-            .into_response();
+                .into_response();
         }
     };
 

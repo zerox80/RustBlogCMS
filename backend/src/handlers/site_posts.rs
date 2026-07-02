@@ -5,9 +5,10 @@
 
 use crate::{
     db,
+    handlers::common::{ensure_admin, map_sqlx_error},
     models::{
-        CreateSitePostRequest, ErrorResponse, SitePostListResponse, SitePostResponse,
-        UpdateSitePostRequest,
+        bad_request, not_found, ApiError, CreateSitePostRequest, SitePostListResponse,
+        SitePostResponse, UpdateSitePostRequest,
     },
     repositories,
     security::auth,
@@ -17,7 +18,6 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use sqlx;
 
 /// Maximum length for a post title (200 characters)
 const MAX_TITLE_LEN: usize = 200;
@@ -27,74 +27,6 @@ const MAX_SLUG_LEN: usize = 100;
 const MAX_EXCERPT_LEN: usize = 500;
 /// Maximum length for the markdown content of a post (100KB)
 const MAX_CONTENT_LEN: usize = 100_000;
-
-/// Helper to ensure the current user has administrative privileges.
-fn ensure_admin(claims: &auth::Claims) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
-    if claims.role != "admin" {
-        // Reject if role is not admin
-        Err((
-            StatusCode::FORBIDDEN,
-            Json(ErrorResponse {
-                error: "Insufficient permissions".to_string(),
-            }),
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-/// Maps SQLx database errors to user-friendly HTTP responses.
-/// Handles unique constraint violations and not-found scenarios.
-fn map_sqlx_error(err: sqlx::Error, context: &str) -> (StatusCode, Json<ErrorResponse>) {
-    match err {
-        // 404 Not Found
-        sqlx::Error::RowNotFound => (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: format!("{context} not found"),
-            }),
-        ),
-        // 400 Bad Request
-        sqlx::Error::Protocol(e) => (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: e.to_string(),
-            }),
-        ),
-        // Database specific errors (e.g. unique constraints)
-        sqlx::Error::Database(db_err) => {
-            if db_err.is_unique_violation() {
-                // 409 Conflict
-                (
-                    StatusCode::CONFLICT,
-                    Json(ErrorResponse {
-                        error: db_err
-                            .constraint()
-                            .map(|c| format!("Duplicate value violates unique constraint '{c}'"))
-                            .unwrap_or_else(|| {
-                                "Duplicate value violates unique constraint".to_string()
-                            }),
-                    }),
-                )
-            } else {
-                // 500 Internal Server Error
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Database error".to_string(),
-                    }),
-                )
-            }
-        }
-        // General unexpected errors
-        other => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: format!("Unexpected database error: {other}"),
-            }),
-        ),
-    }
-}
 
 /// Maps a database SitePost record to a public response structure.
 fn map_post(record: crate::models::SitePost) -> SitePostResponse {
@@ -124,61 +56,39 @@ fn validate_post_fields(
     slug: &str,
     excerpt: Option<&str>,
     content: &str,
-) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+) -> Result<(), ApiError> {
     let title = title.trim();
     if title.is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "Title cannot be empty".to_string(),
-            }),
-        ));
+        return Err(bad_request("Title cannot be empty"));
     }
     if title.len() > MAX_TITLE_LEN {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: format!("Title too long (max {MAX_TITLE_LEN} characters)"),
-            }),
-        ));
+        return Err(bad_request(format!(
+            "Title too long (max {MAX_TITLE_LEN} characters)"
+        )));
     }
 
     let slug = slug.trim().to_lowercase();
     if slug.is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "Slug cannot be empty".to_string(),
-            }),
-        ));
+        return Err(bad_request("Slug cannot be empty"));
     }
     if slug.len() > MAX_SLUG_LEN {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: format!("Slug too long (max {MAX_SLUG_LEN} characters)"),
-            }),
-        ));
+        return Err(bad_request(format!(
+            "Slug too long (max {MAX_SLUG_LEN} characters)"
+        )));
     }
 
     if let Some(excerpt) = excerpt {
         if excerpt.len() > MAX_EXCERPT_LEN {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Excerpt too long (max {MAX_EXCERPT_LEN} characters)"),
-                }),
-            ));
+            return Err(bad_request(format!(
+                "Excerpt too long (max {MAX_EXCERPT_LEN} characters)"
+            )));
         }
     }
 
     if content.len() > MAX_CONTENT_LEN {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: format!("Content too long (max {MAX_CONTENT_LEN} characters)"),
-            }),
-        ));
+        return Err(bad_request(format!(
+            "Content too long (max {MAX_CONTENT_LEN} characters)"
+        )));
     }
 
     Ok(())
@@ -190,20 +100,13 @@ pub async fn list_posts_for_page(
     claims: auth::Claims,
     State(pool): State<db::DbPool>,
     Path(page_id): Path<String>,
-) -> Result<Json<SitePostListResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SitePostListResponse>, ApiError> {
     ensure_admin(&claims)?;
 
     repositories::pages::get_site_page_by_id(&pool, &page_id)
         .await
         .map_err(|err| map_sqlx_error(err, "Site page"))?
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Site page not found".to_string(),
-                }),
-            )
-        })?;
+        .ok_or_else(|| not_found("Site page not found"))?;
 
     let posts = repositories::posts::list_site_posts_for_page(&pool, &page_id)
         .await
@@ -223,20 +126,13 @@ pub async fn get_post(
     claims: auth::Claims,
     State(pool): State<db::DbPool>,
     Path(id): Path<String>,
-) -> Result<Json<SitePostResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SitePostResponse>, ApiError> {
     ensure_admin(&claims)?;
 
     let post = repositories::posts::get_site_post_by_id(&pool, &id)
         .await
         .map_err(|err| map_sqlx_error(err, "Site post"))?
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Site post not found".to_string(),
-                }),
-            )
-        })?;
+        .ok_or_else(|| not_found("Site post not found"))?;
 
     Ok(Json(map_post(post)))
 }
@@ -249,7 +145,7 @@ pub async fn create_post(
     State(pool): State<db::DbPool>,
     Path(page_id): Path<String>,
     Json(payload): Json<CreateSitePostRequest>,
-) -> Result<Json<SitePostResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SitePostResponse>, ApiError> {
     ensure_admin(&claims)?;
 
     let trimmed_title = payload.title.trim().to_string();
@@ -265,14 +161,7 @@ pub async fn create_post(
     repositories::pages::get_site_page_by_id(&pool, &page_id)
         .await
         .map_err(|err| map_sqlx_error(err, "Site page"))?
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Site page not found".to_string(),
-                }),
-            )
-        })?;
+        .ok_or_else(|| not_found("Site page not found"))?;
 
     let record = repositories::posts::create_site_post(
         &pool,
@@ -311,68 +200,46 @@ pub async fn update_post(
     State(pool): State<db::DbPool>,
     Path(id): Path<String>,
     Json(payload): Json<UpdateSitePostRequest>,
-) -> Result<Json<SitePostResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SitePostResponse>, ApiError> {
     ensure_admin(&claims)?;
 
     if let Some(ref slug) = payload.slug {
         let sanitized = sanitize_slug(slug);
         if sanitized.is_empty() {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "Slug cannot be empty".to_string(),
-                }),
-            ));
+            return Err(bad_request("Slug cannot be empty"));
         }
         if sanitized.len() > MAX_SLUG_LEN {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Slug too long (max {MAX_SLUG_LEN} characters)"),
-                }),
-            ));
+            return Err(bad_request(format!(
+                "Slug too long (max {MAX_SLUG_LEN} characters)"
+            )));
         }
     }
 
     if let Some(ref excerpt) = payload.excerpt {
         if excerpt.len() > MAX_EXCERPT_LEN {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Excerpt too long (max {MAX_EXCERPT_LEN} characters)"),
-                }),
-            ));
+            return Err(bad_request(format!(
+                "Excerpt too long (max {MAX_EXCERPT_LEN} characters)"
+            )));
         }
     }
 
     if let Some(ref content) = payload.content_markdown {
         if content.len() > MAX_CONTENT_LEN {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Content too long (max {MAX_CONTENT_LEN} characters)"),
-                }),
-            ));
+            return Err(bad_request(format!(
+                "Content too long (max {MAX_CONTENT_LEN} characters)"
+            )));
         }
     }
 
     if let Some(ref title) = payload.title {
         let trimmed = title.trim();
         if trimmed.is_empty() {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "Title cannot be empty".to_string(),
-                }),
-            ));
+            return Err(bad_request("Title cannot be empty"));
         }
         if trimmed.len() > MAX_TITLE_LEN {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Title must be 1..={MAX_TITLE_LEN} characters"),
-                }),
-            ));
+            return Err(bad_request(format!(
+                "Title must be 1..={MAX_TITLE_LEN} characters"
+            )));
         }
     }
 
@@ -405,7 +272,7 @@ pub async fn delete_post(
     _csrf: crate::security::csrf::CsrfGuard,
     State(pool): State<db::DbPool>,
     Path(id): Path<String>,
-) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<StatusCode, ApiError> {
     ensure_admin(&claims)?;
 
     repositories::posts::delete_site_post(&pool, &id)

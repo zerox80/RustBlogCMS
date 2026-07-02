@@ -1,13 +1,9 @@
-// Module declarations for organizing the backend codebase
-pub mod db; // Database connection and pooling
-pub mod handlers; // HTTP request handlers organized by feature
-pub mod middleware; // Middleware modules
-pub mod models; // Data structures and database models
-pub mod repositories; // Repository modules
-pub mod routes; // Route definitions
-pub mod security; // Authentication, authorization, and CSRF protection
+// The binary is a thin wrapper around the library crate (lib.rs). Declaring
+// the modules here a second time would compile the whole tree twice and make
+// `main.rs` types distinct from the library's types.
+use rust_blog_backend::{db, handlers, routes, security};
 
-use crate::middleware::{cors, security as security_middleware};
+use rust_blog_backend::middleware::{cors, security as security_middleware};
 
 // HTTP-related imports for building the web server
 use axum::{extract::DefaultBodyLimit, routing::get, Router};
@@ -95,8 +91,7 @@ async fn main() {
 
     tracing::info!(origins = ?cors_origins, "Configured CORS origins");
 
-    let trust_proxy_ip_headers =
-        security_middleware::parse_env_bool("TRUST_PROXY_IP_HEADERS", false);
+    let trust_proxy_ip_headers = security_middleware::trust_proxy_ip_headers();
     if trust_proxy_ip_headers {
         tracing::info!("Trusting X-Forwarded-* headers for client IP extraction");
     } else {

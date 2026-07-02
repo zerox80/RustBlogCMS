@@ -24,8 +24,8 @@
 # docker-compose down                     # Stop and remove containers
 # docker-compose exec backend bash        # Access backend shell
 # docker-compose exec nginx nginx -s reload  # Reload Nginx configuration
-
-version: '3.8'
+#
+# Note: the top-level `version` key is obsolete in Compose V2 and intentionally omitted.
 
 services:
   ##############################################################################

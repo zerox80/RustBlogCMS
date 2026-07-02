@@ -47,21 +47,45 @@ pub async fn record_failed_login(
     long_block: &str,
     short_block: &str,
 ) -> Result<(), sqlx::Error> {
+    let now = chrono::Utc::now().to_rfc3339();
     sqlx::query(
-        "INSERT INTO login_attempts (username, fail_count, blocked_until) VALUES (?, 1, NULL) \
+        "INSERT INTO login_attempts (username, fail_count, blocked_until, last_attempt_at) \
+         VALUES (?, 1, NULL, ?) \
          ON CONFLICT(username) DO UPDATE SET fail_count = login_attempts.fail_count + 1, \
          blocked_until = CASE \
              WHEN login_attempts.fail_count + 1 >= 5 THEN ? \
              WHEN login_attempts.fail_count + 1 >= 3 THEN ? \
              ELSE NULL \
-         END",
+         END, \
+         last_attempt_at = excluded.last_attempt_at",
     )
     .bind(username_hash)
+    .bind(&now)
     .bind(long_block)
     .bind(short_block)
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// Deletes login attempt rows whose lockout state can no longer matter.
+///
+/// A row is stale once its last failure is older than the cutoff: the longest
+/// lockout is 60 seconds, so anything inactive for hours carries no security
+/// state worth keeping. Without this, the table grows unbounded under attack
+/// traffic from rotating IPs (each IP+username combination is its own row,
+/// and rows are otherwise only deleted on a successful login for that key).
+///
+/// Timestamps are compared as RFC3339 strings generated in Rust, matching the
+/// stored format exactly (mixing in SQLite's `datetime('now')` format would
+/// make same-day lexicographic comparisons unreliable).
+pub async fn cleanup_stale_login_attempts(pool: &DbPool) -> Result<u64, sqlx::Error> {
+    let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
+    let result = sqlx::query("DELETE FROM login_attempts WHERE last_attempt_at < ?")
+        .bind(cutoff)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected())
 }
 
 pub async fn clear_login_attempts(pool: &DbPool, username_hash: &str) -> Result<(), sqlx::Error> {
