@@ -34,7 +34,7 @@
 
 # Use Node.js 25 Alpine for smaller image size and security
 # Alpine Linux reduces attack surface and image size significantly
-FROM node:25-alpine as builder
+FROM node:26-alpine as builder
 
 # Set working directory for all subsequent commands
 WORKDIR /app
