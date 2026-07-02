@@ -102,11 +102,25 @@ pub async fn upload_image(
                 };
                 let normalized_ext = if ext == "jpeg" { "jpg" } else { ext.as_str() };
 
-                // SECURITY: Reject if the content type (magic bytes) represents an extension we don't allow,
-                // or if it obviously contradicts the provided file extension.
-                if ALLOWED_EXTENSIONS.contains(&normalized_detected)
-                    && normalized_detected != normalized_ext
-                {
+                // SECURITY: Reject outright if the detected content type is not one of our
+                // allowed image formats. This must be checked independently of the mismatch
+                // check below: a detected type outside the allowlist (e.g. exe, zip, pdf)
+                // would otherwise pass through unrejected and be saved under the client's
+                // claimed extension.
+                if !ALLOWED_EXTENSIONS.contains(&normalized_detected) {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        Json(ErrorResponse {
+                            error: format!(
+                                "Invalid file content. Detected type '{}' is not an allowed image format",
+                                detected_ext
+                            ),
+                        }),
+                    ));
+                }
+
+                // SECURITY: Reject if the detected type contradicts the provided file extension.
+                if normalized_detected != normalized_ext {
                     return Err((
                         StatusCode::BAD_REQUEST,
                         Json(ErrorResponse {

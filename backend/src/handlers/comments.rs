@@ -80,6 +80,40 @@ pub struct Comment {
     pub votes: i64,
     /// Whether the comment was posted by an administrator
     pub is_admin: bool,
+    /// Real authenticated username of the commenter, used for server-side
+    /// ownership checks only. NEVER sent to clients: for admin comments,
+    /// `author` is deliberately the anonymized literal "Administrator"
+    /// string, and leaking this field would de-anonymize which real admin
+    /// account posted it.
+    #[serde(skip_serializing)]
+    pub author_username: Option<String>,
+    /// Guest/authenticated marker, used for server-side ownership checks
+    /// only. Never sent to clients, for the same reason as `author_username`.
+    #[serde(skip_serializing)]
+    pub is_guest: Option<bool>,
+}
+
+/// Converts the repository's `Comment` model into this handler's response
+/// DTO. Kept as an explicit `From` impl (rather than returning the model
+/// type directly) because the two types intentionally diverge on
+/// serialization: this DTO marks `author_username`/`is_guest` as
+/// `#[serde(skip_serializing)]` so they never reach the client, while the
+/// model type serializes them (it's also used for internal deserialization).
+impl From<crate::models::Comment> for Comment {
+    fn from(c: crate::models::Comment) -> Self {
+        Comment {
+            id: c.id,
+            tutorial_id: c.tutorial_id,
+            post_id: c.post_id,
+            author: c.author,
+            content: c.content,
+            created_at: c.created_at,
+            votes: c.votes,
+            is_admin: c.is_admin,
+            author_username: c.author_username,
+            is_guest: c.is_guest,
+        }
+    }
 }
 
 /// Validates and sanitizes comment content
@@ -168,19 +202,7 @@ pub async fn list_comments(
         )
     })?;
 
-    let response_comments: Vec<Comment> = comments
-        .into_iter()
-        .map(|c| Comment {
-            id: c.id,
-            tutorial_id: c.tutorial_id,
-            post_id: c.post_id,
-            author: c.author,
-            content: c.content,
-            created_at: c.created_at,
-            votes: c.votes,
-            is_admin: c.is_admin,
-        })
-        .collect();
+    let response_comments: Vec<Comment> = comments.into_iter().map(Comment::from).collect();
 
     Ok(Json(response_comments))
 }
@@ -287,19 +309,7 @@ pub async fn list_post_comments(
         )
     })?;
 
-    let response_comments: Vec<Comment> = comments
-        .into_iter()
-        .map(|c| Comment {
-            id: c.id,
-            tutorial_id: c.tutorial_id,
-            post_id: c.post_id,
-            author: c.author,
-            content: c.content,
-            created_at: c.created_at,
-            votes: c.votes,
-            is_admin: c.is_admin,
-        })
-        .collect();
+    let response_comments: Vec<Comment> = comments.into_iter().map(Comment::from).collect();
 
     Ok(Json(response_comments))
 }
@@ -364,14 +374,23 @@ async fn create_comment_internal(
 ) -> Result<Json<Comment>, (StatusCode, Json<ErrorResponse>)> {
     let comment_content = sanitize_comment_content(&payload.content)?;
 
-    let (author, rate_limit_key) = if let Some(ref c) = claims {
+    let (author, rate_limit_key, author_username, is_guest) = if let Some(ref c) = claims {
         let display_name = if c.role == "admin" {
             "Administrator".to_string()
         } else {
             c.sub.clone()
         };
         // Admin posts are stored with the display author, so rate limiting must use the same key.
-        (display_name.clone(), display_name)
+        // author_username/is_guest record the real identity for later ownership
+        // checks in delete_comment. Populated for admins too (harmless -- admin
+        // deletion is governed by the separate is_admin/role check, not these
+        // fields).
+        (
+            display_name.clone(),
+            display_name,
+            Some(c.sub.clone()),
+            Some(false),
+        )
     } else {
         // Guest comment
         match payload.author {
@@ -414,7 +433,8 @@ async fn create_comment_internal(
                 }
 
                 // Use the IP address as the guest rate-limit key to prevent name-change bypasses.
-                (trimmed.to_string(), ip_address)
+                // A guest never has a real identity to record.
+                (trimmed.to_string(), ip_address, None, Some(true))
             }
             None => {
                 return Err((
@@ -478,6 +498,8 @@ async fn create_comment_internal(
         &comment_content,
         &now,
         is_admin,
+        author_username,
+        is_guest,
     )
     .await
     .map_err(|e| {
@@ -490,18 +512,7 @@ async fn create_comment_internal(
         )
     })?;
 
-    let response_comment = Comment {
-        id: comment.id,
-        tutorial_id: comment.tutorial_id,
-        post_id: comment.post_id,
-        author: comment.author,
-        content: comment.content,
-        created_at: comment.created_at,
-        votes: comment.votes,
-        is_admin: comment.is_admin,
-    };
-
-    Ok(Json(response_comment))
+    Ok(Json(Comment::from(comment)))
 }
 
 /// Handler for deleting a comment
@@ -538,16 +549,44 @@ pub async fn delete_comment(
         }
     };
 
-    // Check permissions: Admin or Author
+    // Check permissions: Admin or Author.
+    //
+    // Ownership is determined by the real authenticated identity
+    // (author_username), NOT the spoofable free-text `author` display name
+    // (guests can type any name, including another real user's username).
+    //
+    // Four states, disambiguated by (author_username, is_guest). Every arm
+    // is written out explicitly (no wildcard `_`) so that a row shape no
+    // current insert path produces can never silently fall through to the
+    // spoofable legacy comparison -- it must be reachable only for rows that
+    // are *provably* pre-migration (both columns NULL).
+    //   - author_username = Some(u): post-migration authenticated comment.
+    //     Compare real identity directly.
+    //   - author_username = None, is_guest = Some(true): post-migration guest
+    //     comment. A guest never has a real identity to match -- never allow
+    //     the display-name fallback, or the impersonation hole stays open
+    //     forever for new guest comments.
+    //   - author_username = None, is_guest = None: pre-migration legacy row
+    //     of unknown origin (could be guest or authenticated). Fall back to
+    //     the legacy display-name match to avoid regressing self-service
+    //     deletion for real users' historical comments. This is an accepted,
+    //     time-bounded residual risk limited to rows that already existed
+    //     when this fix shipped; it cannot apply to anything created after.
+    //   - author_username = None, is_guest = Some(false): inconsistent state
+    //     that no current code path produces (an authenticated comment
+    //     should always carry author_username). Reject rather than fall
+    //     back to the spoofable comparison, so a future bug or manual data
+    //     edit that produces this shape fails closed instead of silently
+    //     reopening the impersonation hole this migration closes.
+    // Admin-authored comments are excluded from all of the above; they're
+    // already covered by the is_admin role check.
     let is_admin = claims.role == "admin";
-    // We compare display names/usernames. Ideally, we should compare user IDs if available in comments.
-    // Assuming 'author' in comments table stores the username/display name which matches claims.sub
-    // or we need to be careful if display names are mutable.
-    // For this implementation, we'll assume claims.sub matches the stored author name for simplicity,
-    // or we might need to fetch the user to verify.
-    // However, `comment_author_display_name` uses `claims.sub` by default.
-    // Let's assume strict username matching for now.
-    let is_author = comment.author == claims.sub;
+    let is_author = match (&comment.author_username, comment.is_guest) {
+        (Some(username), _) => !comment.is_admin && *username == claims.sub,
+        (None, Some(true)) => false,
+        (None, None) => !comment.is_admin && comment.author == claims.sub,
+        (None, Some(false)) => false,
+    };
 
     if !is_admin && !is_author {
         return Err((
@@ -683,19 +722,7 @@ pub async fn vote_comment(
             )
         })?;
 
-    // Convert models::Comment to handlers::comments::Comment
-    let response_comment = Comment {
-        id: comment.id,
-        tutorial_id: comment.tutorial_id,
-        post_id: comment.post_id,
-        author: comment.author,
-        content: comment.content,
-        created_at: comment.created_at,
-        votes: comment.votes,
-        is_admin: comment.is_admin,
-    };
-
-    Ok(Json(response_comment))
+    Ok(Json(Comment::from(comment)))
 }
 
 #[cfg(test)]
@@ -719,7 +746,9 @@ mod tests {
                 content TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 votes INTEGER NOT NULL DEFAULT 0,
-                is_admin BOOLEAN NOT NULL DEFAULT FALSE
+                is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                author_username TEXT DEFAULT NULL,
+                is_guest BOOLEAN DEFAULT NULL
             )
             "#,
         )
@@ -728,6 +757,32 @@ mod tests {
         .expect("create comments table");
 
         pool
+    }
+
+    /// Inserts a comment row directly with full control over every column,
+    /// for exercising `delete_comment`'s ownership logic against specific
+    /// (author, author_username, is_guest, is_admin) combinations.
+    #[allow(clippy::too_many_arguments)]
+    async fn insert_comment_row(
+        pool: &SqlitePool,
+        id: &str,
+        author: &str,
+        author_username: Option<&str>,
+        is_guest: Option<bool>,
+        is_admin: bool,
+    ) {
+        sqlx::query(
+            "INSERT INTO comments (id, tutorial_id, post_id, author, content, created_at, votes, is_admin, author_username, is_guest) \
+             VALUES (?, 'tutorial-1', NULL, ?, 'content', datetime('now'), 0, ?, ?, ?)",
+        )
+        .bind(id)
+        .bind(author)
+        .bind(is_admin)
+        .bind(author_username)
+        .bind(is_guest)
+        .execute(pool)
+        .await
+        .expect("insert comment row");
     }
 
     #[tokio::test]
@@ -758,6 +813,10 @@ mod tests {
 
         assert_eq!(comment.author, "Administrator");
         assert!(comment.is_admin);
+        // Admins get their real identity recorded too (harmless -- admin
+        // deletion is governed by the is_admin/role check, not this field).
+        assert_eq!(comment.author_username, Some("admin".to_string()));
+        assert_eq!(comment.is_guest, Some(false));
     }
 
     #[tokio::test]
@@ -776,9 +835,12 @@ mod tests {
             "203.0.113.5".to_string(),
         )
         .await;
-        if let Err((status, _)) = first_result {
-            panic!("first guest comment failed with status {status}");
-        }
+        let Json(first_comment) = match first_result {
+            Ok(comment) => comment,
+            Err((status, _)) => panic!("first guest comment failed with status {status}"),
+        };
+        assert_eq!(first_comment.author_username, None);
+        assert_eq!(first_comment.is_guest, Some(true));
 
         let result = create_comment_internal(
             pool,
@@ -798,5 +860,135 @@ mod tests {
         };
 
         assert_eq!(err.0, StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    fn claims_for(sub: &str, role: &str) -> auth::Claims {
+        auth::Claims {
+            sub: sub.to_string(),
+            role: role.to_string(),
+            exp: usize::MAX,
+        }
+    }
+
+    async fn call_delete_comment(
+        pool: SqlitePool,
+        id: &str,
+        claims: auth::Claims,
+    ) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
+        delete_comment(
+            claims,
+            State(pool),
+            Path(id.to_string()),
+            crate::security::csrf::CsrfGuard,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn authenticated_user_can_delete_own_post_migration_comment() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(&pool, "c1", "bob", Some("bob"), Some(false), false).await;
+
+        let result = call_delete_comment(pool, "c1", claims_for("bob", "user")).await;
+
+        assert_eq!(result.unwrap(), StatusCode::NO_CONTENT);
+    }
+
+    /// Critical regression test: a guest can type any display name,
+    /// including a real, registered user's username. Before the
+    /// author_username/is_guest fix, `comment.author == claims.sub` would
+    /// let that real user delete the guest's comment. This must now be
+    /// rejected because the guest comment has no real identity attached.
+    #[tokio::test]
+    async fn authenticated_user_cannot_delete_guest_comment_with_spoofed_name() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(&pool, "c2", "bob", None, Some(true), false).await;
+
+        let result = call_delete_comment(pool, "c2", claims_for("bob", "user")).await;
+
+        let (status, _) = result.unwrap_err();
+        assert_eq!(status, StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn admin_can_delete_any_comment_regardless_of_authorship() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(
+            &pool,
+            "c3",
+            "Administrator",
+            Some("realadminuser"),
+            Some(false),
+            true,
+        )
+        .await;
+
+        let result = call_delete_comment(pool, "c3", claims_for("different-admin", "admin")).await;
+
+        assert_eq!(result.unwrap(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn non_admin_cannot_delete_admin_authored_comment_even_with_same_username() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(
+            &pool,
+            "c7",
+            "Administrator",
+            Some("alice"),
+            Some(false),
+            true,
+        )
+        .await;
+
+        let result = call_delete_comment(pool, "c7", claims_for("alice", "user")).await;
+
+        let (status, _) = result.unwrap_err();
+        assert_eq!(status, StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn legacy_row_real_owner_can_still_self_delete() {
+        let pool = setup_comments_pool().await;
+        // Simulates a genuinely pre-migration row: both new columns are NULL.
+        insert_comment_row(&pool, "c4", "carol", None, None, false).await;
+
+        let result = call_delete_comment(pool, "c4", claims_for("carol", "user")).await;
+
+        assert_eq!(result.unwrap(), StatusCode::NO_CONTENT);
+    }
+
+    /// Documents the accepted, time-bounded residual risk: a pre-migration
+    /// row (author_username and is_guest both NULL) that was actually
+    /// posted by a guest who happened to type "carol" as their display name
+    /// can still be deleted by the real user "carol" via the legacy
+    /// fallback. This is intentional -- the alternative (blocking legacy
+    /// self-service deletion entirely) was rejected as a worse regression --
+    /// and applies only to rows that existed before this fix shipped.
+    #[tokio::test]
+    async fn legacy_row_ambiguous_origin_is_a_known_accepted_gap() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(&pool, "c5", "carol", None, None, false).await;
+
+        let result = call_delete_comment(pool, "c5", claims_for("carol", "user")).await;
+
+        assert_eq!(result.unwrap(), StatusCode::NO_CONTENT);
+    }
+
+    /// Guards the fail-closed arm added for the (author_username=None,
+    /// is_guest=Some(false)) state: no current insert path produces it (an
+    /// authenticated comment always sets author_username), but nothing in
+    /// the schema forbids it either. If a future bug or manual data edit
+    /// ever produces this shape, ownership must be rejected rather than
+    /// silently falling back to the spoofable `author == claims.sub` match.
+    #[tokio::test]
+    async fn inconsistent_row_with_no_username_but_marked_authenticated_is_rejected() {
+        let pool = setup_comments_pool().await;
+        insert_comment_row(&pool, "c6", "carol", None, Some(false), false).await;
+
+        let result = call_delete_comment(pool, "c6", claims_for("carol", "user")).await;
+
+        let (status, _) = result.unwrap_err();
+        assert_eq!(status, StatusCode::FORBIDDEN);
     }
 }

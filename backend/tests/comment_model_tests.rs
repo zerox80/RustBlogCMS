@@ -12,12 +12,16 @@ fn test_comment_serialization() {
         created_at: "2023-01-01".to_string(),
         votes: 10,
         is_admin: false,
+        author_username: None,
+        is_guest: None,
     };
 
     let serialized = serde_json::to_string(&comment).unwrap();
     assert!(serialized.contains("\"id\":\"c1\""));
     assert!(serialized.contains("\"tutorial_id\":\"t1\""));
     assert!(serialized.contains("\"post_id\":null"));
+    assert!(serialized.contains("\"author_username\":null"));
+    assert!(serialized.contains("\"is_guest\":null"));
 }
 
 #[test]
@@ -33,8 +37,12 @@ fn test_comment_deserialization() {
         "is_admin": true
     });
 
+    // author_username/is_guest are intentionally omitted from the fixture to
+    // confirm #[serde(default)] keeps deserialization backward compatible.
     let comment: Comment = serde_json::from_value(data).unwrap();
     assert_eq!(comment.author, "User");
     assert!(comment.is_admin);
     assert_eq!(comment.post_id, Some("p1".to_string()));
+    assert_eq!(comment.author_username, None);
+    assert_eq!(comment.is_guest, None);
 }

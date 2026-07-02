@@ -35,7 +35,6 @@ use axum::{
     Json,
 };
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
-use sha2::{Digest, Sha256};
 
 use axum_extra::extract::cookie::CookieJar;
 use rand::RngExt;
@@ -111,10 +110,9 @@ fn login_attempt_salt() -> &'static str {
 /// - Salt prevents rainbow table attacks
 /// - Hash prevents direct username storage
 fn hash_login_identifier(username: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(login_attempt_salt().as_bytes());
-    hasher.update(username.trim().to_ascii_lowercase().as_bytes());
-    format!("{:x}", hasher.finalize())
+    let mut data = login_attempt_salt().as_bytes().to_vec();
+    data.extend_from_slice(username.trim().to_ascii_lowercase().as_bytes());
+    crate::security::sha256_hex(&data)
 }
 
 /// Parses an optional RFC3339 timestamp string into a UTC DateTime.

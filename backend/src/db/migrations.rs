@@ -78,6 +78,20 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
         tx.commit().await?;
     }
 
+    // Apply comment author identity migration (author_username / is_guest for ownership checks)
+    {
+        let mut tx = pool.begin().await?;
+        apply_comment_author_identity_migration(&mut tx).await?;
+        tx.commit().await?;
+    }
+
+    // Rehash legacy plaintext rows in token_blacklist (raw JWTs -> SHA-256)
+    {
+        let mut tx = pool.begin().await?;
+        apply_token_blacklist_hash_migration(&mut tx).await?;
+        tx.commit().await?;
+    }
+
     // Create site-related schema (pages, posts, content)
     ensure_site_page_schema(pool).await?;
 
@@ -108,6 +122,17 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
                     "ADMIN_PASSWORD must be at least 12 characters long (NIST recommendation)!"
                 );
                 return Err(sqlx::Error::Protocol("Admin password too weak".into()));
+            }
+
+            // bcrypt only uses the first 72 bytes of the input; anything beyond
+            // that has no effect on the resulting hash. Not treated as an error
+            // since ADMIN_PASSWORD is operator-controlled via a trusted
+            // environment variable, but worth surfacing so a longer passphrase
+            // isn't assumed to add entropy it doesn't.
+            if password.len() > 72 {
+                tracing::warn!(
+                    "ADMIN_PASSWORD exceeds 72 bytes; bcrypt only uses the first 72 bytes for hashing. Characters beyond this limit have no effect on security."
+                );
             }
 
             let existing_user: Option<(i64, String)> =
@@ -619,6 +644,170 @@ async fn fix_comment_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx
     Ok(())
 }
 
+/// Adds `author_username` and `is_guest` columns to `comments` for authorization.
+///
+/// `author` is a free-text display name that guests can set almost arbitrarily,
+/// so it must never be used to authorize comment deletion (a registered user
+/// could otherwise delete a guest comment that happens to share their
+/// username). These two columns record the real, unspoofable identity of the
+/// commenter going forward:
+/// - `author_username = Some(username)`: authenticated commenter (their real
+///   username, never the "Administrator" display name used for admins).
+/// - `author_username = NULL, is_guest = Some(true)`: guest commenter, who
+///   never has a real identity to record.
+/// - `author_username = NULL, is_guest = NULL`: pre-migration row of unknown
+///   origin. `is_guest` is required in addition to `author_username` because
+///   guest comments are *permanently* NULL for `author_username` -- without a
+///   separate marker, a NULL-based fallback to the old (spoofable) `author`
+///   string match would stay exploitable for every future guest comment, not
+///   just historical ones. See `delete_comment` for how this three-state
+///   model is used.
+async fn apply_comment_author_identity_migration(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let has_author_username: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='author_username'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_author_username {
+        tracing::info!("Adding author_username column to comments table");
+        add_column_if_missing_race_safe(
+            tx,
+            "ALTER TABLE comments ADD COLUMN author_username TEXT DEFAULT NULL",
+        )
+        .await?;
+    }
+
+    let has_is_guest: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_table_info('comments') WHERE name='is_guest'",
+    )
+    .fetch_one(&mut **tx)
+    .await
+    .map(|count: i64| count > 0)?;
+
+    if !has_is_guest {
+        tracing::info!("Adding is_guest column to comments table");
+        add_column_if_missing_race_safe(
+            tx,
+            "ALTER TABLE comments ADD COLUMN is_guest BOOLEAN DEFAULT NULL",
+        )
+        .await?;
+    }
+
+    Ok(())
+}
+
+/// Runs an `ALTER TABLE ... ADD COLUMN` statement, tolerating a "duplicate
+/// column name" failure.
+///
+/// The existence check above this call and the `ALTER TABLE` itself are not
+/// atomic: if two instances of the app start concurrently against the same
+/// SQLite file (e.g. a rolling deploy with overlapping replicas), both can
+/// observe the column as missing before either commits its `ALTER TABLE`,
+/// and the loser would otherwise fail its whole migration with "duplicate
+/// column name" and abort startup. Since the only possible cause of that
+/// specific error here is a concurrent run of this same idempotent
+/// migration, it is safe to treat it as success rather than propagate it.
+async fn add_column_if_missing_race_safe(
+    tx: &mut Transaction<'_, Sqlite>,
+    alter_statement: &str,
+) -> Result<(), sqlx::Error> {
+    match sqlx::query(alter_statement).execute(&mut **tx).await {
+        Ok(_) => Ok(()),
+        Err(e) if is_duplicate_column_error(&e) => {
+            tracing::warn!(
+                "Column already added by a concurrent migration run, continuing: {}",
+                e
+            );
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Detects SQLite's "duplicate column name" error, which `ALTER TABLE ...
+/// ADD COLUMN` raises when the column already exists.
+fn is_duplicate_column_error(err: &sqlx::Error) -> bool {
+    err.as_database_error()
+        .map(|db_err| db_err.message().contains("duplicate column name"))
+        .unwrap_or(false)
+}
+
+/// Rehashes legacy plaintext rows in `token_blacklist` to SHA-256.
+///
+/// The repository layer used to store raw JWTs in the blacklist and now
+/// stores and looks up only their SHA-256 hashes (see
+/// `repositories::token_blacklist::hash_token`). On a database that predates
+/// that change, existing rows still hold raw tokens, which the hashed lookup
+/// can never match -- without this backfill, every token revoked before the
+/// upgrade (e.g. via logout) would silently become valid again for its
+/// remaining lifetime, undoing the revocation the user already performed.
+///
+/// Gated by an `app_metadata` flag like the other one-time migrations. The
+/// per-row hex check is a second, defensive layer: a raw JWT always contains
+/// `.` separators and can never look like a 64-char hex digest, so
+/// already-hashed rows are never double-hashed even if the flag is somehow
+/// lost (manual metadata edit, partial restore from backup).
+async fn apply_token_blacklist_hash_migration(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let migrated: Option<(String,)> =
+        sqlx::query_as("SELECT value FROM app_metadata WHERE key = 'token_blacklist_hashed_v1'")
+            .fetch_optional(&mut **tx)
+            .await?;
+
+    if migrated.is_some() {
+        return Ok(());
+    }
+
+    let rows: Vec<(String,)> = sqlx::query_as("SELECT token FROM token_blacklist")
+        .fetch_all(&mut **tx)
+        .await?;
+
+    let mut rehashed = 0u64;
+    for (token,) in rows {
+        if is_sha256_hex(&token) {
+            continue;
+        }
+        // UPDATE OR REPLACE: if the hashed form somehow already exists as its
+        // own row, replace it instead of failing the whole startup on a
+        // primary-key conflict. Either way the raw token is gone afterwards.
+        sqlx::query("UPDATE OR REPLACE token_blacklist SET token = ? WHERE token = ?")
+            .bind(crate::security::sha256_hex(token.as_bytes()))
+            .bind(&token)
+            .execute(&mut **tx)
+            .await?;
+        rehashed += 1;
+    }
+
+    if rehashed > 0 {
+        tracing::info!(
+            "Rehashed {} legacy plaintext token_blacklist row(s) to SHA-256",
+            rehashed
+        );
+    }
+
+    // OR REPLACE keeps a concurrent second instance (rolling deploy) from
+    // aborting startup on a duplicate-key conflict for the flag itself.
+    sqlx::query(
+        "INSERT OR REPLACE INTO app_metadata (key, value) VALUES ('token_blacklist_hashed_v1', 'true')",
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+/// True if `s` is exactly a lowercase-or-uppercase 64-character hex string,
+/// i.e. shaped like a SHA-256 digest. Raw JWTs always contain `.` separators,
+/// so they can never satisfy this.
+fn is_sha256_hex(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
 async fn apply_site_post_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     // Check if allow_comments column exists
     let has_allow_comments: bool = sqlx::query_scalar(
@@ -727,5 +916,68 @@ mod tests {
                 .expect("read migrated comment");
 
         assert_eq!(rate_limit_key, "Legacy Author");
+    }
+
+    /// Regression test for the blacklist-hashing upgrade path: a database
+    /// written by a pre-hashing version of the app holds raw JWTs in
+    /// token_blacklist. After migrations run, those rows must be rehashed so
+    /// the (now hash-based) revocation lookup still recognizes them --
+    /// otherwise every token revoked before the upgrade would silently
+    /// become valid again for its remaining lifetime.
+    #[tokio::test]
+    async fn run_migrations_rehashes_legacy_plaintext_blacklist_tokens() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("create sqlite pool");
+
+        // Simulate the pre-hashing schema and a raw bearer token revoked under it.
+        sqlx::query(
+            r#"
+            CREATE TABLE token_blacklist (
+                token TEXT PRIMARY KEY,
+                expires_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("create legacy token_blacklist table");
+
+        let raw_token = ["legacy", "plaintext", "revocation-token", "before-hashing"].join("-");
+        sqlx::query("INSERT INTO token_blacklist (token, expires_at) VALUES (?, ?)")
+            .bind(&raw_token)
+            .bind("2999-01-01T00:00:00+00:00")
+            .execute(&pool)
+            .await
+            .expect("insert legacy plaintext token");
+
+        run_migrations(&pool).await.expect("run migrations");
+
+        // The raw token must be gone from storage...
+        let stored: (String,) = sqlx::query_as("SELECT token FROM token_blacklist")
+            .fetch_one(&pool)
+            .await
+            .expect("read migrated blacklist row");
+        assert_ne!(stored.0, raw_token, "raw token must not survive migration");
+        assert_eq!(stored.0, crate::security::sha256_hex(raw_token.as_bytes()));
+
+        // ...while the hash-based revocation check still recognizes it.
+        assert!(
+            crate::repositories::token_blacklist::is_token_blacklisted(&pool, &raw_token)
+                .await
+                .expect("blacklist lookup"),
+            "token revoked before the upgrade must still be treated as revoked"
+        );
+
+        // Idempotence: a second run (flag set, row already hashed) must not
+        // double-hash the stored value.
+        run_migrations(&pool).await.expect("re-run migrations");
+        let stored_again: (String,) = sqlx::query_as("SELECT token FROM token_blacklist")
+            .fetch_one(&pool)
+            .await
+            .expect("read blacklist row after re-run");
+        assert_eq!(stored_again.0, stored.0);
     }
 }

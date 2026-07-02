@@ -105,8 +105,7 @@ pub async fn strip_untrusted_forwarded_headers(mut request: Request, next: Next)
 /// Implementations:
 /// - **Cache-Control**: Dynamic based on path (public vs sensitive).
 /// - **CSP**: Strict policy to prevent XSS and data injection.
-/// - **HSTS**: Enforce HTTPS for a year (if the request arrived via HTTPS
-///   through a trusted proxy, or if ENABLE_HSTS=true is set).
+/// - **HSTS**: Enforce HTTPS for a year (only if ENABLE_HSTS=true is set explicitly).
 /// - **X-Content-Type-Options**: Prevent MIME-sniffing.
 /// - **X-Frame-Options**: Prevent clickjacking.
 /// - **Referrer-Policy**: Protect user privacy during navigation.
@@ -114,15 +113,6 @@ pub async fn strip_untrusted_forwarded_headers(mut request: Request, next: Next)
 pub async fn security_headers(request: Request, next: Next) -> Response {
     let method = request.method().clone();
     let path = request.uri().path().to_string();
-
-    // Detect if request is over HTTPS for HSTS header
-    // We check the protocol usually injected by a trusted proxy
-    let is_https = request
-        .headers()
-        .get("x-forwarded-proto") // Note: This assumes strip_untrusted was ALREADY run and proxy injected it
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v == "https")
-        .unwrap_or(false);
 
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
@@ -165,11 +155,12 @@ pub async fn security_headers(request: Request, next: Next) -> Response {
     headers.insert(CONTENT_SECURITY_POLICY, HeaderValue::from_static(csp));
 
     // Step 3: Transport Security (HSTS)
-    // The x-forwarded-proto check only works when proxy headers are trusted
-    // (TRUST_PROXY_IP_HEADERS=true); otherwise strip_untrusted_forwarded_headers
-    // removes the header before this middleware runs. ENABLE_HSTS lets
-    // deployments behind a TLS-terminating proxy opt in explicitly.
-    let hsts_enabled = is_https || parse_env_bool("ENABLE_HSTS", false);
+    // SECURITY: Do not auto-detect HTTPS via x-forwarded-proto. When
+    // TRUST_PROXY_IP_HEADERS=true, that header is not stripped before this
+    // middleware runs, so a client with direct access to the backend port
+    // could set it themselves. Require deployments behind a TLS-terminating
+    // proxy to opt in explicitly via ENABLE_HSTS instead.
+    let hsts_enabled = parse_env_bool("ENABLE_HSTS", false);
     if hsts_enabled {
         headers.insert(
             STRICT_TRANSPORT_SECURITY,

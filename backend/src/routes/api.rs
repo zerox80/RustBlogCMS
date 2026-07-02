@@ -23,6 +23,17 @@ pub fn routes(
     _admin_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
     public_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
 ) -> Router<DbPool> {
+    // Grouped so both endpoints share the same rate limit: voting has no
+    // dedicated limit of its own and would otherwise be callable at
+    // unlimited frequency by any authenticated client.
+    let rate_limited_comment_routes = Router::new()
+        .route(
+            "/api/posts/{id}/comments",
+            get(comments::list_post_comments).post(comments::create_post_comment),
+        )
+        .route("/api/comments/{id}/vote", post(comments::vote_comment))
+        .route_layer(GovernorLayer::new(public_rate_limit_config));
+
     Router::new()
         .route("/api/auth/me", get(auth::me))
         .route("/api/tutorials", get(tutorials::list_tutorials))
@@ -35,13 +46,7 @@ pub fn routes(
             "/api/content/{section}",
             get(site_content::get_site_content),
         )
-        .route(
-            "/api/posts/{id}/comments",
-            get(comments::list_post_comments)
-                .post(comments::create_post_comment)
-                .route_layer(GovernorLayer::new(public_rate_limit_config)),
-        )
-        .route("/api/comments/{id}/vote", post(comments::vote_comment))
+        .merge(rate_limited_comment_routes)
         .route(
             "/api/public/pages/{slug}",
             get(site_pages::get_published_page_by_slug),

@@ -49,7 +49,20 @@ pub async fn auth_middleware(
 
     // Step 3: Revocation Check (Blacklist)
     // Even a cryptographically valid token is rejected if the user has logged out.
-    if let Ok(true) = repositories::token_blacklist::is_token_blacklisted(&pool, &token).await {
+    // Fail CLOSED: a database error here must NOT be treated as "not blacklisted".
+    let is_blacklisted = repositories::token_blacklist::is_token_blacklisted(&pool, &token)
+        .await
+        .map_err(|e| {
+            tracing::error!("Database error checking token blacklist: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(crate::models::ErrorResponse {
+                    error: "Internal server error".to_string(),
+                }),
+            )
+        })?;
+
+    if is_blacklisted {
         return Err((
             StatusCode::UNAUTHORIZED,
             Json(crate::models::ErrorResponse {
