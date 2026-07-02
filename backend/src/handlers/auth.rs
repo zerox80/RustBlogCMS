@@ -18,9 +18,10 @@
 //! - POST /api/auth/logout: Invalidate session
 //!
 //! # Rate Limiting
-//! Failed login attempts trigger progressive lockout:
-//! - 3 failures: 10-second lockout
-//! - 5+ failures: 60-second lockout
+//! Failed login attempts trigger progressive lockout on two keys:
+//! - Per (IP + username): 3 failures → 10s lockout, 5+ failures → 60s lockout
+//! - Per IP across all usernames (anti password-spraying):
+//!   10 failures → 60s lockout, 20+ failures → 300s lockout
 
 use crate::{
     db::DbPool,
@@ -44,6 +45,21 @@ use std::{env, sync::OnceLock, time::Duration};
 /// Global salt for hashing login attempt identifiers.
 /// Initialized once at startup via init_login_attempt_salt().
 static LOGIN_ATTEMPT_SALT: OnceLock<String> = OnceLock::new();
+
+/// Per-(IP+username) lockout: short block (10s) after this many failures.
+const PAIR_SHORT_THRESHOLD: i64 = 3;
+/// Per-(IP+username) lockout: long block (60s) after this many failures.
+const PAIR_LONG_THRESHOLD: i64 = 5;
+
+/// IP-wide lockout thresholds. Looser than the pair key so shared addresses
+/// (NAT, office networks) are not punished for one user's typos, but tight
+/// enough that spraying many usernames from a single address stalls quickly.
+const IP_WIDE_SHORT_THRESHOLD: i64 = 10;
+const IP_WIDE_LONG_THRESHOLD: i64 = 20;
+/// IP-wide lockout: short block duration in seconds.
+const IP_WIDE_SHORT_BLOCK_SECONDS: i64 = 60;
+/// IP-wide lockout: long block duration in seconds.
+const IP_WIDE_LONG_BLOCK_SECONDS: i64 = 300;
 
 /// Initializes the login attempt salt from environment.
 ///
@@ -242,8 +258,8 @@ fn validate_login_password(password: &str) -> Result<(), String> {
 ///
 /// # Rate Limiting
 /// After failed attempts:
-/// - 3 failures: 10-second lockout
-/// - 5+ failures: 60-second lockout
+/// - Per (IP + username): 3 failures → 10s lockout, 5+ → 60s lockout
+/// - Per IP across all usernames: 10 failures → 60s, 20+ → 300s lockout
 /// - Lockout countdown shown to user
 pub async fn login(
     State(pool): State<DbPool>,
@@ -277,32 +293,45 @@ pub async fn login(
         });
     }
 
-    // Rate limit based on (IP + Username) to prevent DoS against specific users
-    // If we only used username, an attacker could lock out 'admin' by spamming bad passwords.
-    // If we only used IP, an attacker could rotate IPs to brute force.
-    // Using both is a balanced approach.
+    // Rate limit on two independent keys:
+    //
+    // 1. (IP + Username): tight thresholds. Using the pair (not username
+    //    alone) stops an attacker from locking out 'admin' remotely, and
+    //    (not IP alone at these tight thresholds) keeps NAT'd users from
+    //    locking each other out.
+    // 2. IP only: looser thresholds. Closes the gap the pair key leaves
+    //    open -- an attacker rotating *usernames* from one address gets a
+    //    fresh pair key on every attempt and would otherwise never hit any
+    //    limit (password spraying).
     let client_ip = security_middleware::extract_client_ip(&headers, addr.ip());
     let attempt_key = hash_login_identifier(&format!("{}:{}", client_ip, username));
+    let ip_attempt_key = hash_login_identifier(&format!("ip-wide:{}", client_ip));
 
     let attempt_record = repositories::users::get_login_attempt(&pool, &attempt_key)
         .await
         .map_err(internal_error("Failed to load login attempts"))?;
+    let ip_attempt_record = repositories::users::get_login_attempt(&pool, &ip_attempt_key)
+        .await
+        .map_err(internal_error("Failed to load login attempts"))?;
 
-    if let Some(record) = &attempt_record {
-        if let Some(blocked_until) = parse_rfc3339_opt(&record.blocked_until) {
-            let now = Utc::now();
-            if blocked_until > now {
-                let remaining = (blocked_until - now).num_seconds().max(0);
-                // Do not sleep here to avoid holding connections (DoS prevention)
-                return Err(api_error(
-                    StatusCode::TOO_MANY_REQUESTS,
-                    format!(
-                        "Too many failed attempts. Please wait {} second{}.",
-                        remaining,
-                        if remaining == 1 { "" } else { "s" }
-                    ),
-                ));
-            }
+    let blocked_until = [&attempt_record, &ip_attempt_record]
+        .into_iter()
+        .flatten()
+        .filter_map(|record| parse_rfc3339_opt(&record.blocked_until))
+        .max();
+    if let Some(blocked_until) = blocked_until {
+        let now = Utc::now();
+        if blocked_until > now {
+            let remaining = (blocked_until - now).num_seconds().max(0);
+            // Do not sleep here to avoid holding connections (DoS prevention)
+            return Err(api_error(
+                StatusCode::TOO_MANY_REQUESTS,
+                format!(
+                    "Too many failed attempts. Please wait {} second{}.",
+                    remaining,
+                    if remaining == 1 { "" } else { "s" }
+                ),
+            ));
         }
     }
 
@@ -338,13 +367,38 @@ pub async fn login(
         let long_block = (now + ChronoDuration::seconds(60)).to_rfc3339();
         let short_block = (now + ChronoDuration::seconds(10)).to_rfc3339();
 
-        repositories::users::record_failed_login(&pool, &attempt_key, &long_block, &short_block)
-            .await
-            .map_err(internal_error("Failed to record login attempt"))?;
+        repositories::users::record_failed_login(
+            &pool,
+            &attempt_key,
+            &long_block,
+            &short_block,
+            PAIR_LONG_THRESHOLD,
+            PAIR_SHORT_THRESHOLD,
+        )
+        .await
+        .map_err(internal_error("Failed to record login attempt"))?;
+
+        let ip_long_block =
+            (now + ChronoDuration::seconds(IP_WIDE_LONG_BLOCK_SECONDS)).to_rfc3339();
+        let ip_short_block =
+            (now + ChronoDuration::seconds(IP_WIDE_SHORT_BLOCK_SECONDS)).to_rfc3339();
+        repositories::users::record_failed_login(
+            &pool,
+            &ip_attempt_key,
+            &ip_long_block,
+            &ip_short_block,
+            IP_WIDE_LONG_THRESHOLD,
+            IP_WIDE_SHORT_THRESHOLD,
+        )
+        .await
+        .map_err(internal_error("Failed to record login attempt"))?;
 
         return Err(api_error(StatusCode::UNAUTHORIZED, "Invalid credentials"));
     }
 
+    // Only the pair key is cleared on success. The IP-wide counter must
+    // survive: an attacker who knows one valid credential could otherwise
+    // reset the spray counter at will by logging into that account.
     if attempt_record.is_some() {
         if let Err(e) = repositories::users::clear_login_attempts(&pool, &attempt_key).await {
             tracing::warn!(
@@ -564,6 +618,53 @@ mod tests {
         let (status, Json(body)) = result.unwrap_err();
         assert_eq!(status, StatusCode::UNAUTHORIZED);
         assert_eq!(body.error, "Invalid credentials");
+    }
+
+    /// Regression test for the password-spraying gap: rotating usernames
+    /// gives the attacker a fresh (IP+username) pair key on every attempt,
+    /// so only the IP-wide counter can stop them. After
+    /// IP_WIDE_SHORT_THRESHOLD failures from one address, the next attempt
+    /// must be rejected with 429 regardless of which username it targets.
+    #[tokio::test]
+    async fn test_ip_wide_lockout_blocks_username_rotation() {
+        init_salts();
+        let pool = setup_test_db().await;
+        let addr: std::net::SocketAddr = "127.0.0.2:1234".parse().unwrap();
+
+        for i in 0..IP_WIDE_SHORT_THRESHOLD {
+            let result = login(
+                State(pool.clone()),
+                HeaderMap::new(),
+                ConnectInfo(addr),
+                Json(LoginRequest {
+                    username: format!("sprayed_user_{}", i),
+                    password: "WrongPassword123!".to_string(),
+                }),
+            )
+            .await;
+
+            let (status, _) = result.expect_err("login with bad password must fail");
+            assert_eq!(
+                status,
+                StatusCode::UNAUTHORIZED,
+                "attempt {} should fail with 401, not yet be rate limited",
+                i
+            );
+        }
+
+        let result = login(
+            State(pool),
+            HeaderMap::new(),
+            ConnectInfo(addr),
+            Json(LoginRequest {
+                username: "yet_another_user".to_string(),
+                password: "WrongPassword123!".to_string(),
+            }),
+        )
+        .await;
+
+        let (status, _) = result.expect_err("attempt past the IP-wide threshold must fail");
+        assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
     }
 
     #[test]

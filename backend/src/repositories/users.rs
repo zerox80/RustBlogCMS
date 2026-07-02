@@ -38,14 +38,20 @@ pub async fn get_login_attempt(
 /// Atomically increments the failure count and applies tiered blocking logic.
 ///
 /// Blocking Strategy:
-/// - 3-4 Failures: Applies `short_block` duration.
-/// - 5+ Failures: Applies `long_block` duration.
+/// - `short_threshold`..`long_threshold - 1` failures: applies `short_block`.
+/// - `long_threshold`+ failures: applies `long_block`.
 /// - Uses SQLite's UPSERT pattern for thread-safe counters.
+///
+/// Thresholds are parameters because the same table backs two differently
+/// tuned limiters: the tight per-(IP+username) lockout and the looser
+/// IP-wide lockout that catches username rotation.
 pub async fn record_failed_login(
     pool: &DbPool,
     username_hash: &str,
     long_block: &str,
     short_block: &str,
+    long_threshold: i64,
+    short_threshold: i64,
 ) -> Result<(), sqlx::Error> {
     let now = chrono::Utc::now().to_rfc3339();
     sqlx::query(
@@ -53,15 +59,17 @@ pub async fn record_failed_login(
          VALUES (?, 1, NULL, ?) \
          ON CONFLICT(username) DO UPDATE SET fail_count = login_attempts.fail_count + 1, \
          blocked_until = CASE \
-             WHEN login_attempts.fail_count + 1 >= 5 THEN ? \
-             WHEN login_attempts.fail_count + 1 >= 3 THEN ? \
+             WHEN login_attempts.fail_count + 1 >= ? THEN ? \
+             WHEN login_attempts.fail_count + 1 >= ? THEN ? \
              ELSE NULL \
          END, \
          last_attempt_at = excluded.last_attempt_at",
     )
     .bind(username_hash)
     .bind(&now)
+    .bind(long_threshold)
     .bind(long_block)
+    .bind(short_threshold)
     .bind(short_block)
     .execute(pool)
     .await?;

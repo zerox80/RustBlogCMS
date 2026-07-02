@@ -153,6 +153,59 @@ async fn authenticated_comment_post_with_csrf_token_for_different_user_is_reject
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
+/// An anonymous (guest) mutating request carrying a cross-site Origin header
+/// is a browser being driven by a hostile page -- it must be rejected even
+/// though there is no session to hijack (guest endpoints like comments can
+/// still be abused for forced actions in the victim's name/IP).
+#[tokio::test]
+async fn anonymous_comment_post_with_cross_site_origin_is_rejected() {
+    init_test_secrets();
+    let pool = setup_pool().await;
+    let app = routes::create_routes(pool.clone(), "test_uploads".to_string()).with_state(pool);
+
+    let response = app
+        .oneshot(with_connect_info(
+            Request::builder()
+                .uri("/api/posts/some-post/comments")
+                .method("POST")
+                .header("Content-Type", "application/json")
+                .header("Host", "blog.example.com")
+                .header("Origin", "https://evil.example.net")
+                .body(Body::from(r#"{"content":"hello","author":"Mallory"}"#))
+                .unwrap(),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+/// The same anonymous request from the site's own origin must pass the
+/// guard and reach the handler (which 404s on the nonexistent post --
+/// proving the guard, not the router, made the decision above).
+#[tokio::test]
+async fn anonymous_comment_post_with_same_host_origin_passes_guard() {
+    init_test_secrets();
+    let pool = setup_pool().await;
+    let app = routes::create_routes(pool.clone(), "test_uploads".to_string()).with_state(pool);
+
+    let response = app
+        .oneshot(with_connect_info(
+            Request::builder()
+                .uri("/api/posts/nonexistent-post/comments")
+                .method("POST")
+                .header("Content-Type", "application/json")
+                .header("Host", "blog.example.com")
+                .header("Origin", "https://blog.example.com")
+                .body(Body::from(r#"{"content":"hello","author":"Alice"}"#))
+                .unwrap(),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
 /// Sanity check for the positive path: a valid, matching CSRF token for the
 /// authenticated user must pass the guard and reach the handler body (which
 /// then 404s because the referenced post doesn't exist -- proving the guard,

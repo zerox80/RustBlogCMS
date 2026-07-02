@@ -10,8 +10,7 @@ use crate::{
     models::{
         bad_request, internal_error, not_found, ApiError, CreateSitePageRequest,
         NavigationItemResponse, NavigationResponse, SitePageListResponse, SitePageResponse,
-        SitePageWithPostsResponse, SitePostDetailResponse, SitePostResponse,
-        UpdateSitePageRequest,
+        SitePageWithPostsResponse, SitePostDetailResponse, SitePostResponse, UpdateSitePageRequest,
     },
     repositories,
     security::auth,

@@ -75,8 +75,7 @@ mod tests {
 
     #[test]
     fn map_sqlx_error_never_leaks_unexpected_error_details() {
-        let (status, axum::Json(body)) =
-            map_sqlx_error(sqlx::Error::PoolTimedOut, "Site page");
+        let (status, axum::Json(body)) = map_sqlx_error(sqlx::Error::PoolTimedOut, "Site page");
         assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(body.error, "Database error");
     }

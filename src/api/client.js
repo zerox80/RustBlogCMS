@@ -242,7 +242,7 @@ class ApiClient {
     return this.request('/tutorials', options)
   }
   async getTutorial(id, options = {}) {
-    return this.request(`/tutorials/${id}`, options)
+    return this.request(`/tutorials/${encodeURIComponent(id)}`, options)
   }
   async createTutorial(tutorial, options = {}) {
     return this.request('/tutorials', {
@@ -252,14 +252,14 @@ class ApiClient {
     })
   }
   async updateTutorial(id, tutorial, options = {}) {
-    return this.request(`/tutorials/${id}`, {
+    return this.request(`/tutorials/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: tutorial,
       ...options,
     })
   }
   async deleteTutorial(id, options = {}) {
-    return this.request(`/tutorials/${id}`, {
+    return this.request(`/tutorials/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       ...options,
     })
@@ -276,22 +276,25 @@ class ApiClient {
     const endpoint = `/tutorials/${encodedTutorialId}/comments${queryString ? `?${queryString}` : ''}`
     return this.request(endpoint, options)
   }
-  async createComment(tutorialId, content) {
-    return this.request(`/tutorials/${tutorialId}/comments`, {
+  async createComment(tutorialId, content, options = {}) {
+    return this.request(`/tutorials/${encodeURIComponent(tutorialId)}/comments`, {
       method: 'POST',
       body: { content },
+      ...options,
     })
   }
 
-  async listPostComments(postId, params = {}) {
+  async listPostComments(postId, params = {}, options = {}) {
     const query = new URLSearchParams(params).toString()
-    return this.request(`/posts/${postId}/comments?${query}`)
+    const endpoint = `/posts/${encodeURIComponent(postId)}/comments${query ? `?${query}` : ''}`
+    return this.request(endpoint, options)
   }
 
-  async createPostComment(postId, content, author = null) {
-    return this.request(`/posts/${postId}/comments`, {
+  async createPostComment(postId, content, author = null, options = {}) {
+    return this.request(`/posts/${encodeURIComponent(postId)}/comments`, {
       method: 'POST',
       body: { content, author },
+      ...options,
     })
   }
 
@@ -319,10 +322,10 @@ class ApiClient {
     return this.request('/content', options)
   }
   async getSiteContentSection(section, options = {}) {
-    return this.request(`/content/${section}`, options)
+    return this.request(`/content/${encodeURIComponent(section)}`, options)
   }
   async updateSiteContentSection(section, content, options = {}) {
-    return this.request(`/content/${section}`, {
+    return this.request(`/content/${encodeURIComponent(section)}`, {
       method: 'PUT',
       body: { content },
       ...options,
@@ -339,49 +342,49 @@ class ApiClient {
     })
   }
   async getPage(id, options = {}) {
-    return this.request(`/pages/${id}`, options)
+    return this.request(`/pages/${encodeURIComponent(id)}`, options)
   }
   async updatePage(id, payload, options = {}) {
-    return this.request(`/pages/${id}`, {
+    return this.request(`/pages/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: payload,
       ...options,
     })
   }
   async deletePage(id, options = {}) {
-    return this.request(`/pages/${id}`, {
+    return this.request(`/pages/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       ...options,
     })
   }
   async listPosts(pageId, options = {}) {
-    return this.request(`/pages/${pageId}/posts`, options)
+    return this.request(`/pages/${encodeURIComponent(pageId)}/posts`, options)
   }
   async createPost(pageId, payload, options = {}) {
-    return this.request(`/pages/${pageId}/posts`, {
+    return this.request(`/pages/${encodeURIComponent(pageId)}/posts`, {
       method: 'POST',
       body: payload,
       ...options,
     })
   }
   async getPost(id, options = {}) {
-    return this.request(`/posts/${id}`, options)
+    return this.request(`/posts/${encodeURIComponent(id)}`, options)
   }
   async updatePost(id, payload, options = {}) {
-    return this.request(`/posts/${id}`, {
+    return this.request(`/posts/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: payload,
       ...options,
     })
   }
   async deletePost(id, options = {}) {
-    return this.request(`/posts/${id}`, {
+    return this.request(`/posts/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       ...options,
     })
   }
   async getPublishedPage(slug, options = {}) {
-    return this.request(`/public/pages/${slug}`, options)
+    return this.request(`/public/pages/${encodeURIComponent(slug)}`, options)
   }
   async getNavigation(options = {}) {
     return this.request('/public/navigation', options)
@@ -390,7 +393,10 @@ class ApiClient {
     return this.request('/public/published-pages', options)
   }
   async getPublishedPost(pageSlug, postSlug, options = {}) {
-    return this.request(`/public/pages/${pageSlug}/posts/${postSlug}`, options)
+    return this.request(
+      `/public/pages/${encodeURIComponent(pageSlug)}/posts/${encodeURIComponent(postSlug)}`,
+      options,
+    )
   }
   async uploadImage(file, options = {}) {
     const formData = new FormData()

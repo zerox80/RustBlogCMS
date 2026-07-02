@@ -10,9 +10,7 @@
 //! - Versioning: Optimistic concurrency control via version numbers
 //! - Identifiers: Custom slugs or auto-generated UUIDs
 
-use crate::{
-    db::DbPool, handlers::common::ensure_admin, models::*, repositories, security::auth,
-};
+use crate::{db::DbPool, handlers::common::ensure_admin, models::*, repositories, security::auth};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
