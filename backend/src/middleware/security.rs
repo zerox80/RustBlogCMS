@@ -48,30 +48,45 @@ pub fn parse_env_bool(key: &str, default: bool) -> bool {
         .unwrap_or(default)
 }
 
+/// SECURITY: This function must only ever trust IP data that a proxy we
+/// control *overwrites* or *appends*, never data a client can freely set.
+///
+/// - `X-Real-IP` is safe first choice: the bundled nginx config always sets
+///   it via `proxy_set_header X-Real-IP $remote_addr;`, which *overwrites*
+///   any value the client sent -- a client-supplied `X-Real-IP` never
+///   survives the hop.
+/// - `X-Forwarded-For` is only safe if we read the *last* (rightmost) entry.
+///   nginx's `$proxy_add_x_forwarded_for` *appends* its own view of
+///   `$remote_addr` to whatever the client already supplied, so the first
+///   entry is fully attacker-controlled (e.g. `X-Forwarded-For: 1.2.3.4`
+///   arrives as `1.2.3.4, <real-ip>`). Trusting the first hop let an
+///   attacker forge an arbitrary IP and defeat IP-keyed rate limiting
+///   (login lockout, guest comment throttling) by rotating fake values.
 fn trusted_client_ip_from_headers(headers: &HeaderMap) -> Option<IpAddr> {
     headers
-        .get(X_FORWARDED_FOR_HEADER)
+        .get(X_REAL_IP_HEADER)
         .and_then(|value| value.to_str().ok())
-        .and_then(|value| {
-            value
-                .split(',')
-                .map(str::trim)
-                .find(|segment| !segment.is_empty())
-                .and_then(|segment| segment.parse::<IpAddr>().ok())
-        })
+        .and_then(|value| value.trim().parse::<IpAddr>().ok())
         .or_else(|| {
             headers
-                .get(X_REAL_IP_HEADER)
+                .get(X_FORWARDED_FOR_HEADER)
                 .and_then(|value| value.to_str().ok())
-                .and_then(|value| value.trim().parse::<IpAddr>().ok())
+                .and_then(|value| {
+                    value
+                        .split(',')
+                        .map(str::trim)
+                        .rfind(|segment| !segment.is_empty())
+                        .and_then(|segment| segment.parse::<IpAddr>().ok())
+                })
         })
 }
 
 /// Resolves the effective client IP for rate limiting and audit purposes.
 ///
 /// When proxy headers are not explicitly trusted, the socket peer address is used.
-/// When they are trusted, the first IP from `X-Forwarded-For` is preferred, with
-/// `X-Real-IP` as a fallback.
+/// When they are trusted, `X-Real-IP` is preferred (always overwritten by our
+/// nginx, never client-controlled), falling back to the last (rightmost) hop
+/// of `X-Forwarded-For` -- the entry appended by our own proxy.
 pub fn extract_client_ip(headers: &HeaderMap, fallback: IpAddr) -> IpAddr {
     if !parse_env_bool("TRUST_PROXY_IP_HEADERS", false) {
         return fallback;
@@ -196,27 +211,53 @@ mod tests {
     use std::net::{IpAddr, Ipv4Addr};
 
     #[test]
-    fn test_trusted_client_ip_uses_x_forwarded_for_first_hop() {
+    fn test_trusted_client_ip_prefers_x_real_ip() {
+        let mut headers = HeaderMap::new();
+        headers.insert(X_REAL_IP_HEADER, HeaderValue::from_static("203.0.113.7"));
+        headers.insert(
+            X_FORWARDED_FOR_HEADER,
+            HeaderValue::from_static("9.9.9.9, 203.0.113.7"),
+        );
+
+        assert_eq!(
+            trusted_client_ip_from_headers(&headers),
+            Some(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 7)))
+        );
+    }
+
+    #[test]
+    fn test_trusted_client_ip_falls_back_to_x_forwarded_for_last_hop() {
         let mut headers = HeaderMap::new();
         headers.insert(
             X_FORWARDED_FOR_HEADER,
             HeaderValue::from_static("198.51.100.24, 10.0.0.10"),
         );
 
+        // The last (rightmost) entry is the one our own proxy appended --
+        // the first entry is fully attacker-controlled and must NOT be trusted.
         assert_eq!(
             trusted_client_ip_from_headers(&headers),
-            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 24)))
+            Some(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10)))
         );
     }
 
     #[test]
-    fn test_trusted_client_ip_falls_back_to_x_real_ip() {
+    fn test_trusted_client_ip_ignores_spoofed_first_hop() {
+        // Attacker sends a forged X-Forwarded-For; our nginx appends the real
+        // peer address as the last entry via $proxy_add_x_forwarded_for.
         let mut headers = HeaderMap::new();
-        headers.insert(X_REAL_IP_HEADER, HeaderValue::from_static("203.0.113.7"));
+        headers.insert(
+            X_FORWARDED_FOR_HEADER,
+            HeaderValue::from_static("6.6.6.6, 198.51.100.1"),
+        );
 
+        assert_ne!(
+            trusted_client_ip_from_headers(&headers),
+            Some(IpAddr::V4(Ipv4Addr::new(6, 6, 6, 6)))
+        );
         assert_eq!(
             trusted_client_ip_from_headers(&headers),
-            Some(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 7)))
+            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1)))
         );
     }
 }
