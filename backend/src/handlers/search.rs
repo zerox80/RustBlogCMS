@@ -242,9 +242,7 @@ pub async fn search_tutorials(
 }
 
 /// Retrieves a list of all unique topics currently available in tutorials.
-pub async fn get_all_topics(
-    State(pool): State<DbPool>,
-) -> Result<Json<Vec<String>>, ApiError> {
+pub async fn get_all_topics(State(pool): State<DbPool>) -> Result<Json<Vec<String>>, ApiError> {
     // Select unique topics from the denormalized tutorial_topics table
     let topics: Vec<(String,)> =
         sqlx::query_as("SELECT DISTINCT topic FROM tutorial_topics ORDER BY topic ASC")

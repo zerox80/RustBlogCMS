@@ -24,6 +24,38 @@ const MAX_FILE_SIZE: usize = 10 * 1024 * 1024;
 /// List of allowed file extensions for image uploads
 const ALLOWED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp"];
 
+/// Removes orphaned `.tmp` files left in the upload directory by uploads
+/// that were interrupted by a crash or restart.
+///
+/// The upload handler writes to `<uuid>.tmp` and renames on success; every
+/// error path deletes its own temp file, but a process kill between create
+/// and rename leaks the file forever. Called once at startup. Only files
+/// matching the handler's own naming scheme (`.tmp` extension) are touched,
+/// so legitimate uploads can never be affected.
+pub async fn cleanup_stale_temp_files(upload_dir: &str) {
+    let mut entries = match fs::read_dir(upload_dir).await {
+        Ok(entries) => entries,
+        Err(e) => {
+            tracing::warn!("Could not scan upload dir for stale temp files: {}", e);
+            return;
+        }
+    };
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) == Some("tmp") {
+            match fs::remove_file(&path).await {
+                Ok(()) => tracing::info!("Removed stale upload temp file {}", path.display()),
+                Err(e) => tracing::warn!(
+                    "Failed to remove stale upload temp file {}: {}",
+                    path.display(),
+                    e
+                ),
+            }
+        }
+    }
+}
+
 /// Processes a multipart form-data request to upload an image.
 /// Implements strict security validations before saving to disk.
 pub async fn upload_image(
@@ -104,7 +136,22 @@ pub async fn upload_image(
                 }
             } else {
                 // REJECT if we can't determine what it is; this is safer than allowing mystery blobs.
-                return Err(bad_request("Could not determine file type from magic bytes"));
+                return Err(bad_request(
+                    "Could not determine file type from magic bytes",
+                ));
+            }
+
+            // ENFORCEMENT: The size cap must also cover the first chunk. The
+            // check inside the streaming loop below only runs from the second
+            // chunk on, so without this a single oversized first chunk would
+            // be written to disk before any limit applied (the router's
+            // DefaultBodyLimit backstops this, but the handler must enforce
+            // its own invariant).
+            if first_chunk.len() > MAX_FILE_SIZE {
+                return Err(bad_request(format!(
+                    "File too large. Max size: {} bytes",
+                    MAX_FILE_SIZE
+                )));
             }
 
             // Generate a random ID for the filename to prevent path injection and name collisions

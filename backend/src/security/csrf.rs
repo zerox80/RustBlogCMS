@@ -175,7 +175,8 @@ fn get_secret() -> &'static [u8] {
 /// # Security
 /// - HMAC signature prevents token forgery
 /// - Username binding prevents token theft across accounts
-/// - Nonce prevents token reuse
+/// - Nonce makes each issued token unique (tokens are stateless; there is
+///   no server-side replay tracking, so a token stays valid until expiry)
 /// - Expiration limits token lifetime
 ///
 /// # Errors
@@ -472,7 +473,77 @@ fn build_csrf_removal() -> Cookie<'static> {
 /// - CSRF cookie is missing
 /// - Header and cookie tokens don't match
 /// - Token validation fails (expired, wrong user, invalid signature)
+/// - Anonymous request carries a cross-site Origin/Referer
 pub struct CsrfGuard;
+
+/// Validates that a state-changing request from an anonymous client was not
+/// issued cross-site by a hostile page in the victim's browser.
+///
+/// Browsers attach an `Origin` header to every cross-origin (and same-origin
+/// non-GET) fetch, and it cannot be forged or suppressed from a web page.
+///
+/// The policy:
+/// - No `Origin` and no `Referer`: allow. This is a non-browser client
+///   (curl, mobile app, integration test); those carry no ambient browser
+///   state that CSRF could abuse.
+/// - Origin present: its hostname must match the request's `Host` header
+///   (hostname comparison -- an attacker cannot serve content under the
+///   victim host's name), or the full origin must be in the configured
+///   CORS allowlist (separate-frontend deployments).
+/// - Anything else (mismatch, unparseable, the literal "null"): reject.
+fn validate_browser_origin(headers: &HeaderMap) -> Result<(), String> {
+    // Prefer Origin; fall back to the origin part of Referer for the rare
+    // legitimate clients that send only the latter.
+    let origin_value = headers
+        .get(axum::http::header::ORIGIN)
+        .or_else(|| headers.get(axum::http::header::REFERER))
+        .and_then(|value| value.to_str().ok());
+
+    let origin_raw = match origin_value {
+        Some(value) => value.trim(),
+        None => return Ok(()),
+    };
+
+    let parsed = url::Url::parse(origin_raw)
+        .map_err(|_| "Cross-origin request blocked: invalid Origin".to_string())?;
+    let origin_host = parsed
+        .host_str()
+        .ok_or_else(|| "Cross-origin request blocked: invalid Origin".to_string())?
+        .to_ascii_lowercase();
+
+    // Same-host check against the Host header (hostname without port).
+    if let Some(request_host) = headers
+        .get(axum::http::header::HOST)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| {
+            let value = value.trim();
+            // Bracketed IPv6 literals ("[::1]:8080") keep their brackets in
+            // url::Url::host_str too, so compare including brackets.
+            if let Some(end) = value.strip_prefix('[').and_then(|_| value.find(']')) {
+                value[..=end].to_ascii_lowercase()
+            } else {
+                value
+                    .rsplit_once(':')
+                    .map_or(value, |(host, _port)| host)
+                    .to_ascii_lowercase()
+            }
+        })
+    {
+        if !request_host.is_empty() && origin_host == request_host {
+            return Ok(());
+        }
+    }
+
+    // Allowlist check: the exact origin (scheme://host[:port]) must be one
+    // of the configured cross-origin frontends.
+    let normalized_origin =
+        crate::middleware::cors::normalize_origin(parsed.origin().ascii_serialization().as_str());
+    if crate::middleware::cors::allowed_browser_origins().contains(&normalized_origin) {
+        return Ok(());
+    }
+
+    Err("Cross-origin request blocked".to_string())
+}
 
 impl<S> FromRequestParts<S> for CsrfGuard
 where
@@ -504,7 +575,15 @@ where
                 claims
             }
             Err(_) => {
-                // Anonymous user -> No session to hijack via CSRF.
+                // Anonymous user -> no session cookie to ride, so the full
+                // double-submit token check does not apply. But anonymous
+                // endpoints (e.g. guest comments) can still be driven from a
+                // third-party page in the victim's browser, so enforce a
+                // browser-origin check: if the request carries an Origin (or
+                // Referer), it must be same-host or a configured frontend.
+                if let Err(reason) = validate_browser_origin(&parts.headers) {
+                    return Err((StatusCode::FORBIDDEN, Json(ErrorResponse { error: reason })));
+                }
                 return Ok(Self);
             }
         };
@@ -717,6 +796,71 @@ mod tests {
         let result = validate_csrf_token(&token, username);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "CSRF token expired");
+    }
+
+    #[test]
+    fn browser_origin_check_allows_requests_without_origin_or_referer() {
+        // Non-browser clients (curl, tests) send neither header and carry no
+        // ambient browser credentials -- must not be blocked.
+        let headers = HeaderMap::new();
+        assert!(validate_browser_origin(&headers).is_ok());
+    }
+
+    #[test]
+    fn browser_origin_check_allows_same_host_origin() {
+        let mut headers = HeaderMap::new();
+        headers.insert("host", HeaderValue::from_static("blog.example.com"));
+        headers.insert(
+            "origin",
+            HeaderValue::from_static("https://blog.example.com"),
+        );
+        assert!(validate_browser_origin(&headers).is_ok());
+    }
+
+    #[test]
+    fn browser_origin_check_allows_same_host_with_differing_port() {
+        // Hostname comparison only: an attacker cannot serve content under
+        // the victim's hostname, so the port is not part of the trust
+        // boundary here.
+        let mut headers = HeaderMap::new();
+        headers.insert("host", HeaderValue::from_static("blog.example.com:8489"));
+        headers.insert(
+            "origin",
+            HeaderValue::from_static("https://blog.example.com"),
+        );
+        assert!(validate_browser_origin(&headers).is_ok());
+    }
+
+    #[test]
+    fn browser_origin_check_rejects_cross_site_origin() {
+        let mut headers = HeaderMap::new();
+        headers.insert("host", HeaderValue::from_static("blog.example.com"));
+        headers.insert(
+            "origin",
+            HeaderValue::from_static("https://evil.example.net"),
+        );
+        assert!(validate_browser_origin(&headers).is_err());
+    }
+
+    #[test]
+    fn browser_origin_check_rejects_null_origin() {
+        // Sandboxed iframes and some redirect chains send the literal
+        // "null" origin; it is unverifiable and must be rejected.
+        let mut headers = HeaderMap::new();
+        headers.insert("host", HeaderValue::from_static("blog.example.com"));
+        headers.insert("origin", HeaderValue::from_static("null"));
+        assert!(validate_browser_origin(&headers).is_err());
+    }
+
+    #[test]
+    fn browser_origin_check_falls_back_to_referer() {
+        let mut headers = HeaderMap::new();
+        headers.insert("host", HeaderValue::from_static("blog.example.com"));
+        headers.insert(
+            "referer",
+            HeaderValue::from_static("https://evil.example.net/attack.html"),
+        );
+        assert!(validate_browser_origin(&headers).is_err());
     }
 
     #[test]

@@ -12,8 +12,9 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
-use regex::Regex;
+use regex::{NoExpand, Regex};
 use reqwest::Client;
+use std::borrow::Cow;
 use std::env;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -57,6 +58,31 @@ static OG_DESC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("valid og:description regex")
 });
 
+/// Replaces the first regex match with `replacement`, treating the
+/// replacement as a literal string.
+///
+/// Two deliberate properties:
+/// - `NoExpand` is required for correctness, not style: the replacement
+///   contains database-sourced text, and `Regex::replace` would otherwise
+///   interpret `$0`/`$name` inside it as capture-group references — a title
+///   containing `$0` would expand to the matched original tag.
+/// - String replacement over HTML is inherently fragile against template
+///   changes, so a non-match (e.g. the frontend build renamed or dropped the
+///   target tag) is logged loudly instead of failing silently and shipping
+///   stale SEO metadata.
+fn inject_or_warn(regex: &Regex, html: String, replacement: &str, target: &str) -> String {
+    match regex.replace(&html, NoExpand(replacement)) {
+        Cow::Owned(replaced) => replaced,
+        Cow::Borrowed(_) => {
+            tracing::warn!(
+                target_tag = target,
+                "SEO injection target not found in index.html; serving original markup"
+            );
+            html
+        }
+    }
+}
+
 /// Core handler to serve the application entry point (index.html).
 ///
 /// This function:
@@ -89,8 +115,7 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
             return (
                 StatusCode::BAD_GATEWAY,
                 Html(
-                    "<h1>Bad Gateway</h1><p>Failed to connect to frontend service.</p>"
-                        .to_string(),
+                    "<h1>Bad Gateway</h1><p>Failed to connect to frontend service.</p>".to_string(),
                 ),
             )
                 .into_response();
@@ -138,45 +163,45 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
     let safe_description_attr = html_escape::encode_double_quoted_attribute(&description);
 
     // Replace Title (text content)
-    injected_html = TITLE_REGEX
-        .replace(
-            &injected_html,
-            format!("<title>{}</title>", safe_title_text),
-        )
-        .to_string();
+    injected_html = inject_or_warn(
+        &TITLE_REGEX,
+        injected_html,
+        &format!("<title>{}</title>", safe_title_text),
+        "<title>",
+    );
 
     // Replace Meta Description (attribute content)
-    injected_html = DESC_REGEX
-        .replace(
-            &injected_html,
-            format!(
-                r#"<meta name="description" content="{}">"#,
-                safe_description_attr
-            ),
-        )
-        .to_string();
+    injected_html = inject_or_warn(
+        &DESC_REGEX,
+        injected_html,
+        &format!(
+            r#"<meta name="description" content="{}">"#,
+            safe_description_attr
+        ),
+        "meta description",
+    );
 
     // Replace OG Title (attribute content)
-    injected_html = OG_TITLE_REGEX
-        .replace(
-            &injected_html,
-            format!(
-                r#"<meta property="og:title" content="{}">"#,
-                safe_title_attr
-            ),
-        )
-        .to_string();
+    injected_html = inject_or_warn(
+        &OG_TITLE_REGEX,
+        injected_html,
+        &format!(
+            r#"<meta property="og:title" content="{}">"#,
+            safe_title_attr
+        ),
+        "og:title",
+    );
 
     // Replace OG Description (attribute content)
-    injected_html = OG_DESC_REGEX
-        .replace(
-            &injected_html,
-            format!(
-                r#"<meta property="og:description" content="{}">"#,
-                safe_description_attr
-            ),
-        )
-        .to_string();
+    injected_html = inject_or_warn(
+        &OG_DESC_REGEX,
+        injected_html,
+        &format!(
+            r#"<meta property="og:description" content="{}">"#,
+            safe_description_attr
+        ),
+        "og:description",
+    );
 
     Html(injected_html).into_response()
 }
@@ -226,6 +251,40 @@ mod tests {
             )
             .to_string();
         assert!(replaced.contains(r#"content="New OG description""#));
+    }
+
+    /// Regression test: replacement strings are database-sourced, so `$`
+    /// must be treated literally. Without `NoExpand`, a title like
+    /// "Save 50% - only $0.99" would expand `$0` to the entire matched
+    /// original tag, corrupting the output HTML.
+    #[test]
+    fn injection_treats_dollar_signs_in_replacement_literally() {
+        let html = "<html><head><title>Old Title</title></head></html>".to_string();
+        let title_with_dollar = "Deal: $0.99";
+
+        let replaced = inject_or_warn(
+            &TITLE_REGEX,
+            html,
+            &format!("<title>{}</title>", title_with_dollar),
+            "<title>",
+        );
+
+        assert!(
+            replaced.contains("<title>Deal: $0.99</title>"),
+            "dollar sign must survive literally, got: {replaced}"
+        );
+        assert!(!replaced.contains("Old Title"));
+    }
+
+    /// A template without the target tag must be returned unchanged (and
+    /// warn) rather than silently corrupted or panicking.
+    #[test]
+    fn injection_leaves_html_unchanged_when_target_missing() {
+        let html = "<html><head></head></html>".to_string();
+
+        let replaced = inject_or_warn(&TITLE_REGEX, html.clone(), "<title>New</title>", "<title>");
+
+        assert_eq!(replaced, html);
     }
 
     /// Regression test: `encode_text` (used for the old single escaping

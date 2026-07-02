@@ -52,6 +52,10 @@ async fn main() {
             .expect("Failed to create uploads directory");
     }
 
+    // Remove temp files orphaned by uploads interrupted by a crash/restart;
+    // nothing else ever deletes them.
+    handlers::upload::cleanup_stale_temp_files(&upload_dir).await;
+
     // Configure CORS (Cross-Origin Resource Sharing)
     let cors_origins = match env::var("CORS_ALLOWED_ORIGINS") {
         Ok(val) => Some(val),
@@ -76,6 +80,10 @@ async fn main() {
     });
 
     let allowed_origins = cors::parse_allowed_origins(cors_origins.iter().map(|s| s.as_str()));
+
+    // Share the allowlist with the CSRF layer's anonymous-request Origin
+    // check so both enforce the same set of trusted frontends.
+    cors::init_allowed_browser_origins(cors_origins.iter().map(|s| s.as_str()));
 
     let cors_layer = CorsLayer::new()
         .allow_methods([
