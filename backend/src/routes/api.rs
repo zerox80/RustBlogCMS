@@ -1,12 +1,12 @@
-use crate::db::DbPool;
 use crate::handlers::{auth, comments, search, site_content, site_pages, tutorials};
+use crate::{db::DbPool, middleware::security::TrustedClientIpKeyExtractor};
 use axum::{
     routing::{get, post},
     Router,
 };
 use governor::middleware::NoOpMiddleware;
 use std::sync::Arc;
-use tower_governor::{governor::GovernorConfig, key_extractor::SmartIpKeyExtractor, GovernorLayer};
+use tower_governor::{governor::GovernorConfig, GovernorLayer};
 use tower_http::services::ServeDir;
 
 /// Public API Route Module
@@ -20,8 +20,8 @@ use tower_http::services::ServeDir;
 /// - **Static Assets**: Serves the `uploads` directory safely via `tower-http`.
 pub fn routes(
     upload_dir: String,
-    _admin_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
-    public_rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
+    _admin_rate_limit_config: Arc<GovernorConfig<TrustedClientIpKeyExtractor, NoOpMiddleware>>,
+    public_rate_limit_config: Arc<GovernorConfig<TrustedClientIpKeyExtractor, NoOpMiddleware>>,
 ) -> Router<DbPool> {
     // Grouped so both endpoints share the same rate limit: voting has no
     // dedicated limit of its own and would otherwise be callable at

@@ -9,7 +9,7 @@ use rust_blog_backend::middleware::{cors, security as security_middleware};
 use axum::{extract::DefaultBodyLimit, routing::get, Router};
 
 // External dependencies for configuration, async runtime, and middleware
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use std::env;
 use std::io::ErrorKind;
 use std::net::SocketAddr;

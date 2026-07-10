@@ -2,7 +2,7 @@
 name = "rust-blog-backend"
 version = "1.0.0"
 edition = "2021"
-rust-version = "1.82"  # Minimum Supported Rust Version
+rust-version = "1.88"  # Minimum Supported Rust Version
 authors = ["zerox80"]
 license = "MIT"
 description = "High-performance Rust backend API for RustBlogCMS"
@@ -25,11 +25,11 @@ tower_governor = "0.8"
 governor = "0.10.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite"] }
-jsonwebtoken = { version = "10.2", features = ["use_pem", "rust_crypto"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "sqlite", "macros"] }
+jsonwebtoken = { version = "=9.3.1", default-features = false }
 bcrypt = "0.19"
 chrono = { version = "0.4", features = ["serde"] }
-dotenv = "0.15"
+dotenvy = "0.15"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.4", features = ["v4", "fast-rng", "macro-diagnostics"] }
@@ -49,7 +49,7 @@ rand = "0.10"
 
 # The exact pins below (and `idna_adapter` above) hold transitive
 # dependencies at the last versions compatible with our MSRV (rust-version
-# 1.82); newer releases require a newer toolchain or edition 2024.
+# 1.88); newer releases require a newer toolchain or edition 2024.
 # Re-evaluate them whenever the MSRV is raised.
 [dependencies.home]
 version = "=0.5.12"

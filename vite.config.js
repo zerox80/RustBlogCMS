@@ -24,15 +24,18 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          icons: ['lucide-react'],
+        // Rolldown (used by Vite 8) accepts a function here, not Rollup's
+        // legacy object form. Keep large dependencies in stable cacheable chunks.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('lucide-react')) return 'icons'
+          return 'vendor'
         },
       },
     },
 
     sourcemap: false,
-    minify: 'esbuild',
+    minify: 'oxc',
     chunkSizeWarningLimit: 1000,
   },
 })

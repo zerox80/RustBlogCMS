@@ -123,7 +123,7 @@ struct ImportBundle {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 
     let args: Vec<String> = env::args().collect();
 

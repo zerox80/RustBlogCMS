@@ -1,14 +1,14 @@
-use crate::db::DbPool;
 use crate::handlers::{comments, site_content, site_pages, site_posts, tutorials, upload};
 use crate::middleware::auth::auth_middleware;
 use crate::security::csrf::enforce_csrf;
+use crate::{db::DbPool, middleware::security::TrustedClientIpKeyExtractor};
 use axum::{
     routing::{delete, get, post, put},
     Router,
 };
 use governor::middleware::NoOpMiddleware;
 use std::sync::Arc;
-use tower_governor::{governor::GovernorConfig, key_extractor::SmartIpKeyExtractor, GovernorLayer};
+use tower_governor::{governor::GovernorConfig, GovernorLayer};
 use tower_http::limit::RequestBodyLimitLayer;
 
 const ADMIN_BODY_LIMIT: usize = 11 * 1024 * 1024;
@@ -25,7 +25,7 @@ const ADMIN_BODY_LIMIT: usize = 11 * 1024 * 1024;
 /// 4. `enforce_csrf`: Validates session integrity (Double-Submit Cookie).
 pub fn routes(
     pool: DbPool,
-    rate_limit_config: Arc<GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware>>,
+    rate_limit_config: Arc<GovernorConfig<TrustedClientIpKeyExtractor, NoOpMiddleware>>,
 ) -> Router<DbPool> {
     Router::new()
         .route("/api/tutorials", post(tutorials::create_tutorial))

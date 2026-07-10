@@ -48,7 +48,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use base64ct::{Base64UrlUnpadded, Encoding};
 use chrono::{Duration, Utc};
-use hmac::{Hmac, Mac};
+use hmac::{digest::KeyInit, Hmac, Mac};
 use sha2::Sha256;
 use std::{collections::HashSet, env, sync::OnceLock};
 use time::{Duration as TimeDuration, OffsetDateTime};

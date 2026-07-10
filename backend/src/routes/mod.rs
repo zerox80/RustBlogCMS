@@ -2,17 +2,17 @@ pub mod admin;
 pub mod api;
 pub mod auth;
 
-use crate::db::DbPool;
+use crate::{db::DbPool, middleware::security::TrustedClientIpKeyExtractor};
 use axum::Router;
 use std::sync::Arc;
-use tower_governor::{governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor};
+use tower_governor::governor::GovernorConfigBuilder;
 
 pub fn create_routes(pool: DbPool, upload_dir: String) -> Router<DbPool> {
     let admin_rate_limit_config = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(1)
             .burst_size(3)
-            .key_extractor(SmartIpKeyExtractor)
+            .key_extractor(TrustedClientIpKeyExtractor)
             .finish()
             .expect("Failed to build governor config for write routes"),
     );
@@ -21,7 +21,7 @@ pub fn create_routes(pool: DbPool, upload_dir: String) -> Router<DbPool> {
         GovernorConfigBuilder::default()
             .per_second(5)
             .burst_size(10)
-            .key_extractor(SmartIpKeyExtractor)
+            .key_extractor(TrustedClientIpKeyExtractor)
             .finish()
             .expect("Failed to build governor config for public routes"),
     );

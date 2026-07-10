@@ -1,8 +1,7 @@
-use crate::db::DbPool;
 use crate::handlers::auth;
+use crate::{db::DbPool, middleware::security::TrustedClientIpKeyExtractor};
 use axum::{routing::post, Router};
 use std::sync::Arc;
-use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use tower_http::limit::RequestBodyLimitLayer;
 
@@ -13,7 +12,7 @@ pub fn routes() -> Router<DbPool> {
         GovernorConfigBuilder::default()
             .per_second(1)
             .burst_size(5)
-            .key_extractor(SmartIpKeyExtractor)
+            .key_extractor(TrustedClientIpKeyExtractor)
             .finish()
             .expect("Failed to build governor config"),
     );

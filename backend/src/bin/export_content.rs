@@ -166,7 +166,7 @@ struct ExportBundle {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 
     let args: Vec<String> = env::args().collect();
     let output_path = args

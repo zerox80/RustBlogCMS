@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, Github } from 'lucide-react'
+import { Code, Menu, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useContent } from '../../context/ContentContext'
 import { useEdit } from '../../context/EditContext'
@@ -172,9 +172,10 @@ const Header = () => {
                         href="https://github.com/zerox80/RustBlogCMS"
                         target="_blank"
                         rel="noreferrer"
+                        aria-label="RustBlogCMS auf GitHub öffnen"
                         className="text-slate-400 hover:text-white transition-colors"
                     >
-                        <Github className="w-5 h-5" />
+                        <Code className="w-5 h-5" aria-hidden="true" />
                     </a>
                     <Link
                         to="/login"

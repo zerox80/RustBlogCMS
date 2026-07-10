@@ -5,7 +5,7 @@
 //! and sanitizes incoming requests to prevent header-based spoofing attacks.
 
 use axum::{
-    extract::Request,
+    extract::{ConnectInfo, Request},
     http::{
         header::{
             CACHE_CONTROL, CONTENT_SECURITY_POLICY, EXPIRES, PRAGMA, STRICT_TRANSPORT_SECURITY,
@@ -16,7 +16,12 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use std::{env, net::IpAddr, sync::OnceLock};
+use std::{
+    env,
+    net::{IpAddr, SocketAddr},
+    sync::OnceLock,
+};
+use tower_governor::{errors::GovernorError, key_extractor::KeyExtractor};
 
 // Custom HTTP header constants for security policies
 const PERMISSIONS_POLICY: HeaderName = HeaderName::from_static("permissions-policy");
@@ -81,6 +86,14 @@ fn trusted_client_ip_from_headers(headers: &HeaderMap) -> Option<IpAddr> {
         })
 }
 
+fn resolve_client_ip(headers: &HeaderMap, fallback: IpAddr, trust_proxy_headers: bool) -> IpAddr {
+    if trust_proxy_headers {
+        trusted_client_ip_from_headers(headers).unwrap_or(fallback)
+    } else {
+        fallback
+    }
+}
+
 /// Whether proxy-supplied IP headers are trusted for this process.
 ///
 /// The environment variable cannot change for the lifetime of the process, so
@@ -98,11 +111,33 @@ pub fn trust_proxy_ip_headers() -> bool {
 /// nginx, never client-controlled), falling back to the last (rightmost) hop
 /// of `X-Forwarded-For` -- the entry appended by our own proxy.
 pub fn extract_client_ip(headers: &HeaderMap, fallback: IpAddr) -> IpAddr {
-    if !trust_proxy_ip_headers() {
-        return fallback;
-    }
+    resolve_client_ip(headers, fallback, trust_proxy_ip_headers())
+}
 
-    trusted_client_ip_from_headers(headers).unwrap_or(fallback)
+/// Rate-limit key extractor that shares the application's hardened client-IP
+/// policy. Unlike `SmartIpKeyExtractor`, it never trusts the first
+/// `X-Forwarded-For` value, which is client-controlled with nginx's
+/// `$proxy_add_x_forwarded_for` configuration.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct TrustedClientIpKeyExtractor;
+
+impl KeyExtractor for TrustedClientIpKeyExtractor {
+    type Key = IpAddr;
+
+    fn extract<T>(&self, request: &axum::http::Request<T>) -> Result<Self::Key, GovernorError> {
+        let fallback = request
+            .extensions()
+            .get::<ConnectInfo<SocketAddr>>()
+            .map(|connect_info| connect_info.0.ip())
+            .or_else(|| request.extensions().get::<SocketAddr>().map(SocketAddr::ip))
+            .ok_or(GovernorError::UnableToExtractKey)?;
+
+        Ok(resolve_client_ip(
+            request.headers(),
+            fallback,
+            trust_proxy_ip_headers(),
+        ))
+    }
 }
 
 /// Middleware to strip potentially spoofable forwarded headers from incoming requests.
@@ -269,5 +304,18 @@ mod tests {
             trusted_client_ip_from_headers(&headers),
             Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1)))
         );
+    }
+
+    #[test]
+    fn resolve_client_ip_uses_the_proxy_overwritten_ip_only_when_enabled() {
+        let mut headers = HeaderMap::new();
+        headers.insert(X_REAL_IP_HEADER, HeaderValue::from_static("203.0.113.7"));
+        let fallback = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+
+        assert_eq!(
+            resolve_client_ip(&headers, fallback, true),
+            IpAddr::V4(Ipv4Addr::new(203, 0, 113, 7))
+        );
+        assert_eq!(resolve_client_ip(&headers, fallback, false), fallback);
     }
 }

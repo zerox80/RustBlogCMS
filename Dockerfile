@@ -48,10 +48,8 @@ WORKDIR /app
 # Dependencies will only be reinstalled when package.json changes
 COPY package*.json ./
 
-# Install dependencies with legacy peer deps for compatibility
-# Consider using npm ci for faster, more reliable builds in CI/CD
-# --legacy-peer-deps handles potential peer dependency conflicts
-RUN npm install --legacy-peer-deps
+# Install the exact dependency graph committed in package-lock.json.
+RUN npm ci --legacy-peer-deps
 
 # ==============================================================================
 # APPLICATION BUILD

@@ -35,10 +35,10 @@
 # STAGE 1: RUST BUILD ENVIRONMENT
 # ==============================================================================
 
-# Use a pinned stable Rust release for reproducible builds.
-# No nightly-only features are used (MSRV 1.82 per Cargo.toml); nightly is a
+# Use the project's MSRV for reproducible builds.
+# No nightly-only features are used (MSRV 1.88 per Cargo.toml); nightly is a
 # floating, unpinned toolchain and an unnecessary supply-chain risk.
-FROM rust:1.83-bookworm AS builder
+FROM rust:1.88-bookworm AS builder
 
 # Set working directory for all subsequent commands
 WORKDIR /app
@@ -62,15 +62,7 @@ RUN apt-get update && apt-get install -y \
 # Copy Cargo configuration files first to leverage Docker layer caching
 # This ensures dependencies are only rebuilt when Cargo.toml changes
 # Improves build performance significantly in CI/CD pipelines
-COPY Cargo.toml Cargo.lock* ./
-
-# Ensure reproducible builds with Cargo.lock
-# Generate Cargo.lock if it doesn't exist for dependency pinning
-# This ensures consistent dependency versions across builds
-RUN if [ ! -f Cargo.lock ]; then \
-        echo "INFO: Cargo.lock not found, generating..."; \
-        cargo generate-lockfile; \
-    fi
+COPY Cargo.toml Cargo.lock ./
 
 # ==============================================================================
 # DEPENDENCY PRE-COMPILATION
@@ -83,7 +75,7 @@ RUN mkdir -p src/bin && \
     echo "fn main() {}" > src/main.rs && \
     echo "fn main() {}" > src/bin/export_content.rs && \
     echo "fn main() {}" > src/bin/import_content.rs && \
-    cargo build --release && \
+    cargo build --release --locked && \
     rm -rf src
 
 # ==============================================================================
@@ -98,7 +90,7 @@ COPY . .
 # --release enables optimizations for production performance
 # touch ensures proper file timestamps for incremental builds
 RUN touch src/main.rs && \
-    cargo build --release
+    cargo build --release --locked
 
 # Verify binary was built successfully
 RUN test -f target/release/rust-blog-backend || (echo "Build failed - binary not found" && exit 1)

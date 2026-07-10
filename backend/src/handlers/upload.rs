@@ -15,7 +15,7 @@ use crate::{
     security::auth,
 };
 use axum::{extract::Multipart, Json};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::fs;
 use uuid::Uuid;
 
@@ -30,8 +30,8 @@ const ALLOWED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp"];
 /// The upload handler writes to `<uuid>.tmp` and renames on success; every
 /// error path deletes its own temp file, but a process kill between create
 /// and rename leaks the file forever. Called once at startup. Only files
-/// matching the handler's own naming scheme (`.tmp` extension) are touched,
-/// so legitimate uploads can never be affected.
+/// matching the handler's own `<uuid>.tmp` naming scheme are touched, so
+/// unrelated temporary files and symlinks are never affected.
 pub async fn cleanup_stale_temp_files(upload_dir: &str) {
     let mut entries = match fs::read_dir(upload_dir).await {
         Ok(entries) => entries,
@@ -43,7 +43,13 @@ pub async fn cleanup_stale_temp_files(upload_dir: &str) {
 
     while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
-        if path.extension().and_then(|ext| ext.to_str()) == Some("tmp") {
+        let is_regular_file = entry
+            .file_type()
+            .await
+            .map(|file_type| file_type.is_file())
+            .unwrap_or(false);
+
+        if is_regular_file && is_own_temp_upload(&path) {
             match fs::remove_file(&path).await {
                 Ok(()) => tracing::info!("Removed stale upload temp file {}", path.display()),
                 Err(e) => tracing::warn!(
@@ -54,6 +60,13 @@ pub async fn cleanup_stale_temp_files(upload_dir: &str) {
             }
         }
     }
+}
+
+fn is_own_temp_upload(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|file_name| file_name.to_str())
+        .and_then(|file_name| file_name.strip_suffix(".tmp"))
+        .is_some_and(|uuid| Uuid::parse_str(uuid).is_ok())
 }
 
 /// Processes a multipart form-data request to upload an image.
@@ -268,4 +281,21 @@ pub async fn upload_image(
 
     // Default error if for some reason the "file" field was missing
     Err(bad_request("No file found in request"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_own_temp_upload;
+    use std::path::Path;
+
+    #[test]
+    fn cleanup_only_accepts_handler_generated_temp_names() {
+        assert!(is_own_temp_upload(Path::new(
+            "550e8400-e29b-41d4-a716-446655440000.tmp"
+        )));
+        assert!(!is_own_temp_upload(Path::new("notes.tmp")));
+        assert!(!is_own_temp_upload(Path::new(
+            "550e8400-e29b-41d4-a716-446655440000.png"
+        )));
+    }
 }
