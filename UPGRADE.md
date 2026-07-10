@@ -8,7 +8,7 @@ Version 1.1.0 includes significant security improvements that require configurat
 
 ### 1. Generate Secure JWT Secret
 
-The JWT secret must now be at least 32 characters long:
+The JWT secret must now be at least 43 characters of high-entropy data long (roughly 256 bits when base64 encoded):
 
 ```bash
 # Linux/macOS
@@ -20,7 +20,7 @@ $env:JWT_SECRET = [Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random
 
 ### 2. Set Strong Admin Credentials
 
-Admin password must be at least 8 characters:
+Admin password must be at least 12 characters:
 
 ```bash
 # Linux/macOS
@@ -196,8 +196,8 @@ If you encounter issues:
 
 ## ✅ Post-Upgrade Checklist
 
-- [ ] JWT_SECRET is set and at least 32 characters
-- [ ] ADMIN_PASSWORD is set and at least 8 characters
+- [ ] JWT_SECRET is set and at least 43 characters of high-entropy data
+- [ ] ADMIN_PASSWORD is set and at least 12 characters
 - [ ] Backend starts successfully
 - [ ] Can login with new credentials
 - [ ] Admin dashboard is accessible

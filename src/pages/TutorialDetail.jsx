@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
-import { useTutorials } from '../context/TutorialContext'
 import { api } from '../api/client'
 import TutorialHeader from '../components/tutorial/TutorialHeader'
 import TutorialTopicsList from '../components/tutorial/TutorialTopicsList'
@@ -11,16 +10,15 @@ import TutorialContentDisplay from '../components/tutorial/TutorialContentDispla
  * Detailed Tutorial Viewer.
  * 
  * Features:
- * - Hybrid Loading: Attempts to use cached context data before fetching from API.
+ * - Canonical Loading: Fetches the complete tutorial from its detail endpoint.
  * - Modular Rendering: Decouples header, topics, and content for scalability.
  * - Nav Logic: Intelligent "Go Back" that stays within app history when possible.
  */
 const TutorialDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getTutorial, tutorials } = useTutorials()
-  const [tutorial, setTutorial] = useState(() => getTutorial(id))
-  const [loading, setLoading] = useState(!getTutorial(id))
+  const [tutorial, setTutorial] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -28,6 +26,8 @@ const TutorialDetail = () => {
     const fetchTutorial = async () => {
       try {
         setLoading(true)
+        setTutorial(null)
+        setError(null)
         const data = await api.getTutorial(id, { signal: controller.signal })
         if (!controller.signal.aborted) {
           setTutorial(data)
@@ -48,15 +48,6 @@ const TutorialDetail = () => {
       controller.abort()
     }
   }, [id])
-
-  useEffect(() => {
-    if (!Array.isArray(tutorials)) {
-      setTutorial(null)
-      return
-    }
-    const cached = tutorials.find((item) => item.id === id)
-    setTutorial(cached || null)
-  }, [id, tutorials])
 
   const topics = useMemo(() => {
     if (!tutorial?.topics) {

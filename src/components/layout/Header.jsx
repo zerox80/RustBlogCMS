@@ -189,6 +189,9 @@ const Header = () => {
                 <button
                     className="md:hidden text-white p-2"
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    aria-label={isMobileMenuOpen ? 'Menü schließen' : 'Menü öffnen'}
+                    aria-expanded={isMobileMenuOpen}
+                    aria-controls="mobile-navigation"
                 >
                     {isMobileMenuOpen ? <X /> : <Menu />}
                 </button>
@@ -197,7 +200,7 @@ const Header = () => {
             {/* Mobile Menu Overlay */}
             {
                 isMobileMenuOpen && (
-                    <div className="absolute top-24 left-4 right-4 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-6 flex flex-col gap-4 shadow-xl animate-fade-in md:hidden">
+                    <div id="mobile-navigation" className="absolute top-24 left-4 right-4 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-6 flex flex-col gap-4 shadow-xl animate-fade-in md:hidden">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.name}

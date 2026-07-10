@@ -1,4 +1,6 @@
-const CACHE_NAME = 'rust-blog-v1';
+// Bump this whenever cache policy changes so previously cached responses cannot
+// survive a security fix.
+const CACHE_NAME = 'rust-blog-v2';
 
 const urlsToCache = [
   '/',
@@ -58,32 +60,26 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  const url = request.url;
+  const requestUrl = new URL(request.url);
+  const url = requestUrl.href;
 
   if (!url.startsWith(self.location.origin)) {
     console.log(`[SW] Skipping cross-origin request: ${url}`);
     return;
   }
 
-  if (url.includes('/api/')) {
-    console.log(`[SW] API request (network-first): ${url}`);
+  // API responses can be personalized and the API client deliberately requests
+  // them with `cache: 'no-store'`. Cache Storage does not enforce HTTP cache
+  // directives itself, so never intercept API traffic here.
+  if (requestUrl.pathname.startsWith('/api/')) {
+    console.log(`[SW] Bypassing API request: ${url}`);
+    return;
+  }
 
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok && request.method === 'GET') {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => cache.put(request, responseClone))
-              .catch((error) => console.log('[SW] Failed to cache API response:', error));
-          }
-          return response;
-        })
-        .catch((error) => {
-          console.log(`[SW] Network failed, trying cache for: ${url}`);
-          return caches.match(request);
-        })
-    );
+  // Cache Storage only supports GET requests. Let the browser handle all
+  // mutating or otherwise non-cacheable requests directly.
+  if (request.method !== 'GET') {
+    console.log(`[SW] Bypassing non-GET request: ${url}`);
     return;
   }
 

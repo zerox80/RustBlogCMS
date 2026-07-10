@@ -19,11 +19,16 @@ const Home = () => {
       try {
         setLoading(true)
 
-        // Get ALL published pages, not just navigation items
+        // The public endpoint returns a list of page slugs. Accept the legacy
+        // object form as well so deployments can be upgraded independently.
         const pagesData = await api.listPublishedPages()
-        const allPages = pagesData?.items || []
+        const publishedPages = Array.isArray(pagesData)
+          ? pagesData
+          : Array.isArray(pagesData?.items)
+            ? pagesData.items
+            : []
 
-        if (allPages.length === 0) {
+        if (publishedPages.length === 0) {
           setPosts([])
           setLoading(false)
           return
@@ -32,22 +37,28 @@ const Home = () => {
         // Fetch posts from each page with delay to avoid rate limiting
         const allPosts = []
 
-        for (const page of allPages) {
+        for (const pageReference of publishedPages) {
+          const slug = typeof pageReference === 'string'
+            ? pageReference
+            : pageReference?.slug
+          if (!slug) {
+            continue
+          }
           try {
             // Fetch the full page data which includes posts
-            const pageData = await api.getPublishedPage(page.slug)
+            const pageData = await api.getPublishedPage(slug)
             if (pageData?.posts) {
               pageData.posts.forEach(post => {
                 allPosts.push({
                   ...post,
-                  pageSlug: page.slug,
-                  pageTitle: page.title
+                  pageSlug: slug,
+                  pageTitle: pageData?.page?.title || pageReference?.title || slug,
                 })
               })
             }
           } catch (e) {
             // Page might have no posts or fail, continue with others
-            console.log(`Could not load posts for ${page.slug}:`, e.message)
+            console.log(`Could not load posts for ${slug}:`, e.message)
           }
 
           // Small delay between requests to avoid rate limiting
