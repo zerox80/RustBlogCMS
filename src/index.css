@@ -9,8 +9,8 @@
  * - Theme: Custom "@theme" configuration with Aurora Dark tokens.
  */
 
-/* Import Inter and Merriweather font families */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap');
+/* Editorial font pairing: geometric sans + expressive serif. */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 /* Import Tailwind CSS base styles */
 @import "tailwindcss";
@@ -27,8 +27,9 @@
   --color-neon-purple: #d8b4fe;
 
   /* Typography */
-  --font-display: "Cal Sans", "Inter", "system-ui", "sans-serif";
-  --font-serif: "Merriweather", "serif";
+  --font-sans: "Space Grotesk", "Arial", "sans-serif";
+  --font-display: "Space Grotesk", "Arial", "sans-serif";
+  --font-serif: "Instrument Serif", "Georgia", "serif";
 
   /* Premium Shadows */
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
@@ -57,12 +58,9 @@
   }
 
   body {
-    /* Aurora Dark Background - Deep Slate with subtle gradient */
-    @apply bg-slate-950 text-slate-100 font-sans selection:bg-neon-cyan selection:text-slate-950;
-    background-image:
-      radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 25%);
-    background-attachment: fixed;
+    @apply bg-[#f4f1ea] text-[#171713] font-sans selection:bg-[#b9f227] selection:text-[#171713];
+    margin: 0;
+    min-width: 320px;
   }
 
   /* Typography Defaults */
@@ -72,7 +70,77 @@
   h4,
   h5,
   h6 {
-    @apply tracking-tight font-display text-white;
+    @apply tracking-tight font-display;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.editorial-grid {
+  background-image:
+    linear-gradient(rgba(23, 23, 19, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 23, 19, 0.055) 1px, transparent 1px);
+  background-size: clamp(48px, 6vw, 92px) clamp(48px, 6vw, 92px);
+  mask-image: linear-gradient(to bottom, black 0%, transparent 90%);
+}
+
+.hero-orbit {
+  position: relative;
+}
+
+.hero-orbit::before,
+.hero-orbit::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  background: #ff4f00;
+}
+
+.hero-orbit::before {
+  width: 12px;
+  height: 12px;
+  top: 12%;
+  left: 6%;
+  box-shadow: 0 0 0 6px #f4f1ea;
+}
+
+.hero-orbit::after {
+  width: 8px;
+  height: 8px;
+  right: 2%;
+  bottom: 22%;
+  background: #171713;
+  box-shadow: 0 0 0 6px #f4f1ea;
+}
+
+.topic-marquee {
+  width: max-content;
+  animation: editorialMarquee 30s linear infinite;
+}
+
+@keyframes editorialMarquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .topic-marquee,
+  .hero-orbit svg {
+    animation: none !important;
   }
 }
 

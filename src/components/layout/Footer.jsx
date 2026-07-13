@@ -1,390 +1,67 @@
-import { useCallback } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Heart } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowUpRight, Asterisk } from 'lucide-react'
 import { useContent } from '../../context/ContentContext'
-import { navigateContentTarget } from '../../utils/contentNavigation'
+import EditableText from '../cms/EditableText'
 import { renderIcon } from '../../utils/iconMap'
 import { sanitizeExternalUrl } from '../../utils/urlValidation'
 
-/**
- * Smart icon resolver for contact links.
- * 
- * Attempts to guess the appropriate Lucide icon based on:
- * 1. Explicitly defined icon in CMS
- * 2. URL protocol (mailto:, tel:)
- * 3. Domain detection (github.com)
- */
-const resolveContactFallbackIcon = (contact) => {
-    if (!contact) {
-        return 'Terminal'
-    }
-
-    if (contact.icon) {
-        return contact.icon
-    }
-
-    const href = typeof contact.href === 'string' ? contact.href : contact.url
-    if (typeof href === 'string') {
-        const value = href.toLowerCase()
-        if (value.startsWith('mailto:')) {
-            return 'Mail'
-        }
-        if (value.startsWith('tel:')) {
-            return 'Phone'
-        }
-        if (value.includes('github.com')) {
-            return 'Github'
-        }
-    }
-
-    if (typeof contact.type === 'string') {
-        const type = contact.type.toLowerCase()
-        if (type === 'email') {
-            return 'Mail'
-        }
-        if (type === 'phone') {
-            return 'Phone'
-        }
-        if (type === 'github') {
-            return 'Github'
-        }
-    }
-
-    return 'Terminal'
-}
-
-import EditableText from '../cms/EditableText'
-
-/**
- * The global site footer component.
- * 
- * Aggregates navigation links, contact info, and branding into a structured layout.
- * 
- * Architecture:
- * - **Data Source**: Pulls `footer` section data and `navigation` structure from `ContentContext`.
- * - **Dynamic Links**: Merges specifically configured `quickLinks` with the global navigation tree.
- * - **CMS Integration**: All text elements (Brand, Copyright, Links) are wrapped in `EditableText`.
- * - **Safety**: Sanitizes all external URLs to prevent XSS/Phishing via `sanitizeExternalUrl`.
- */
+/** Editorial footer that closes the one-page layout without repeating a sitemap wall. */
 const Footer = () => {
     const { getSection, navigation } = useContent()
     const footerContent = getSection('footer') ?? {}
-    const navigate = useNavigate()
-    const location = useLocation()
-
     const contactLinks = Array.isArray(footerContent?.contactLinks) ? footerContent.contactLinks : []
-
-    const staticNavigationItems = Array.isArray(navigation?.static) ? navigation.static : []
-    const dynamicNavigationItems = Array.isArray(navigation?.dynamic) ? navigation.dynamic : []
-    const combinedNavigationItems = [...staticNavigationItems, ...dynamicNavigationItems]
-    const effectiveNavigationItems = combinedNavigationItems.length > 0
-        ? combinedNavigationItems
-        : Array.isArray(navigation?.items) ? navigation.items : []
-
-    /**
-     * Normalizes various link target types into a standard browser href.
-     * 
-     * Handles:
-     * - `section`: Prepends # for anchor navigation.
-     * - `route`/`page`: Internal SPA routing paths.
-     * - `external`: Validates and sanitizes third-party URLs.
-     */
-    const buildTargetHref = useCallback((target) => {
-        if (!target || typeof target !== 'object') {
-            return null
-        }
-        const value = typeof target.value === 'string' ? target.value : target.path || target.href || ''
-        switch (target.type) {
-            case 'section':
-                if (value) {
-                    return `#${value.replace(/^#/, '')}`
-                }
-                return '#'
-            case 'route':
-            case 'page':
-                return value || '/'
-            case 'external':
-            case 'href':
-                return sanitizeExternalUrl(value) || null
-            default:
-                return null
-        }
-    }, [])
-
-    const quickLinks = (() => {
-        const contentLinks = Array.isArray(footerContent?.quickLinks) ? footerContent.quickLinks : []
-        const normalizedContentLinks = contentLinks
-            .map((link, index) => {
-                if (!link) return null
-                if (link.target) {
-                    const href = buildTargetHref(link.target)
-                    return {
-                        label: link.label || link.target?.value || 'Link',
-                        target: link.target,
-                        href,
-                        field: `quickLinks.${index}.label`
-                    }
-                }
-                if (link.href) {
-                    const safeHref = sanitizeExternalUrl(link.href)
-                    if (!safeHref) {
-                        console.warn('Blocked unsafe footer quick link:', link.href)
-                        return null
-                    }
-                    return {
-                        label: link.label || link.href,
-                        href: safeHref,
-                        field: `quickLinks.${index}.label`
-                    }
-                }
-                if (link.path) {
-                    return {
-                        label: link.label || link.path,
-                        target: { type: 'route', value: link.path },
-                        href: link.path,
-                        field: `quickLinks.${index}.label`
-                    }
-                }
-                if (link.slug) {
-                    const slug = link.slug.trim().replace(/^\//, '')
-                    if (!slug) return null
-                    return {
-                        label: link.label || slug,
-                        target: { type: 'route', value: `/pages/${slug}` },
-                        href: `/pages/${slug}`,
-                        field: `quickLinks.${index}.label`
-                    }
-                }
-                return null
-            })
-            .filter(Boolean)
-
-        if (normalizedContentLinks.length > 0) {
-            return normalizedContentLinks
-        }
-
-        return effectiveNavigationItems
-            .map((item) => {
-                if (!item) return null
-                if (item.target) {
-                    const href = buildTargetHref(item.target)
-                    return {
-                        label: item.label || item.slug || 'Link',
-                        target: item.target,
-                        href,
-                    }
-                }
-                if (item.href) {
-                    const safeHref = sanitizeExternalUrl(item.href)
-                    if (!safeHref) {
-                        console.warn('Blocked unsafe navigation href in footer:', item.href)
-                        return null
-                    }
-                    return {
-                        label: item.label || item.slug || item.href,
-                        href: safeHref,
-                    }
-                }
-                if (item.type === 'route' && item.path) {
-                    return {
-                        label: item.label || item.slug || item.path,
-                        target: { type: 'route', value: item.path },
-                        href: item.path,
-                    }
-                }
-                if (item.type === 'section') {
-                    const sectionValue = item.path || item.value || item.id
-                    if (!sectionValue) return null
-                    return {
-                        label: item.label || 'Link',
-                        target: { type: 'section', value: sectionValue },
-                        href: `#${sectionValue.replace(/^#/, '')}`,
-                    }
-                }
-                if (item.slug) {
-                    return {
-                        label: item.label || item.slug,
-                        target: { type: 'route', value: `/pages/${item.slug}` },
-                        href: `/pages/${item.slug}`,
-                    }
-                }
-                return null
-            })
-            .filter(Boolean)
-    })()
-
-    /**
-     * Centralized click handler for footer links.
-     * 
-     * Leverages `navigateContentTarget` for SPA-friendly section/route jumps
-     * and falls back to standard anchor behavior for external/protocol links.
-     */
-    const handleQuickLink = (event, link) => {
-        if (!link) return
-
-        const target = link.target
-
-        if (target) {
-            event?.preventDefault?.()
-            navigateContentTarget(target, { navigate, location })
-            return
-        }
-
-        const href = sanitizeExternalUrl(link.href || link.url)
-        if (href) {
-            // Check for protocols that should NOT be intercepted by the SPA router
-            const isExternal = href.startsWith('http://') || href.startsWith('https://')
-            const isSpecialProtocol = href.startsWith('mailto:') || href.startsWith('tel:')
-
-            if (isExternal || isSpecialProtocol) {
-                return
-            }
-
-            event?.preventDefault?.()
-            window.location.assign(href)
-            return
-        }
-
-        const path = link.path
-        if (path) {
-            event?.preventDefault?.()
-            navigate(path)
-            return
-        }
-    }
+    const pageLinks = (navigation?.dynamic || []).slice(0, 4)
+    const copyright = (footerContent?.bottom?.copyright || '© {year} Zero Point. Alle Rechte vorbehalten.')
+        .replace('{year}', new Date().getFullYear())
 
     return (
-        <footer className="bg-gray-900 text-gray-300 py-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-                    {/* Brand */}
+        <footer className="border-t border-white/15 bg-[#171713] px-5 py-10 text-[#f4f1ea] sm:px-8 lg:px-12">
+            <div className="mx-auto max-w-[1480px]">
+                <div className="grid gap-12 pb-16 pt-6 md:grid-cols-[1.3fr_0.7fr_0.7fr]">
                     <div>
-                        <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-gradient-to-r from-primary-600 to-primary-800 p-2 rounded-lg">
-                                {renderIcon(footerContent?.brand?.icon, 'Terminal', { className: 'w-6 h-6 text-white' })}
-                            </div>
-                            <span className="text-xl font-bold text-white">
-                                <EditableText
-                                    section="footer"
-                                    field="brand.name"
-                                    value={footerContent?.brand?.title || footerContent?.brand?.name || 'IT Portal'}
-                                />
+                        <Link to="/" className="mb-6 inline-flex items-center gap-3">
+                            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#b9f227] text-[#171713]"><Asterisk className="h-5 w-5" /></span>
+                            <span className="font-display text-xl font-bold uppercase">
+                                <EditableText section="footer" field={footerContent?.brand?.title ? 'brand.title' : 'brand.name'} value={footerContent?.brand?.title || footerContent?.brand?.name || 'Zero Point'} />
                             </span>
-                        </div>
-                        <p className="text-gray-400">
-                            <EditableText
-                                section="footer"
-                                field="brand.description"
-                                value={footerContent?.brand?.description || 'Dein Portal für IT Security, Programmierung und Administration.'}
-                                multiline
-                            />
+                        </Link>
+                        <p className="max-w-sm text-base leading-relaxed text-white/45">
+                            <EditableText section="footer" field="brand.description" value={footerContent?.brand?.description || 'Ein unabhängiges Journal über Code, Systeme und digitale Kultur.'} multiline />
                         </p>
                     </div>
 
-                    {/* Quick Links */}
                     <div>
-                        <h4 className="text-white font-semibold mb-4">Quick Links</h4>
-                        <ul className="space-y-2">
-                            {quickLinks.length > 0 ? (
-                                quickLinks.map((link, index) => {
-                                    const href = link.href || '#'
-                                    const isExternal = typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'))
-                                    return (
-                                        <li key={link.label || link.target?.value || `quick-${index}`}>
-                                            <a
-                                                href={href}
-                                                onClick={(event) => handleQuickLink(event, link)}
-                                                className="hover:text-primary-400 transition-colors duration-200"
-                                                target={isExternal ? '_blank' : undefined}
-                                                rel={isExternal ? 'noopener noreferrer' : undefined}
-                                            >
-                                                {link.field ? (
-                                                    <EditableText section="footer" field={link.field} value={link.label} />
-                                                ) : (
-                                                    link.label || 'Link'
-                                                )}
-                                            </a>
-                                        </li>
-                                    )
-                                })
-                            ) : (
-                                <li className="text-sm text-gray-500">Noch keine Quick Links definiert.</li>
-                            )}
-                        </ul>
+                        <p className="mb-5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#b9f227]">Explore</p>
+                        <div className="flex flex-col gap-3 text-sm text-white/60">
+                            <a href="/#stories" className="hover:text-white">Stories</a>
+                            <a href="/#topics" className="hover:text-white">Themen</a>
+                            <a href="/#manifest" className="hover:text-white">Manifest</a>
+                            {pageLinks.map((link) => <Link key={link.id} to={link.path} className="hover:text-white">{link.label}</Link>)}
+                        </div>
                     </div>
 
-                    {/* Contact */}
                     <div>
-                        <h4 className="text-white font-semibold mb-4">Kontakt</h4>
-                        <div className="space-y-3">
-                            {contactLinks.length > 0 ? (
-                                contactLinks.map((contact, index) => {
-                                    const safeHref = sanitizeExternalUrl(contact.href || contact.url)
-                                    const contactIconName = resolveContactFallbackIcon(contact)
-
-                                    if (!safeHref) {
-                                        return (
-                                            <div
-                                                key={contact.label || `contact-${index}`}
-                                                className="flex items-center space-x-2 text-gray-500"
-                                            >
-                                                {renderIcon(contactIconName, 'Terminal', { className: 'w-5 h-5' })}
-                                                <span>
-                                                    <EditableText section="footer" field={`contactLinks.${index}.label`} value={contact.label || 'Kontakt'} />
-                                                </span>
-                                            </div>
-                                        )
-                                    }
-
-                                    const isHttp = safeHref.startsWith('http://') || safeHref.startsWith('https://')
-                                    const isExternal = isHttp
-
-                                    return (
-                                        <a
-                                            key={safeHref || contact.label || `contact-${index}`}
-                                            href={safeHref}
-                                            target={isExternal ? '_blank' : undefined}
-                                            rel={isExternal ? 'noopener noreferrer' : undefined}
-                                            className="flex items-center space-x-2 hover:text-primary-400 transition-colors duration-200"
-                                        >
-                                            {renderIcon(contactIconName, 'Terminal', { className: 'w-5 h-5' })}
-                                            <span>
-                                                <EditableText section="footer" field={`contactLinks.${index}.label`} value={contact.label || safeHref || 'Kontakt'} />
-                                            </span>
-                                        </a>
-                                    )
-                                })
-                            ) : (
-                                <p className="text-sm text-gray-500">Keine Kontaktlinks verfügbar.</p>
-                            )}
+                        <p className="mb-5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#b9f227]">Connect</p>
+                        <div className="flex flex-col gap-3 text-sm text-white/60">
+                            {contactLinks.map((contact, index) => {
+                                const href = sanitizeExternalUrl(contact.href || contact.url)
+                                if (!href) return null
+                                const external = href.startsWith('http://') || href.startsWith('https://')
+                                return (
+                                    <a key={href || index} href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className="group inline-flex items-center gap-2 hover:text-white">
+                                        {renderIcon(contact.icon, 'ArrowUpRight', { className: 'h-4 w-4' })}
+                                        <EditableText section="footer" field={`contactLinks.${index}.label`} value={contact.label || 'Kontakt'} />
+                                    </a>
+                                )
+                            })}
+                            <a href="https://github.com/zerox80/RustBlogCMS" target="_blank" rel="noreferrer" className="group inline-flex items-center gap-2 hover:text-white">GitHub <ArrowUpRight className="h-4 w-4 transition-transform group-hover:rotate-45" /></a>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom Bar */}
-                <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-                    <p className="text-gray-400 text-sm mb-4 md:mb-0">
-                        <EditableText
-                            section="footer"
-                            field="bottom.copyright"
-                            value={footerContent?.bottom?.copyright || '© {year} IT Portal. Alle Rechte vorbehalten.'}
-                        />
-                    </p>
-                    {footerContent?.bottom?.signature ? (
-                        <p className="text-gray-400 text-sm text-center md:text-right">
-                            <EditableText
-                                section="footer"
-                                field="bottom.signature"
-                                value={footerContent.bottom.signature}
-                            />
-                        </p>
-                    ) : (
-                        <div className="flex items-center space-x-1 text-sm">
-                            <span className="text-gray-400">Gemacht mit</span>
-                            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-                            <span className="text-gray-400">für IT Professionals</span>
-                        </div>
-                    )}
+                <div className="flex flex-col gap-4 border-t border-white/15 pt-6 text-[10px] font-bold uppercase tracking-[0.16em] text-white/35 sm:flex-row sm:items-center sm:justify-between">
+                    <p><EditableText section="footer" field="bottom.copyright" value={copyright} /></p>
+                    <p>{footerContent?.bottom?.signature || 'Made for curious minds'}</p>
                 </div>
             </div>
         </footer>

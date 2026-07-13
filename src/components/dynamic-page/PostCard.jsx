@@ -1,56 +1,68 @@
 import { Link } from 'react-router-dom'
-import { CalendarDays, ArrowRight } from 'lucide-react'
+import { ArrowUpRight, CalendarDays, Clock3 } from 'lucide-react'
 import PropTypes from 'prop-types'
 import { formatDate, normalizeSlug, buildPreviewText } from '../../utils/postUtils'
 
-const PostCard = ({ post, pageSlug }) => {
-    const publishedDate = formatDate(post.published_at)
+const estimateReadingTime = (text) => {
+    const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length
+    return Math.max(2, Math.ceil(wordCount / 200))
+}
+
+const PostCard = ({ post, pageSlug, index = 0, featured = false }) => {
+    const publishedDate = formatDate(post.published_at || post.created_at)
     const previewText = buildPreviewText(post)
     const postSlug = normalizeSlug(post?.slug)
+    const href = postSlug ? `/pages/${pageSlug}/posts/${postSlug}` : null
+    const cardNumber = String(index + 1).padStart(2, '0')
 
-    return (
-        <article
-            className="rounded-3xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 shadow-sm hover:shadow-md transition-shadow duration-200"
-        >
-            <div className="px-6 py-7 sm:px-9 sm:py-8 space-y-6">
-                <header className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-slate-400">
+    const content = (
+        <article className="group flex h-full min-h-[28rem] flex-col justify-between border-b border-r border-[#171713] bg-[#f4f1ea] p-6 transition-colors duration-300 hover:bg-[#fffdf7] sm:p-8">
+            <div>
+                <header className="flex items-start justify-between gap-5">
+                    <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#171713]/50">
+                        <span className="rounded-full bg-[#b9f227] px-3 py-1.5 text-[#171713]">{post.pageTitle || 'Journal'}</span>
                         {publishedDate && (
-                            <span className="inline-flex items-center gap-1.5">
-                                <CalendarDays className="w-4 h-4" />
-                                {publishedDate}
-                            </span>
+                            <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" />{publishedDate}</span>
                         )}
                     </div>
-                    <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 break-words">{post.title}</h3>
-                    {previewText && (
-                        <p className="text-gray-600 dark:text-slate-300 leading-relaxed break-words line-clamp-3">
-                            {previewText}
-                        </p>
-                    )}
+                    <span className="font-serif text-3xl italic text-[#171713]/20">{cardNumber}</span>
                 </header>
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
-                    <span className="text-sm text-gray-500 dark:text-slate-400">
-                        {previewText ? 'Kurzvorschau' : 'Mehr Details verfügbar'}
-                    </span>
-                    {postSlug ? (
-                        <Link
-                            to={`/pages/${pageSlug}/posts/${postSlug}`}
-                            className="inline-flex items-center gap-2 text-primary-700 dark:text-primary-300 font-semibold hover:text-primary-800 dark:hover:text-primary-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:rounded-lg"
-                        >
-                            Weiterlesen
-                            <ArrowRight className="w-4 h-4" />
-                        </Link>
-                    ) : null}
+
+                <div className={`mt-14 ${featured ? 'xl:mt-24' : ''}`}>
+                    <h3 className={`font-display font-semibold leading-[0.98] tracking-[-0.045em] text-[#171713] transition-colors group-hover:text-[#ff4f00] ${featured ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl'}`}>
+                        {post.title}
+                    </h3>
+                    {previewText && (
+                        <p className="mt-6 line-clamp-4 max-w-xl text-base leading-relaxed text-[#171713]/60">{previewText}</p>
+                    )}
                 </div>
             </div>
+
+            <footer className="mt-12 flex items-end justify-between gap-4 border-t border-[#171713]/15 pt-5">
+                <span className="inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#171713]/45">
+                    <Clock3 className="h-3.5 w-3.5" /> {estimateReadingTime(post.content || previewText)} min read
+                </span>
+                {href && (
+                    <span className="grid h-12 w-12 place-items-center rounded-full border border-[#171713] bg-transparent transition-all group-hover:rotate-45 group-hover:bg-[#171713] group-hover:text-white">
+                        <ArrowUpRight className="h-5 w-5" />
+                    </span>
+                )}
+            </footer>
         </article>
     )
+
+    return href ? (
+        <Link to={href} className={`block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#ff4f00] ${featured ? 'md:col-span-2 xl:col-span-1 xl:row-span-1' : ''}`}>
+            {content}
+        </Link>
+    ) : content
 }
 
 PostCard.propTypes = {
     post: PropTypes.object.isRequired,
     pageSlug: PropTypes.string.isRequired,
+    index: PropTypes.number,
+    featured: PropTypes.bool,
 }
 
 export default PostCard

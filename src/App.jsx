@@ -26,7 +26,7 @@ function App() {
               <ContentProvider>
                 <EditProvider>
                   <TutorialProvider>
-                    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors">
+                    <div className="min-h-screen bg-[#f4f1ea] transition-colors">
                       <GlobalSiteMeta />
                       <Suspense fallback={<LoadingSpinner />}>
                         <AppRoutes />
