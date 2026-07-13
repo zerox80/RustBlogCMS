@@ -109,7 +109,7 @@
     "@vitest/coverage-v8": "^4.0.9",
     "@vitest/ui": "^4.0.9",
     "autoprefixer": "^10.4.21",
-    "eslint": "^9.18.0",
+    "eslint": "^10.7.0",
     "eslint-plugin-react": "^7.37.3",
     "eslint-plugin-react-hooks": "^7.0.1",
     "jsdom": "^27.2.0",
