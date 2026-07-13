@@ -4,7 +4,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react'
 
 /**
  * A robust React Error Boundary to prevent application-wide crashes.
- * 
+ *
  * Features:
  * - Granular error catching and logging.
  * - Recovery UI with specific error details for development.
@@ -16,7 +16,7 @@ class ErrorBoundary extends Component {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     }
   }
   static getDerivedStateFromError(_error) {
@@ -50,10 +50,18 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div
+          className={`min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center
+justify-center p-4`}
+        >
           <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
             {/* Error icon with visual styling */}
-            <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+            <div
+              className={[
+                'flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto',
+                'mb-4',
+              ].join(' ')}
+            >
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
             {/* Error title and description */}
@@ -61,8 +69,8 @@ class ErrorBoundary extends Component {
               Oops! Etwas ist schiefgelaufen
             </h1>
             <p className="text-gray-600 text-center mb-6">
-              Die Anwendung ist auf einen unerwarteten Fehler gestoßen.
-              Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.
+              Die Anwendung ist auf einen unerwarteten Fehler gestoßen. Bitte versuchen Sie es
+              erneut oder kontaktieren Sie den Support.
             </p>
             {/* Technical error details (development mode) */}
             {this.state.error && (
@@ -75,7 +83,9 @@ class ErrorBoundary extends Component {
             {/* Recovery button with interactive styling */}
             <button
               onClick={this.handleReset}
-              className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className={`w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r
+from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700
+hover:to-primary-800 transition-all duration-200 shadow-lg hover:shadow-xl`}
             >
               <RefreshCw className="w-5 h-5" />
               <span>Zur Startseite</span>

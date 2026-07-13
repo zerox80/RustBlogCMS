@@ -175,8 +175,11 @@ async fn import_site_content(
             .context("Failed to serialize site_content entry")?;
 
         sqlx::query(
-            "INSERT INTO site_content (section, content_json, updated_at) VALUES (?, ?, COALESCE(?, CURRENT_TIMESTAMP)) \
-             ON CONFLICT(section) DO UPDATE SET content_json = excluded.content_json, updated_at = COALESCE(excluded.updated_at, CURRENT_TIMESTAMP)",
+            r#"INSERT INTO site_content (section, content_json, updated_at)
+               VALUES (?, ?, COALESCE(?, CURRENT_TIMESTAMP))
+               ON CONFLICT(section) DO UPDATE SET
+                   content_json = excluded.content_json,
+                   updated_at = COALESCE(excluded.updated_at, CURRENT_TIMESTAMP)"#,
         )
         .bind(&item.section)
         .bind(&serialized)
@@ -200,16 +203,24 @@ async fn import_site_pages(
             serde_json::to_string(&item.layout).context("Failed to serialize page layout JSON")?;
 
         sqlx::query(
-            "INSERT INTO site_pages (id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json, created_at, updated_at) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP)) \
-             ON CONFLICT(id) DO UPDATE SET slug = excluded.slug, title = excluded.title, description = excluded.description, nav_label = excluded.nav_label, show_in_nav = excluded.show_in_nav, order_index = excluded.order_index, is_published = excluded.is_published, hero_json = excluded.hero_json, layout_json = excluded.layout_json, updated_at = COALESCE(excluded.updated_at, CURRENT_TIMESTAMP)",
+            r#"INSERT INTO site_pages (
+                   id, slug, title, description, nav_label, show_in_nav, order_index,
+                   is_published, hero_json, layout_json, created_at, updated_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                   COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+               ON CONFLICT(id) DO UPDATE SET
+                   slug = excluded.slug, title = excluded.title,
+                   description = excluded.description, nav_label = excluded.nav_label,
+                   show_in_nav = excluded.show_in_nav, order_index = excluded.order_index,
+                   is_published = excluded.is_published, hero_json = excluded.hero_json,
+                   layout_json = excluded.layout_json,
+                   updated_at = COALESCE(excluded.updated_at, CURRENT_TIMESTAMP)"#,
         )
         .bind(&item.id)
         .bind(&item.slug)
         .bind(&item.title)
         .bind(&item.description)
         .bind(&item.nav_label)
-
         .bind(if item.show_in_nav { 1 } else { 0 })
         .bind(item.order_index)
         .bind(if item.is_published { 1 } else { 0 })
@@ -231,9 +242,17 @@ async fn import_site_posts(
 ) -> Result<()> {
     for item in items {
         sqlx::query(
-            "INSERT INTO site_posts (id, page_id, title, slug, excerpt, content_markdown, is_published, published_at, order_index, created_at, updated_at) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP)) \
-             ON CONFLICT(id) DO UPDATE SET page_id = excluded.page_id, title = excluded.title, slug = excluded.slug, excerpt = excluded.excerpt, content_markdown = excluded.content_markdown, is_published = excluded.is_published, published_at = excluded.published_at, order_index = excluded.order_index, updated_at = COALESCE(excluded.updated_at, CURRENT_TIMESTAMP)",
+            r#"INSERT INTO site_posts (
+                   id, page_id, title, slug, excerpt, content_markdown, is_published,
+                   published_at, order_index, created_at, updated_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
+                   COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+               ON CONFLICT(id) DO UPDATE SET
+                   page_id = excluded.page_id, title = excluded.title, slug = excluded.slug,
+                   excerpt = excluded.excerpt, content_markdown = excluded.content_markdown,
+                   is_published = excluded.is_published, published_at = excluded.published_at,
+                   order_index = excluded.order_index,
+                   updated_at = COALESCE(excluded.updated_at, CURRENT_TIMESTAMP)"#,
         )
         .bind(&item.id)
         .bind(&item.page_id)
@@ -241,7 +260,6 @@ async fn import_site_posts(
         .bind(&item.slug)
         .bind(&item.excerpt)
         .bind(&item.content_markdown)
-
         .bind(if item.is_published { 1 } else { 0 })
         .bind(&item.published_at)
         .bind(item.order_index)

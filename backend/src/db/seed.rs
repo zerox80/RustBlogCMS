@@ -30,20 +30,20 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
         (
             "hero",
             json!({
-                "badgeText": "Professionelles Linux Training",
+                "badgeText": "Persönlicher Blog",
                 "title": {
-                    "line1": "Lerne Linux",
-                    "line2": "von Grund auf"
+                    "line1": "Gedanken, Projekte",
+                    "line2": "& Dinge dazwischen"
                 },
-                "subtitle": "Dein umfassendes Tutorial für Linux – von den Basics bis zu Advanced-Techniken.",
-                "subline": "Interaktiv, modern und praxisnah.",
+                "subtitle": "Persönliche Notizen über Technik, Ideen und alles, was mich beschäftigt.",
+                "subline": "Ausprobiert, durchdacht und ehrlich aufgeschrieben.",
                 "primaryCta": {
-                    "label": "Los geht's",
-                    "target": { "type": "section", "value": "tutorials" }
+                    "label": "Beiträge lesen",
+                    "target": { "type": "section", "value": "stories" }
                 },
                 "secondaryCta": {
-                    "label": "Mehr erfahren",
-                    "target": { "type": "section", "value": "tutorials" }
+                    "label": "Über diesen Blog",
+                    "target": { "type": "section", "value": "about" }
                 },
                 "features": [
                     {
@@ -88,24 +88,46 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
         (
             "site_meta",
             json!({
-                "title": "Linux Tutorial - Lerne Linux Schritt für Schritt",
-                "description": "Lerne Linux von Grund auf - Interaktiv, modern und praxisnah."
+                "title": "Zero Point – Persönlicher Blog",
+                "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen."
+            }),
+        ),
+        (
+            "about",
+            json!({
+                "eyebrow": "Warum ich schreibe",
+                "lead": "Ich schreibe, um Dinge wirklich zu verstehen – und um meine Gedanken nicht zu verlieren.",
+                "paragraphs": [
+                    concat!(
+                        "Dieser Blog ist mein digitales Notizbuch. Ich teile, was ich lerne, ",
+                        "woran ich arbeite und welche Fragen mich gerade begleiten."
+                    ),
+                    concat!(
+                        "Die Themen dürfen wechseln. Was bleibt, ist eine persönliche Perspektive, ",
+                        "ehrliche Neugier und der Wunsch, Gedanken sauber zu Ende zu denken."
+                    )
+                ]
+            }),
+        ),
+        (
+            "cta_section",
+            json!({
+                "title": "Neue Notizen per Mail",
+                "description": "Ich melde mich, wenn es einen neuen Gedanken oder Beitrag zu teilen gibt."
             }),
         ),
         (
             "header",
             json!({
                 "brand": {
-                    "name": "Linux Tutorial",
-                    "tagline": "",
+                    "name": "Zero Point",
+                    "tagline": "Persönlicher Blog",
                     "icon": "Terminal"
                 },
                 "navItems": [
-                    { "id": "home", "label": "Home", "type": "section" },
-                    { "id": "grundlagen", "label": "Grundlagen", "type": "route", "path": "/grundlagen" },
-                    { "id": "befehle", "label": "Befehle", "type": "section" },
-                    { "id": "praxis", "label": "Praxis", "type": "section" },
-                    { "id": "advanced", "label": "Advanced", "type": "section" }
+                    { "id": "stories", "label": "Beiträge", "type": "section", "value": "stories" },
+                    { "id": "topics", "label": "Themen", "type": "section", "value": "topics" },
+                    { "id": "about", "label": "Über diesen Blog", "type": "section", "value": "about" }
                 ],
                 "cta": {
                     "guestLabel": "Login",
@@ -118,23 +140,18 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
             "footer",
             json!({
                 "brand": {
-                    "title": "Linux Tutorial",
-                    "description": "Dein umfassendes Tutorial für Linux - von den Basics bis zu Advanced Techniken.",
+                    "title": "Zero Point",
+                    "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.",
                     "icon": "Terminal"
                 },
                 "quickLinks": [
-                    { "label": "Grundlagen", "target": { "type": "section", "value": "grundlagen" } },
-                    { "label": "Befehle", "target": { "type": "section", "value": "befehle" } },
-                    { "label": "Praxis", "target": { "type": "section", "value": "praxis" } },
-                    { "label": "Advanced", "target": { "type": "section", "value": "advanced" } }
+                    { "label": "Beiträge", "target": { "type": "section", "value": "stories" } },
+                    { "label": "Über diesen Blog", "target": { "type": "section", "value": "about" } }
                 ],
-                "contactLinks": [
-                    { "label": "GitHub", "href": "https://github.com", "icon": "Github" },
-                    { "label": "E-Mail", "href": "mailto:info@example.com", "icon": "Mail" }
-                ],
+                "contactLinks": [],
                 "bottom": {
-                    "copyright": "© {year} Linux Tutorial. Alle Rechte vorbehalten.",
-                    "signature": "Gemacht mit Herz für die Linux Community"
+                    "copyright": "© {year} Zero Point.",
+                    "signature": "Persönlich notiert"
                 }
             }),
         ),
@@ -144,34 +161,54 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
                 "hero": {
                     "badge": "Grundlagenkurs",
                     "title": "Starte deine Linux-Reise mit einem starken Fundament",
-                    "description": "In diesem Grundlagenbereich begleiten wir dich von den allerersten Schritten im Terminal bis hin zu sicheren Arbeitsabläufen. Nach diesem Kurs bewegst du dich selbstbewusst in der Linux-Welt.",
+                    "description": concat!(
+                        "In diesem Grundlagenbereich begleiten wir dich von den allerersten Schritten im Terminal ",
+                        "bis hin zu sicheren Arbeitsabläufen. Nach diesem Kurs bewegst du dich selbstbewusst in ",
+                        "der Linux-Welt.",
+                    ),
                     "icon": "BookOpen"
                 },
                 "highlights": [
                     {
                         "icon": "BookOpen",
                         "title": "Terminal Basics verstehen",
-                        "description": "Lerne die wichtigsten Shell-Befehle, arbeite sicher mit Dateien und nutze Pipes, um Aufgaben zu automatisieren."
+                        "description": concat!(
+                            "Lerne die wichtigsten Shell-Befehle, arbeite sicher mit Dateien und nutze Pipes, um ",
+                            "Aufgaben zu automatisieren.",
+                        )
                     },
                     {
                         "icon": "Compass",
                         "title": "Linux-Philosophie kennenlernen",
-                        "description": "Verstehe das Zusammenspiel von Kernel, Distribution, Paketverwaltung und warum Linux so flexibel einsetzbar ist."
+                        "description": concat!(
+                            "Verstehe das Zusammenspiel von Kernel, Distribution, Paketverwaltung und warum Linux so ",
+                            "flexibel einsetzbar ist.",
+                        )
                     },
                     {
                         "icon": "Layers",
                         "title": "Praxisnahe Übungen",
-                        "description": "Setze das Erlernte direkt in kleinen Projekten um – von der Benutzerverwaltung bis zum Einrichten eines Webservers."
+                        "description": concat!(
+                            "Setze das Erlernte direkt in kleinen Projekten um – von der Benutzerverwaltung bis zum ",
+                            "Einrichten eines Webservers.",
+                        )
                     },
                     {
                         "icon": "ShieldCheck",
                         "title": "Sicher arbeiten",
-                        "description": "Erhalte Best Practices für Benutzerrechte, sudo, SSH und weitere Sicherheitsmechanismen."
+                        "description": concat!(
+                            "Erhalte Best Practices für Benutzerrechte, sudo, SSH und weitere ",
+                            "Sicherheitsmechanismen."
+                        )
                     }
                 ],
                 "modules": {
                     "title": "Module im Grundlagenkurs",
-                    "description": "Unsere Tutorials bauen logisch aufeinander auf. Jedes Modul enthält praxisnahe Beispiele, Schritt-für-Schritt Anleitungen und kleine Wissenschecks, damit du deinen Fortschritt direkt sehen kannst.",
+                    "description": concat!(
+                        "Unsere Tutorials bauen logisch aufeinander auf. Jedes Modul enthält praxisnahe ",
+                        "Beispiele, Schritt-für-Schritt Anleitungen und kleine Wissenschecks, damit du deinen ",
+                        "Fortschritt direkt sehen kannst.",
+                    ),
                     "items": [
                         "Einstieg in die Shell: Navigation, grundlegende Befehle, Dateiverwaltung",
                         "Linux-Systemaufbau: Kernel, Distributionen, Paketmanager verstehen und nutzen",
@@ -186,7 +223,11 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
                 },
                 "cta": {
                     "title": "Bereit für den nächsten Schritt?",
-                    "description": "Wechsel zur Startseite und wähle das Modul, das am besten zu dir passt, oder tauche direkt in die Praxis- und Advanced-Themen ein, sobald du die Grundlagen sicher beherrschst.",
+                    "description": concat!(
+                        "Wechsel zur Startseite und wähle das Modul, das am besten zu dir passt, oder tauche ",
+                        "direkt in die Praxis- und Advanced-Themen ein, sobald du die Grundlagen sicher ",
+                        "beherrschst.",
+                    ),
                     "primary": { "label": "Zur Startseite", "href": "/" },
                     "secondary": { "label": "Tutorials verwalten", "href": "/admin" }
                 }
@@ -335,9 +376,11 @@ pub async fn insert_default_tutorials_tx(
             ))
         })?;
 
-        sqlx::query(
-            "INSERT INTO tutorials (id, title, description, icon, color, topics, content, version) VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
-        )
+        sqlx::query(concat!(
+            "INSERT INTO tutorials ",
+            "(id, title, description, icon, color, topics, content, version) ",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
+        ))
         .bind(id)
         .bind(title)
         .bind(description)

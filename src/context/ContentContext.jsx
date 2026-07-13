@@ -1,41 +1,33 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import { api } from '../api/client'
 const ContentContext = createContext(null)
 
 /**
  * Global Fallback Data Configuration.
- * 
+ *
  * Defines the initial structure and default content for the entire site.
  * This object serves as a blueprint for the backend data and also acts as
  * the reliable fallback if the API fails or returns incomplete sections.
  */
 export const DEFAULT_CONTENT = {
   hero: {
-    badgeText: 'Professionelles IT Wissen',
+    badgeText: 'Persönlicher Blog',
     icon: 'Terminal',
     title: {
-      line1: 'IT Security, Programming',
-      line2: '& Administration',
+      line1: 'Gedanken, Projekte',
+      line2: '& Dinge dazwischen',
     },
-    subtitle: 'Dein Wissensportal für IT-Themen – von Security bis Systemadministration.',
-    subline: 'Aktuell, praxisnah und verständlich.',
+    subtitle: 'Persönliche Notizen über Technik, Ideen und alles, was mich gerade beschäftigt.',
+    subline: 'Ausprobiert, durchdacht und ehrlich aufgeschrieben.',
     heroImage: '', // URL to the hero image (can be set via CMS)
     primaryCta: {
-      label: "Themen entdecken",
-      target: { type: 'section', value: 'features' },
+      label: 'Beiträge lesen',
+      target: { type: 'section', value: 'stories' },
     },
     secondaryCta: {
-      label: 'Blog lesen',
-      target: { type: 'route', value: '/blog' },
+      label: 'Über diesen Blog',
+      target: { type: 'section', value: 'about' },
     },
     features: [
       {
@@ -67,25 +59,34 @@ export const DEFAULT_CONTENT = {
     ],
   },
   cta_section: {
-    title: 'Wissen teilen & erweitern',
-    description: 'Bleib auf dem Laufenden mit den neuesten Entwicklungen in der IT-Welt.',
+    title: 'Neue Notizen per Mail',
+    description: 'Ich melde mich, wenn es einen neuen Gedanken oder Beitrag zu teilen gibt.',
+  },
+  about: {
+    eyebrow: 'Warum ich schreibe',
+    lead: 'Ich schreibe, um Dinge wirklich zu verstehen – und um meine Gedanken nicht zu verlieren.',
+    paragraphs: [
+      'Dieser Blog ist mein digitales Notizbuch. Ich teile, was ich lerne, woran ich arbeite ' +
+        'und welche Fragen mich gerade begleiten.',
+      'Die Themen dürfen wechseln. Was bleibt, ist eine persönliche Perspektive, ehrliche ' +
+        'Neugier und der Wunsch, Gedanken sauber zu Ende zu denken.',
+    ],
   },
   site_meta: {
-    title: 'IT Wissensportal - Security, Programming & Admin',
-    description: 'Dein Portal für IT Security, Programmierung und Administration.',
+    title: 'Zero Point – Persönlicher Blog',
+    description: 'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.',
   },
 
   header: {
     brand: {
-      name: 'IT Portal',
-      tagline: '',
+      name: 'Zero Point',
+      tagline: 'Persönlicher Blog',
       icon: 'Terminal',
     },
     navItems: [
-      { id: 'features', label: 'Features', type: 'section', value: 'features' },
-      { id: 'tutorial', label: 'Tutorial', type: 'route', path: '/tutorial/getting-started' },
-      { id: 'blog', label: 'Blog', type: 'route', path: '/blog' },
-      { id: 'about', label: 'Über', type: 'route', path: '/about' },
+      { id: 'stories', label: 'Beiträge', type: 'section', value: 'stories' },
+      { id: 'topics', label: 'Themen', type: 'section', value: 'topics' },
+      { id: 'about', label: 'Über diesen Blog', type: 'section', value: 'about' },
     ],
     cta: {
       guestLabel: 'Login',
@@ -95,21 +96,18 @@ export const DEFAULT_CONTENT = {
   },
   footer: {
     brand: {
-      title: 'IT Wissensportal',
-      description: 'Dein Portal für IT Security, Programmierung und Administration.',
+      title: 'Zero Point',
+      description: 'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.',
       icon: 'Terminal',
     },
     quickLinks: [
-      { label: 'Home', target: { type: 'section', value: 'home' } },
-      { label: 'Blog', target: { type: 'route', value: '/blog' } },
+      { label: 'Beiträge', target: { type: 'section', value: 'stories' } },
+      { label: 'Über diesen Blog', target: { type: 'section', value: 'about' } },
     ],
-    contactLinks: [
-      { label: 'GitHub', href: 'https://github.com', icon: 'Github' },
-      { label: 'E-Mail', href: 'mailto:info@example.com', icon: 'Mail' },
-    ],
+    contactLinks: [],
     bottom: {
-      copyright: '© {year} IT Wissensportal. Alle Rechte vorbehalten.',
-      signature: 'Made for IT Professionals',
+      copyright: '© {year} Zero Point.',
+      signature: 'Persönlich notiert',
     },
   },
   login: {
@@ -121,6 +119,22 @@ export const DEFAULT_CONTENT = {
     passwordLabel: 'Passwort',
     backLinkText: 'Zurück zur Startseite',
   },
+}
+const LEGACY_STARTER_BRANDS = new Set(['IT Portal', 'IT Wissensportal', 'Linux Tutorial'])
+const normalizeStarterSection = (section, value) => {
+  if (section === 'site_meta') {
+    const legacyTitle = value?.title || ''
+    if (legacyTitle.startsWith('IT Wissensportal') || legacyTitle.startsWith('Linux Tutorial')) {
+      return DEFAULT_CONTENT.site_meta
+    }
+  }
+  if (section === 'header' && LEGACY_STARTER_BRANDS.has(value?.brand?.name)) {
+    return DEFAULT_CONTENT.header
+  }
+  if (section === 'footer' && LEGACY_STARTER_BRANDS.has(value?.brand?.title)) {
+    return DEFAULT_CONTENT.footer
+  }
+  return value
 }
 export const CONTENT_SECTIONS = Object.keys(DEFAULT_CONTENT)
 export const ContentProvider = ({ children }) => {
@@ -139,7 +153,7 @@ export const ContentProvider = ({ children }) => {
   const publishedPageSlugsRef = useRef([])
   /**
    * Loads global site content (Hero, Features, Stats, etc.) from the backend.
-   * 
+   *
    * Merges backend data on top of `DEFAULT_CONTENT` to ensure structural integrity
    * even if specific sections haven't been customized in the CMS yet.
    */
@@ -151,7 +165,7 @@ export const ContentProvider = ({ children }) => {
       const merged = { ...DEFAULT_CONTENT }
       if (data?.items?.length) {
         for (const item of data.items) {
-          merged[item.section] = item.content
+          merged[item.section] = normalizeStarterSection(item.section, item.content)
         }
       }
       setContent(merged)
@@ -196,9 +210,7 @@ export const ContentProvider = ({ children }) => {
     }
   }, [])
   useEffect(() => {
-    publishedPageSlugsRef.current = Array.isArray(publishedPageSlugs)
-      ? publishedPageSlugs
-      : []
+    publishedPageSlugsRef.current = Array.isArray(publishedPageSlugs) ? publishedPageSlugs : []
   }, [publishedPageSlugs])
 
   const fetchPublishedPage = useCallback(
@@ -307,10 +319,10 @@ export const ContentProvider = ({ children }) => {
   }, [])
   /**
    * Generates a unified navigation model combining static and dynamic items.
-   * 
+   *
    * static: Defined in the `header` section of DEFAULT_CONTENT/CMS.
    * dynamic: Automatically generated from published CMS pages.
-   * 
+   *
    * Items are normalized into a consistent shape { id, label, path, source }
    * for consumption by Navbar / Footer components.
    */
@@ -332,18 +344,18 @@ export const ContentProvider = ({ children }) => {
 
     const filteredDynamic = Array.isArray(dynamicNavItems)
       ? dynamicNavItems.filter((item) => {
-        if (!item || typeof item.slug !== 'string') {
-          return false
-        }
-        const normalizedSlug = item.slug.trim().toLowerCase()
-        if (!normalizedSlug) {
-          return false
-        }
-        if (restrictToPublished && !normalizedPublishedSlugs.has(normalizedSlug)) {
-          return false
-        }
-        return true
-      })
+          if (!item || typeof item.slug !== 'string') {
+            return false
+          }
+          const normalizedSlug = item.slug.trim().toLowerCase()
+          if (!normalizedSlug) {
+            return false
+          }
+          if (restrictToPublished && !normalizedPublishedSlugs.has(normalizedSlug)) {
+            return false
+          }
+          return true
+        })
       : []
     const sortedDynamic = [...filteredDynamic].sort(
       (a, b) => (a?.order_index ?? 0) - (b?.order_index ?? 0),
@@ -366,53 +378,56 @@ export const ContentProvider = ({ children }) => {
       items: [...staticNormalized, ...dynamicNormalized],
     }
   }, [content, dynamicNavItems, publishedPageSlugs])
-  const value = useMemo(() => ({
-    content,
-    loading,
-    error,
-    refreshContent: loadContent,
-    getSection: (section) => content[section] ?? DEFAULT_CONTENT[section],
-    getDefaultSection: (section) => DEFAULT_CONTENT[section],
-    getSiteMeta: () => content?.site_meta ?? DEFAULT_CONTENT.site_meta,
-    updateSection,
-    savingSections,
-    navigation: {
-      ...navigationData,
-      loading: navLoading,
-      error: navError,
-      refresh: loadNavigation,
-    },
-    pages: {
-      cache: pageCache,
-      fetch: fetchPublishedPage,
-      publishedSlugs: publishedPageSlugs,
-      loading: publishedPagesLoading,
-      error: publishedPagesError,
-      refresh: loadPublishedPages,
-      invalidate: invalidatePageCache,
-      getPost: api.getPublishedPost.bind(api),
-    },
-  }), [
-    content,
-    loading,
-    error,
-    loadContent,
-    updateSection,
-    savingSections,
-    navigationData,
-    navLoading,
-    navError,
-    loadNavigation,
-    pageCache,
-    fetchPublishedPage,
-    publishedPageSlugs,
-    publishedPagesLoading,
-    publishedPagesError,
-    loadPublishedPages,
-    invalidatePageCache,
-  ]);
-  return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
-};
+  const value = useMemo(
+    () => ({
+      content,
+      loading,
+      error,
+      refreshContent: loadContent,
+      getSection: (section) => content[section] ?? DEFAULT_CONTENT[section],
+      getDefaultSection: (section) => DEFAULT_CONTENT[section],
+      getSiteMeta: () => content?.site_meta ?? DEFAULT_CONTENT.site_meta,
+      updateSection,
+      savingSections,
+      navigation: {
+        ...navigationData,
+        loading: navLoading,
+        error: navError,
+        refresh: loadNavigation,
+      },
+      pages: {
+        cache: pageCache,
+        fetch: fetchPublishedPage,
+        publishedSlugs: publishedPageSlugs,
+        loading: publishedPagesLoading,
+        error: publishedPagesError,
+        refresh: loadPublishedPages,
+        invalidate: invalidatePageCache,
+        getPost: api.getPublishedPost.bind(api),
+      },
+    }),
+    [
+      content,
+      loading,
+      error,
+      loadContent,
+      updateSection,
+      savingSections,
+      navigationData,
+      navLoading,
+      navError,
+      loadNavigation,
+      pageCache,
+      fetchPublishedPage,
+      publishedPageSlugs,
+      publishedPagesLoading,
+      publishedPagesError,
+      loadPublishedPages,
+      invalidatePageCache,
+    ],
+  )
+  return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>
+}
 ContentProvider.propTypes = {
   children: PropTypes.node,
 }

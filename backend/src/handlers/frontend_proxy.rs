@@ -136,16 +136,28 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
         };
 
     // Extract title from JSON, providing a sensible fallback
-    let title = site_meta
+    let stored_title = site_meta
         .get("title")
         .and_then(|v| v.as_str())
-        .unwrap_or("Linux Tutorial - Lerne Linux Schritt für Schritt");
+        .unwrap_or("Zero Point – Persönlicher Blog");
+    let is_starter_content =
+        stored_title.starts_with("Linux Tutorial") || stored_title.starts_with("IT Wissensportal");
+    let title = if is_starter_content {
+        "Zero Point – Persönlicher Blog"
+    } else {
+        stored_title
+    };
 
     // Extract description from JSON, providing a sensible fallback
-    let description = site_meta
+    let stored_description = site_meta
         .get("description")
         .and_then(|v| v.as_str())
-        .unwrap_or("Lerne Linux von Grund auf - Interaktiv, modern und praxisnah.");
+        .unwrap_or("Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.");
+    let description = if is_starter_content {
+        "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen."
+    } else {
+        stored_description
+    };
 
     // Injection Phase:
     // We use simple string replacement to swap hardcoded defaults in the build

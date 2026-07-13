@@ -26,7 +26,8 @@ const TutorialSection = () => {
       <div className="absolute inset-0 -z-10">
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent"
+          className={`absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary-500/15
+via-primary-500/5 to-transparent`}
         ></div>
         <div
           aria-hidden="true"
@@ -45,31 +46,38 @@ const TutorialSection = () => {
               'Umfassende Lernmodule für alle Erfahrungsstufen – vom Anfänger bis zum Profi'}
           </p>
         </div>
-      {error && (
-        <div className="mb-10 flex items-start gap-3 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-100 backdrop-blur-sm" role="alert">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-200" aria-hidden="true" />
-          <div>
-            <p className="font-semibold text-red-50">Fehler beim Laden der Tutorials</p>
-            <p className="text-sm text-red-100/80">{error?.message || String(error)}</p>
+        {error && (
+          <div
+            className={`mb-10 flex items-start gap-3 rounded-xl border border-red-500/40
+bg-red-500/10 p-4 text-red-100 backdrop-blur-sm`}
+            role="alert"
+          >
+            <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-200" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-red-50">Fehler beim Laden der Tutorials</p>
+              <p className="text-sm text-red-100/80">{error?.message || String(error)}</p>
+            </div>
           </div>
-        </div>
-      )}
-      {loading && normalizedTutorials.length === 0 ? (
-        <div className="py-12 text-center text-neutral-300">Lade Tutorials…</div>
-      ) : (
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3">
-          {normalizedTutorials.map((tutorial) => (
-            <TutorialCard
-              key={tutorial.id}
-              {...tutorial}
-              icon={getIconComponent(tutorial.icon)}
-              onSelect={() => navigate(`/tutorials/${tutorial.id}`)}
-              buttonLabel={sectionContent.tutorialCardButton || 'Zum Tutorial'}
-            />
-          ))}
-        </div>
-      )}
-        <div className="mt-20 rounded-3xl border border-white/10 bg-slate-900/80 p-8 text-center text-slate-100 shadow-card-xl md:p-12">
+        )}
+        {loading && normalizedTutorials.length === 0 ? (
+          <div className="py-12 text-center text-neutral-300">Lade Tutorials…</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3">
+            {normalizedTutorials.map((tutorial) => (
+              <TutorialCard
+                key={tutorial.id}
+                {...tutorial}
+                icon={getIconComponent(tutorial.icon)}
+                onSelect={() => navigate(`/tutorials/${tutorial.id}`)}
+                buttonLabel={sectionContent.tutorialCardButton || 'Zum Tutorial'}
+              />
+            ))}
+          </div>
+        )}
+        <div
+          className={`mt-20 rounded-3xl border border-white/10 bg-slate-900/80 p-8 text-center
+text-slate-100 shadow-card-xl md:p-12`}
+        >
           <h3 className="mb-4 text-3xl font-semibold md:text-4xl text-white">
             {sectionContent.heading || 'Bereit anzufangen?'}
           </h3>

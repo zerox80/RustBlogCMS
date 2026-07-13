@@ -1,4 +1,4 @@
-use crate::handlers::{auth, comments, search, site_content, site_pages, tutorials};
+use crate::handlers::{auth, comments, newsletter, search, site_content, site_pages, tutorials};
 use crate::{db::DbPool, middleware::security::TrustedClientIpKeyExtractor};
 use axum::{
     routing::{get, post},
@@ -32,6 +32,13 @@ pub fn routes(
             get(comments::list_post_comments).post(comments::create_post_comment),
         )
         .route("/api/comments/{id}/vote", post(comments::vote_comment))
+        .route_layer(GovernorLayer::new(public_rate_limit_config.clone()));
+
+    let rate_limited_newsletter_route = Router::new()
+        .route(
+            "/api/public/newsletter",
+            post(newsletter::subscribe_to_newsletter),
+        )
         .route_layer(GovernorLayer::new(public_rate_limit_config));
 
     Router::new()
@@ -47,6 +54,7 @@ pub fn routes(
             get(site_content::get_site_content),
         )
         .merge(rate_limited_comment_routes)
+        .merge(rate_limited_newsletter_route)
         .route(
             "/api/public/pages/{slug}",
             get(site_pages::get_published_page_by_slug),

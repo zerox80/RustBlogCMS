@@ -8,7 +8,7 @@ import TutorialContentDisplay from '../components/tutorial/TutorialContentDispla
 
 /**
  * Detailed Tutorial Viewer.
- * 
+ *
  * Features:
  * - Canonical Loading: Fetches the complete tutorial from its detail endpoint.
  * - Modular Rendering: Decouples header, topics, and content for scalability.
@@ -65,7 +65,10 @@ const TutorialDetail = () => {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pt-28 pb-16">
+    <main
+      className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100
+dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pt-28 pb-16`}
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <button
           onClick={handleBack}
@@ -89,11 +92,11 @@ const TutorialDetail = () => {
             </div>
           </div>
         ) : tutorial ? (
-          <article className="bg-white dark:bg-slate-900/90 rounded-3xl shadow-xl border border-gray-200 dark:border-slate-800/70 overflow-hidden">
-            <TutorialHeader
-              title={tutorial.title}
-              description={tutorial.description}
-            />
+          <article
+            className={`bg-white dark:bg-slate-900/90 rounded-3xl shadow-xl border border-gray-200
+dark:border-slate-800/70 overflow-hidden`}
+          >
+            <TutorialHeader title={tutorial.title} description={tutorial.description} />
 
             <div className="px-8 py-10 space-y-12">
               <TutorialTopicsList topics={topics} />

@@ -124,3 +124,60 @@ async fn test_site_content_update_requires_auth() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn test_newsletter_subscription_is_validated_and_idempotent() {
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    sqlx::query(
+        r#"
+        CREATE TABLE newsletter_subscriptions (
+            id TEXT PRIMARY KEY,
+            email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let app =
+        routes::create_routes(pool.clone(), "test_uploads".to_string()).with_state(pool.clone());
+
+    for email in ["Reader@Example.com", "reader@example.com"] {
+        let response = app
+            .clone()
+            .oneshot(with_connect_info(
+                Request::builder()
+                    .uri("/api/public/newsletter")
+                    .method("POST")
+                    .header("Content-Type", "application/json")
+                    .body(Body::from(format!(r#"{{"email":"{email}"}}"#)))
+                    .unwrap(),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    let stored_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM newsletter_subscriptions")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(stored_count, 1);
+
+    let invalid_response = app
+        .oneshot(with_connect_info(
+            Request::builder()
+                .uri("/api/public/newsletter")
+                .method("POST")
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{"email":"not-an-email"}"#))
+                .unwrap(),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_response.status(), StatusCode::BAD_REQUEST);
+}

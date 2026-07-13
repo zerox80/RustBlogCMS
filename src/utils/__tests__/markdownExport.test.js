@@ -62,8 +62,12 @@ describe('markdownExport', () => {
     expect(markdown).toContain('| Navigation | Sichtbar |')
     expect(markdown).toContain('### Hero')
     expect(markdown).toContain('| Untertitel | Alles an einem Ort |')
-    expect(markdown).toContain('```json\n{\n  "postsSection": {\n    "title": "Artikel"\n  }\n}\n```')
-    expect(markdown.indexOf('#### Erster Beitrag')).toBeLessThan(markdown.indexOf('#### Zweiter Beitrag'))
+    expect(markdown).toContain(
+      '```json\n{\n  "postsSection": {\n    "title": "Artikel"\n  }\n}\n```',
+    )
+    expect(markdown.indexOf('#### Erster Beitrag')).toBeLessThan(
+      markdown.indexOf('#### Zweiter Beitrag'),
+    )
     expect(markdown).toContain('| Kommentare | Deaktiviert |')
     expect(markdown).toContain('# Inhalt\n\nAbsatz eins.\n\n\nAbsatz zwei.')
   })

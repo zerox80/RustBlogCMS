@@ -8,12 +8,11 @@ pub async fn list_site_posts_for_page(
     pool: &DbPool,
     page_id: &str,
 ) -> Result<Vec<SitePost>, sqlx::Error> {
-    sqlx::query_as::<_, SitePost>(
-        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, allow_comments, published_at, order_index, created_at, updated_at
-         FROM site_posts
-         WHERE page_id = ?
-         ORDER BY order_index, created_at",
-    )
+    sqlx::query_as::<_, SitePost>(concat!(
+        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, ",
+        "allow_comments, published_at, order_index, created_at, updated_at ",
+        "FROM site_posts WHERE page_id = ? ORDER BY order_index, created_at"
+    ))
     .bind(page_id)
     .fetch_all(pool)
     .await
@@ -24,12 +23,12 @@ pub async fn list_published_posts_for_page(
     pool: &DbPool,
     page_id: &str,
 ) -> Result<Vec<SitePost>, sqlx::Error> {
-    sqlx::query_as::<_, SitePost>(
-        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, allow_comments, published_at, order_index, created_at, updated_at
-         FROM site_posts
-         WHERE page_id = ? AND is_published = 1
-         ORDER BY order_index, COALESCE(published_at, created_at)",
-    )
+    sqlx::query_as::<_, SitePost>(concat!(
+        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, ",
+        "allow_comments, published_at, order_index, created_at, updated_at ",
+        "FROM site_posts WHERE page_id = ? AND is_published = 1 ",
+        "ORDER BY order_index, COALESCE(published_at, created_at)"
+    ))
     .bind(page_id)
     .fetch_all(pool)
     .await
@@ -40,11 +39,11 @@ pub async fn get_published_post_by_slug(
     page_id: &str,
     post_slug: &str,
 ) -> Result<Option<SitePost>, sqlx::Error> {
-    sqlx::query_as::<_, SitePost>(
-        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, allow_comments, published_at, order_index, created_at, updated_at
-         FROM site_posts
-         WHERE page_id = ? AND slug = ? AND is_published = 1",
-    )
+    sqlx::query_as::<_, SitePost>(concat!(
+        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, ",
+        "allow_comments, published_at, order_index, created_at, updated_at ",
+        "FROM site_posts WHERE page_id = ? AND slug = ? AND is_published = 1"
+    ))
     .bind(page_id)
     .bind(post_slug)
     .fetch_optional(pool)
@@ -52,10 +51,11 @@ pub async fn get_published_post_by_slug(
 }
 
 pub async fn get_site_post_by_id(pool: &DbPool, id: &str) -> Result<Option<SitePost>, sqlx::Error> {
-    sqlx::query_as::<_, SitePost>(
-        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, allow_comments, published_at, order_index, created_at, updated_at
-         FROM site_posts WHERE id = ?",
-    )
+    sqlx::query_as::<_, SitePost>(concat!(
+        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, ",
+        "allow_comments, published_at, order_index, created_at, updated_at ",
+        "FROM site_posts WHERE id = ?"
+    ))
     .bind(id)
     .fetch_optional(pool)
     .await
@@ -75,10 +75,11 @@ pub async fn create_site_post(
     let order_index = payload.order_index.unwrap_or(0);
 
     // Insert record
-    sqlx::query(
-        "INSERT INTO site_posts (id, page_id, title, slug, excerpt, content_markdown, is_published, allow_comments, published_at, order_index)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    )
+    sqlx::query(concat!(
+        "INSERT INTO site_posts (id, page_id, title, slug, excerpt, content_markdown, ",
+        "is_published, allow_comments, published_at, order_index) ",
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ))
     .bind(&id)
     .bind(page_id)
     .bind(&payload.title)
@@ -140,11 +141,11 @@ pub async fn update_site_post(
     }
 
     // Save back to DB
-    sqlx::query(
-        "UPDATE site_posts
-         SET title = ?, slug = ?, excerpt = ?, content_markdown = ?, is_published = ?, allow_comments = ?, published_at = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?",
-    )
+    sqlx::query(concat!(
+        "UPDATE site_posts SET title = ?, slug = ?, excerpt = ?, content_markdown = ?, ",
+        "is_published = ?, allow_comments = ?, published_at = ?, order_index = ?, ",
+        "updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ))
     .bind(&existing.title)
     .bind(&existing.slug)
     .bind(&existing.excerpt)

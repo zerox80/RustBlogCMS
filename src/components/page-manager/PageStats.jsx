@@ -7,8 +7,14 @@ const PageStats = ({ navigation, publishedSlugs, pages, selectedPage }) => {
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-slate-900">
-        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4 dark:border-gray-800">
+      <div
+        className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm
+dark:border-gray-700 dark:bg-slate-900`}
+      >
+        <div
+          className={`flex items-center gap-3 border-b border-gray-100 pb-4 mb-4
+dark:border-gray-800`}
+        >
           <Navigation className="h-5 w-5 text-primary-600" />
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Navigation</p>
@@ -34,11 +40,19 @@ const PageStats = ({ navigation, publishedSlugs, pages, selectedPage }) => {
           )}
         </div>
       </div>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-slate-900">
-        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4 dark:border-gray-800">
+      <div
+        className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm
+dark:border-gray-700 dark:bg-slate-900`}
+      >
+        <div
+          className={`flex items-center gap-3 border-b border-gray-100 pb-4 mb-4
+dark:border-gray-800`}
+        >
           <Eye className="h-5 w-5 text-green-600" />
           <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Veröffentlichungen</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Veröffentlichungen
+            </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {totalPublishedPages} veröffentlichte Seite{totalPublishedPages === 1 ? '' : 'n'}
             </p>
@@ -54,15 +68,25 @@ const PageStats = ({ navigation, publishedSlugs, pages, selectedPage }) => {
             </div>
           ))}
           {totalPublishedPages === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">Noch keine Seite veröffentlicht.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Noch keine Seite veröffentlicht.
+            </p>
           )}
         </div>
       </div>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-slate-900">
-        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4 dark:border-gray-800">
+      <div
+        className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm
+dark:border-gray-700 dark:bg-slate-900`}
+      >
+        <div
+          className={`flex items-center gap-3 border-b border-gray-100 pb-4 mb-4
+dark:border-gray-800`}
+        >
           <Layers className="h-5 w-5 text-indigo-600" />
           <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Seitenübersicht</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Seitenübersicht
+            </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {pages.length} Seite{pages.length === 1 ? '' : 'n'} insgesamt
             </p>

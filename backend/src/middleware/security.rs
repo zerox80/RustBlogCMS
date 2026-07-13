@@ -203,13 +203,23 @@ pub async fn security_headers(request: Request, next: Next) -> Response {
     }
 
     // Step 2: Content Security Policy (CSP)
-    // Note: 'unsafe-inline' for style-src is currently required for syntax highlighting and math rendering.
+    // 'unsafe-inline' remains necessary for syntax highlighting and math rendering.
     let csp = if cfg!(debug_assertions) {
         // Development CSP - allows local hot reloading ws/wss
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+        concat!(
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' ",
+            "https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; ",
+            "img-src 'self' data: blob:; connect-src 'self' ws: wss:; object-src 'none'; ",
+            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+        )
     } else {
         // Production CSP - restricted connections
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+        concat!(
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' ",
+            "https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; ",
+            "img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; ",
+            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+        )
     };
 
     headers.insert(CONTENT_SECURITY_POLICY, HeaderValue::from_static(csp));

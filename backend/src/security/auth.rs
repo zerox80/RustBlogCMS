@@ -120,18 +120,20 @@ pub fn init_jwt_secret() -> Result<(), String> {
         .iter()
         .any(|candidate| candidate.eq_ignore_ascii_case(trimmed))
     {
-        return Err(
-            "JWT_SECRET uses a known placeholder value. Generate a fresh random secret (e.g. `openssl rand -base64 48)`."
-                .to_string(),
-        );
+        return Err(concat!(
+            "JWT_SECRET uses a known placeholder value. Generate a fresh random secret ",
+            "(e.g. `openssl rand -base64 48)`."
+        )
+        .to_string());
     }
 
     // Validate entropy
     if !secret_has_min_entropy(trimmed) {
-        return Err(
-            "JWT_SECRET must be a high-entropy value (~256 bits). Use a cryptographically random string of at least 43 characters mixing upper, lower, digits, and symbols."
-                .to_string(),
-        );
+        return Err(concat!(
+            "JWT_SECRET must be a high-entropy value (~256 bits). Use a cryptographically ",
+            "random string of at least 43 characters mixing upper, lower, digits, and symbols."
+        )
+        .to_string());
     }
 
     // Store secret in global state (can only be done once)
@@ -278,151 +280,8 @@ pub fn verify_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
     Ok(token_data.claims)
 }
 
-/// Builds a secure authentication cookie containing the JWT token.
-///
-/// Creates an HttpOnly cookie with appropriate security flags for
-/// storing the JWT token in the client's browser.
-///
-/// # Arguments
-/// * `token` - The JWT token to store in the cookie
-///
-/// # Returns
-/// A Cookie configured for secure authentication token storage
-///
-/// # Security Features
-/// - HttpOnly: Prevents JavaScript access (XSS protection)
-/// - SameSite=Lax: CSRF protection while allowing navigation
-/// - Secure flag: HTTPS-only (when AUTH_COOKIE_SECURE is not false)
-/// - 24-hour expiration: Matches JWT expiration
-/// - Path=/: Available to all routes
-pub fn build_auth_cookie(token: &str) -> Cookie<'static> {
-    // Build cookie with security flags
-    let mut builder = Cookie::build((AUTH_COOKIE_NAME, token.to_owned()))
-        .path("/")
-        .http_only(true)
-        .same_site(SameSite::Lax)
-        .max_age(TimeDuration::seconds(AUTH_COOKIE_TTL_SECONDS));
-
-    // Add Secure flag in production (HTTPS only)
-    if cookies_should_be_secure() {
-        builder = builder.secure(true);
-    }
-
-    builder.build()
-}
-
-/// Builds a cookie that removes the authentication cookie.
-///
-/// Creates a cookie with expired timestamp to instruct the browser
-/// to delete the authentication cookie (used for logout).
-///
-/// # Returns
-/// A Cookie configured to remove the authentication cookie
-///
-/// # Mechanism
-/// - Empty value
-/// - Expiration set to Unix epoch (Jan 1, 1970)
-/// - Max-age of 0
-/// - Same path and security flags as the auth cookie
-pub fn build_cookie_removal() -> Cookie<'static> {
-    // Build cookie with expiration in the past to trigger removal
-    let mut builder = Cookie::build((AUTH_COOKIE_NAME, ""))
-        .path("/")
-        .http_only(true)
-        .same_site(SameSite::Lax)
-        .expires(OffsetDateTime::UNIX_EPOCH)
-        .max_age(TimeDuration::seconds(0));
-
-    // Match security settings of auth cookie
-    if cookies_should_be_secure() {
-        builder = builder.secure(true);
-    }
-
-    builder.build()
-}
-
-/// AXUM extractor implementation for Claims.
-///
-/// This allows Claims to be used as a function parameter in route handlers,
-/// automatically extracting and validating the JWT token from the request.
-///
-/// # Extraction order
-/// 1. Check if claims already in request extensions (from middleware)
-/// 2. Extract token from Authorization header or cookie
-/// 3. Validate token and decode claims
-///
-/// # Errors
-/// Returns 401 Unauthorized if:
-/// - No token found in headers or cookies
-/// - Token is invalid or expired
-impl<S> FromRequestParts<S> for Claims
-where
-    S: Send + Sync,
-    DbPool: FromRef<S>,
-{
-    type Rejection = (StatusCode, String);
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // Step 1: Check cache. If auth middleware already ran, claims are in extensions.
-        if let Some(claims) = parts.extensions.get::<Claims>() {
-            return Ok(claims.clone());
-        }
-
-        // Step 2: Extract raw token from standard locations (Header/Cookie).
-        let token = extract_token(&parts.headers).ok_or_else(|| {
-            (
-                StatusCode::UNAUTHORIZED,
-                "Missing authentication token".to_string(),
-            )
-        })?;
-
-        // Step 3: Verify cryptographic signature and expiration.
-        let claims = verify_jwt(&token)
-            .map_err(|e| (StatusCode::UNAUTHORIZED, format!("Invalid token: {}", e)))?;
-
-        // Step 4: Check if token has been revoked (Logout/Blacklist).
-        let pool = DbPool::from_ref(state);
-        let is_blacklisted =
-            crate::repositories::token_blacklist::is_token_blacklisted(&pool, &token)
-                .await
-                .map_err(|e| {
-                    tracing::error!("Database error checking token blacklist: {}", e);
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Internal server error".to_string(),
-                    )
-                })?;
-
-        if is_blacklisted {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                "Token has been revoked".to_string(),
-            ));
-        }
-
-        // Cache result for downstream handlers
-        parts.extensions.insert(claims.clone());
-        Ok(claims)
-    }
-}
-
-/// Appends an authentication cookie to the response headers.
-///
-/// # Arguments
-/// * `headers` - Mutable reference to the response HeaderMap
-/// * `cookie` - The cookie to append
-///
-/// # Error Handling
-/// Logs an error if the cookie cannot be serialized (should never happen)
-pub fn append_auth_cookie(headers: &mut HeaderMap, cookie: Cookie<'static>) {
-    // Convert cookie to header value
-    if let Ok(value) = HeaderValue::from_str(&cookie.to_string()) {
-        headers.append(SET_COOKIE, value);
-    } else {
-        // This should never happen with valid cookie values
-        tracing::error!("Failed to serialize auth cookie for Set-Cookie header");
-    }
-}
+mod cookies;
+pub use cookies::{append_auth_cookie, build_auth_cookie, build_cookie_removal};
 
 /// Validates that a secret has minimum entropy requirements.
 ///
@@ -494,9 +353,10 @@ pub fn cookies_should_be_secure() -> bool {
     match env::var("AUTH_COOKIE_SECURE") {
         // Only disable if explicitly set to false
         Ok(value) if value.trim().eq_ignore_ascii_case("false") => {
-            tracing::warn!(
-                "AUTH_COOKIE_SECURE explicitly set to false. Cookies will be sent over HTTP; only use this in trusted development environments."
-            );
+            tracing::warn!(concat!(
+                "AUTH_COOKIE_SECURE explicitly set to false. Cookies will be sent over HTTP; ",
+                "only use this in trusted development environments."
+            ));
             false
         }
         // Default to secure cookies
@@ -618,97 +478,4 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_secret_entropy_validation() {
-        // Too short (fails length check)
-        assert!(!secret_has_min_entropy("Short1!"));
-
-        // Only one character class (fails class count check)
-        assert!(!secret_has_min_entropy("this_is_a_very_long_secret_but_only_contains_lowercase_and_underscores_which_is_not_enough_classes"));
-
-        // Only two character classes (fails class count check)
-        assert!(!secret_has_min_entropy(
-            "ThisIsAVeryLongSecretWithUppercaseAndLowercaseButNoNumbersOrSpecialChars"
-        ));
-
-        // Too few unique characters (fails uniqueness check)
-        assert!(!secret_has_min_entropy(
-            "A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!A1!"
-        ));
-
-        // Valid high entropy secret (meets all requirements)
-        assert!(secret_has_min_entropy(
-            "p@ssW0rd_Extremely_Long_And_Secure_With_Many_Chars_123!"
-        ));
-    }
-
-    #[test]
-    fn test_jwt_initialization_flow() {
-        // Since JWT_SECRET is a global OnceLock, it might be initialized by other tests.
-        // We just verify that if we attempt to initialize it, we either succeed or
-        // get an "already initialized" error.
-        env::set_var(
-            "JWT_SECRET",
-            "this_is_a_test_secret_with_adequate_entropy_123_ABC_!!!",
-        );
-        let result = init_jwt_secret();
-
-        match result {
-            Ok(_) => assert!(JWT_SECRET.get().is_some()),
-            Err(e) => assert!(
-                e.contains("already initialized") || e.contains("JWT_SECRET already initialized")
-            ),
-        }
-    }
-
-    #[test]
-    fn test_jwt_create_and_verify() {
-        // Ensure secret is set
-        if JWT_SECRET.get().is_none() {
-            env::set_var(
-                "JWT_SECRET",
-                "this_is_another_test_secret_with_adequate_entropy_123_XYZ_!!!",
-            );
-            let _ = init_jwt_secret();
-        }
-
-        let username = "auth_test_user".to_string();
-        let role = "admin".to_string();
-
-        let token = create_jwt(username.clone(), role.clone()).expect("Failed to create JWT");
-        let decoded = verify_jwt(&token).expect("Failed to verify JWT");
-
-        assert_eq!(decoded.sub, username);
-        assert_eq!(decoded.role, role);
-    }
-
-    #[test]
-    fn test_parse_bearer_token() {
-        assert_eq!(
-            parse_bearer_token("Bearer my_token"),
-            Some("my_token".to_string())
-        );
-        assert_eq!(
-            parse_bearer_token("bearer  my_token "),
-            Some("my_token".to_string())
-        );
-        assert_eq!(parse_bearer_token("token_without_bearer"), None);
-        assert_eq!(parse_bearer_token("Bearer "), None);
-    }
-
-    #[test]
-    fn test_build_auth_cookie() {
-        let token = "test_jwt_cookie_token";
-        let cookie = build_auth_cookie(token);
-
-        assert_eq!(cookie.name(), AUTH_COOKIE_NAME);
-        assert_eq!(cookie.value(), token);
-        assert_eq!(cookie.path(), Some("/"));
-        assert_eq!(cookie.http_only(), Some(true));
-        assert_eq!(cookie.same_site(), Some(SameSite::Lax));
-        assert!(cookie.max_age().is_some());
-    }
-}
+mod tests;

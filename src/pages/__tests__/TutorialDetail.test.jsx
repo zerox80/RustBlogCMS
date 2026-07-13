@@ -22,13 +22,14 @@ vi.mock('../../components/tutorial/TutorialContentDisplay', () => ({
   default: ({ content }) => <div data-testid="tutorial-content">{content}</div>,
 }))
 
-const renderDetail = () => render(
-  <MemoryRouter initialEntries={['/tutorials/linux-basics']}>
-    <Routes>
-      <Route path="/tutorials/:id" element={<TutorialDetail />} />
-    </Routes>
-  </MemoryRouter>,
-)
+const renderDetail = () =>
+  render(
+    <MemoryRouter initialEntries={['/tutorials/linux-basics']}>
+      <Routes>
+        <Route path="/tutorials/:id" element={<TutorialDetail />} />
+      </Routes>
+    </MemoryRouter>,
+  )
 
 describe('TutorialDetail', () => {
   beforeEach(() => {
@@ -46,7 +47,9 @@ describe('TutorialDetail', () => {
 
     const view = renderDetail()
 
-    expect(await screen.findByTestId('tutorial-content')).toHaveTextContent('The complete tutorial body.')
+    expect(await screen.findByTestId('tutorial-content')).toHaveTextContent(
+      'The complete tutorial body.',
+    )
 
     // A provider/list refresh only contains summary records. Re-rendering the
     // detail view must not replace its canonical API response with one.

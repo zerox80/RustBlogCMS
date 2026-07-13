@@ -40,6 +40,7 @@ fn allowed_sections() -> &'static HashSet<&'static str> {
             "site_meta",        // SEO titles/description
             "stats",            // Numbers/stats display
             "cta_section",      // Call to action
+            "about",            // Personal homepage introduction
             "settings",         // System-wide toggles
             "login",            // Custom login page text
         ]
@@ -132,7 +133,7 @@ fn validate_header_structure(content: &Value) -> Result<(), &'static str> {
         .and_then(|v| v.as_array())
         .ok_or("Field 'navItems' must be an array")?;
 
-    // Validate that each item in the array has at least an 'id' and 'label', and a valid target ('path', 'slug', 'url', etc.)
+    // Each item needs an id, a label, and a valid target such as path, slug, or URL.
     for item in nav_items {
         let item_obj = item.as_object().ok_or("Nav item must be an object")?;
 

@@ -3,18 +3,14 @@ import PropTypes from 'prop-types'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 import { useContent } from '../context/ContentContext'
-import {
-  normalizeTitle,
-  normalizeText,
-  normalizeSlug,
-} from '../utils/postUtils'
+import { normalizeTitle, normalizeText, normalizeSlug } from '../utils/postUtils'
 import DynamicPageHero from '../components/dynamic-page/DynamicPageHero'
 import DynamicPageAbout from '../components/dynamic-page/DynamicPageAbout'
 import DynamicPagePostList from '../components/dynamic-page/DynamicPagePostList'
 
 /**
  * The primary engine for rendering user-created CMS pages.
- * 
+ *
  * Features:
  * - Dynamic Slug Matching: Resolves URLs to backend page objects.
  * - Content Normalization: Uses `postUtils` to ensure titles/text have clean fallbacks.
@@ -25,11 +21,11 @@ const DynamicPage = ({ slug: propSlug }) => {
   const { slug: paramSlug } = useParams()
   const navigate = useNavigate()
   const { pages } = useContent()
-  
+
   // Use propSlug if available (e.g. when used as Home), otherwise use paramSlug from router
   const activeSlug = propSlug || paramSlug
   const normalizedSlug = useMemo(() => normalizeSlug(activeSlug), [activeSlug])
-  
+
   const cachedPage = pages.cache?.[normalizedSlug]
   const [pageData, setPageData] = useState(cachedPage ?? null)
   const [loading, setLoading] = useState(!cachedPage)
@@ -38,7 +34,7 @@ const DynamicPage = ({ slug: propSlug }) => {
   useEffect(() => {
     /**
      * Life Cycle: Page Data Fetching.
-     * 
+     *
      * Uses `AbortController` to cancel pending requests if the user navigates
      * away before the API responds, preventing state updates on unmounted components.
      */
@@ -110,15 +106,16 @@ const DynamicPage = ({ slug: propSlug }) => {
     if (template && typeof template === 'string') {
       return template
     }
-    return count === 1
-      ? `${count} veröffentlichter Beitrag`
-      : `${count} veröffentlichte Beiträge`
+    return count === 1 ? `${count} veröffentlichter Beitrag` : `${count} veröffentlichte Beiträge`
   }
 
   const hasContent = Boolean(page)
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-16">
+    <main
+      className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100
+dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-16`}
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-10">
         <button
           onClick={() => navigate('/', { state: { scrollTo: null, from: 'dynamic-page' } })}
@@ -154,10 +151,7 @@ const DynamicPage = ({ slug: propSlug }) => {
               gradient={heroGradient}
             />
 
-            <DynamicPageAbout
-              title={aboutTitle}
-              description={page.description}
-            />
+            <DynamicPageAbout title={aboutTitle} description={page.description} />
 
             <DynamicPagePostList
               posts={posts}

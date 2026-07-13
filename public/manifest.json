@@ -1,11 +1,11 @@
 {
-  "name": "Rust Blog CMS",
-  "short_name": "Rust Blog",
-  "description": "A modern, fully customizable CMS for creating beautiful blog websites with React and Rust",
+  "name": "Zero Point – Persönlicher Blog",
+  "short_name": "Zero Point",
+  "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
+  "background_color": "#f4f1ea",
+  "theme_color": "#171713",
   "orientation": "portrait-primary",
   "icons": [
     {

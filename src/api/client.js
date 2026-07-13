@@ -1,15 +1,17 @@
 /**
  * API Client Module
- * 
+ *
  * A centralized wrapper for making HTTP requests to the backend API.
- * 
+ *
  * Key Features:
- * - **Base URL Resolution**: Automatically determines the API base URL based on environment (Vite env vars or window location).
+ * - **Base URL Resolution**: Determines the API base URL from Vite variables or
+ *   the current window location.
  * - **Authentication**: Relies on HttpOnly session cookies instead of keeping bearer tokens in JavaScript memory.
  * - **CSRF Protection**: Automatically extracts and includes the `x-csrf-token` header for mutating requests.
  * - **AbortController Integration**: Supports request cancellation via `AbortController` signals.
  * - **Timeout Handling**: Implements request timeouts (default 15s) with cleanup.
- * - **Response Parsing**: Automatically parses JSON responses and handles edge cases like empty bodies or non-JSON errors.
+ * - **Response Parsing**: Parses JSON responses and handles empty bodies or
+ *   non-JSON errors.
  * - **File Uploads**: Provides a helper for `multipart/form-data` uploads.
  */
 export const getApiBaseUrl = () => {
@@ -65,11 +67,13 @@ const getCsrfToken = () => {
   if (typeof document === 'undefined' || !document.cookie) {
     return null
   }
-  return document.cookie
-    .split(';')
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith(`${CSRF_COOKIE_NAME}=`))
-    ?.split('=')[1] ?? null
+  return (
+    document.cookie
+      .split(';')
+      .map((cookie) => cookie.trim())
+      .find((cookie) => cookie.startsWith(`${CSRF_COOKIE_NAME}=`))
+      ?.split('=')[1] ?? null
+  )
 }
 class ApiClient {
   async request(endpoint, options = {}) {
@@ -215,7 +219,9 @@ class ApiClient {
     } catch (error) {
       cleanup()
       if (error.name === 'AbortError') {
-        const timeoutError = new Error(userSignal?.aborted ? 'Request aborted' : 'Request timed out')
+        const timeoutError = new Error(
+          userSignal?.aborted ? 'Request aborted' : 'Request timed out',
+        )
         timeoutError.status = userSignal?.aborted ? 0 : 408
         console.error('API Error:', timeoutError)
         throw timeoutError
@@ -391,6 +397,13 @@ class ApiClient {
   }
   async listPublishedPages(options = {}) {
     return this.request('/public/published-pages', options)
+  }
+  async subscribeNewsletter(email, options = {}) {
+    return this.request('/public/newsletter', {
+      method: 'POST',
+      body: { email },
+      ...options,
+    })
   }
   async getPublishedPost(pageSlug, postSlug, options = {}) {
     return this.request(

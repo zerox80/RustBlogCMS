@@ -1,224 +1,222 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Code, Menu, X } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
+import { ArrowUpRight, Asterisk, Menu, X } from 'lucide-react'
 import { useContent } from '../../context/ContentContext'
 import { useEdit } from '../../context/EditContext'
 import { useAuth } from '../../context/AuthContext'
 import EditableText from '../cms/EditableText'
-import { renderIcon } from '../../utils/iconMap'
+import { sanitizeExternalUrl } from '../../utils/urlValidation'
 
-/**
- * The global site header with advanced scroll-aware behavior.
- * 
- * Features:
- * - Smart Visibility: Hides on scroll-down, reappears on significant scroll-up.
- * - Glassmorphism: Smoothly transitions from transparent to blurred slate background.
- * - CMS Integration: Loads brand identity and navigation items from `ContentContext`.
- * - Admin Controls: Provides an inline toggle for CMS "Edit Mode".
- */
+/** Compact global navigation for the personal one-page blog. */
 const Header = () => {
-    const { t } = useTranslation()
-    const { navigation, getSection } = useContent()
-    const { isEditing, toggleEditMode } = useEdit()
-    const { isAuthenticated } = useAuth()
-    const headerContent = getSection('header') ?? {}
+  const { navigation, getSection } = useContent()
+  const { isEditing, toggleEditMode } = useEdit()
+  const { isAuthenticated } = useAuth()
+  const headerContent = getSection('header') ?? {}
+  const location = useLocation()
+  const isEditorialHome = location.pathname === '/' || location.pathname === '/blog'
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const showSurface = isScrolled || !isEditorialHome
 
-    const [isScrolled, setIsScrolled] = useState(false)
-    const [isVisible, setIsVisible] = useState(true)
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 24)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
-    // Use refs for scroll tracking to avoid re-renders/dependency loops
-    const lastScrollY = useRef(0)
-    const scrollUpAccumulator = useRef(0)
-    const SCROLL_UP_THRESHOLD = 200 // Pixels to scroll up before showing header
+  const navigationLinks = Array.isArray(navigation?.items) ? navigation.items : []
+  const anchorPath = (hash) => (location.pathname === '/' ? `#${hash}` : `/#${hash}`)
+  const authPath = isAuthenticated ? '/admin' : '/login'
+  const authLabel = isAuthenticated
+    ? headerContent?.cta?.authLabel || 'Admin'
+    : headerContent?.cta?.guestLabel || 'Login'
 
-    const location = useLocation()
-
-    const scrollTimeout = useRef(null)
-
-    useEffect(() => {
-        /**
-         * State-of-the-art scroll handler that minimizes layout thrashing.
-         * 
-         * Implements "Intentional Scroll-Up": 
-         * To prevent the header from flickering on accidental micro-adjustments, 
-         * the user must scroll up by at least `SCROLL_UP_THRESHOLD` (200px) 
-         * before the header slides back into view.
-         */
-        const handleScroll = () => {
-            const currentScrollY = window.scrollY
-            const lastY = lastScrollY.current
-            const scrollDelta = lastY - currentScrollY
-
-            if (scrollTimeout.current) {
-                clearTimeout(scrollTimeout.current)
-            }
-
-            // Depth Check: Enable styling when not at the very top
-            setIsScrolled(currentScrollY > 20)
-
-            if (currentScrollY < 10) {
-                // Top of Page: Always show the header
-                setIsVisible(true)
-                scrollUpAccumulator.current = 0
-            } else if (currentScrollY > lastY) {
-                // Direction: DOWN - Immediately hide for focus
-                setIsVisible(false)
-                scrollUpAccumulator.current = 0
-            } else if (currentScrollY < lastY) {
-                // Direction: UP - Accumulate delta for intentionality
-                if (scrollDelta > 5) {
-                    scrollUpAccumulator.current += scrollDelta
-                }
-
-                if (scrollUpAccumulator.current > SCROLL_UP_THRESHOLD) {
-                    setIsVisible(true)
-                }
-
-                // Debounce directional change: Reset accumulator if scroll stops
-                scrollTimeout.current = setTimeout(() => {
-                    scrollUpAccumulator.current = 0
-                }, 150)
-            }
-
-            lastScrollY.current = currentScrollY
-        }
-
-        window.addEventListener('scroll', handleScroll, { passive: true })
-        return () => {
-            window.removeEventListener('scroll', handleScroll)
-            if (scrollTimeout.current) clearTimeout(scrollTimeout.current)
-        }
-    }, [])
-
-    // Use centralized navigation data from ContentContext (CMS + Dynamic Pages)
-    // This allows the user to edit ALL menu items via the Admin Panel
-    const navLinks = (navigation?.items || []).map(item => {
-        let path = item.path || '/'
-
-        // Handle anchor/section links
-        if (item.type === 'section') {
-            const sectionId = item.value || item.id
-            path = `/#${sectionId}`
-        }
-
-        return {
-            name: item.label, // Translation can be handled here if keys are used in CMS
-            path: path,
-            isActive: location.pathname === path
-        }
-    })
-
-    return (
-        <header
-            className={`
-                fixed top-0 left-0 right-0 z-50 transition-all duration-500 flex justify-center px-4
-                ${isScrolled ? 'pt-4' : 'pt-6'}
-                ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}
-            `}
-        >
-            <nav
-                className={`
-                    w-full max-w-5xl rounded-full transition-all duration-300
-                    flex items-center justify-between px-6 py-3
-                    ${isScrolled
-                        ? 'bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/20'
-                        : 'bg-transparent border border-transparent'
-                    }
-                `}
-            >
-                {/* Logo */}
-                <Link to="/" className="flex items-center gap-2 group">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-neon-cyan to-neon-violet flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-neon-cyan/20 group-hover:shadow-neon-cyan/40 transition-shadow">
-                        {renderIcon(headerContent?.brand?.icon, 'Terminal', { className: 'w-5 h-5' })}
-                    </div>
-                    <span className="font-bold text-lg text-white tracking-tight group-hover:text-neon-cyan transition-colors hidden sm:block">
-                        <EditableText section="header" field="brand.name" value={headerContent?.brand?.name || 'Zero Point'} />
-                    </span>
-                </Link>
-
-                {/* Desktop Navigation */}
-                <div className="hidden md:flex items-center gap-8">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.name}
-                            to={link.path}
-                            className="text-sm font-medium text-slate-300 hover:text-white transition-colors relative group"
-                        >
-                            {link.name}
-                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover:w-full"></span>
-                        </Link>
-                    ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="hidden md:flex items-center gap-4">
-
-                    {/* [NEW] Edit Mode Toggle (only for admins) */}
-                    {isAuthenticated && (
-                        <button
-                            onClick={toggleEditMode}
-                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${isEditing
-                                ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                                }`}
-                        >
-                            {isEditing ? 'Editing On' : 'Edit Mode'}
-                        </button>
-                    )}
-
-                    <a
-                        href="https://github.com/zerox80/RustBlogCMS"
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="RustBlogCMS auf GitHub öffnen"
-                        className="text-slate-400 hover:text-white transition-colors"
-                    >
-                        <Code className="w-5 h-5" aria-hidden="true" />
-                    </a>
-                    <Link
-                        to="/login"
-                        className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all border border-white/5"
-                    >
-                        {headerContent?.cta?.guestLabel || t('nav.login')}
-                    </Link>
-                </div>
-
-                {/* Mobile Menu Button */}
-                <button
-                    className="md:hidden text-white p-2"
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    aria-label={isMobileMenuOpen ? 'Menü schließen' : 'Menü öffnen'}
-                    aria-expanded={isMobileMenuOpen}
-                    aria-controls="mobile-navigation"
-                >
-                    {isMobileMenuOpen ? <X /> : <Menu />}
-                </button>
-            </nav>
-
-            {/* Mobile Menu Overlay */}
-            {
-                isMobileMenuOpen && (
-                    <div id="mobile-navigation" className="absolute top-24 left-4 right-4 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-6 flex flex-col gap-4 shadow-xl animate-fade-in md:hidden">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.name}
-                                to={link.path}
-                                className="text-lg font-medium text-slate-200 py-2 border-b border-white/5 last:border-0"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                {link.name}
-                            </Link>
-                        ))}
-                        <div className="flex gap-4 mt-4 pt-4 border-t border-white/10">
-                            <Link to="/login" className="flex-1 btn-primary text-center py-2">Sign In</Link>
-                        </div>
-                    </div>
-                )
-            }
-        </header >
+  const renderNavigationLink = (link, index, mobile = false) => {
+    const value = link?.value ?? link?.path ?? link?.href
+    const isSection = link?.type === 'section'
+    const isExternal = link?.type === 'external' || link?.type === 'href'
+    const pagePath =
+      link?.type === 'page' && typeof value === 'string' && !value.startsWith('/')
+        ? `/pages/${value}`
+        : value
+    const sectionId = typeof value === 'string' ? value.trim() : ''
+    const destination = isSection ? (sectionId ? anchorPath(sectionId) : null) : pagePath
+    const key = link?.id || `${link?.label || 'navigation'}-${index}`
+    const className = mobile
+      ? `flex items-center justify-between border-b border-[#171713]/15 py-4 font-display
+text-2xl font-semibold tracking-[-0.04em] text-[#171713]`
+      : `shrink-0 text-xs font-bold uppercase tracking-[0.14em] text-[#171713]/65
+transition-colors hover:text-[#ff4f00]`
+    const content = (
+      <>
+        {link?.label || 'Seite'}
+        {mobile && (
+          <span className="font-serif text-sm italic text-[#171713]/35">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+        )}
+      </>
     )
+
+    if (!destination || typeof destination !== 'string') return null
+    if (isSection) {
+      return (
+        <a
+          key={key}
+          href={destination}
+          onClick={mobile ? () => setIsMobileMenuOpen(false) : undefined}
+          className={className}
+        >
+          {content}
+        </a>
+      )
+    }
+    if (isExternal) {
+      const safeDestination = sanitizeExternalUrl(destination)
+      if (!safeDestination) return null
+      const opensNewTab = /^https?:\/\//i.test(safeDestination)
+      return (
+        <a
+          key={key}
+          href={safeDestination}
+          target={opensNewTab ? '_blank' : undefined}
+          rel={opensNewTab ? 'noopener noreferrer' : undefined}
+          onClick={mobile ? () => setIsMobileMenuOpen(false) : undefined}
+          className={className}
+        >
+          {content}
+        </a>
+      )
+    }
+    return (
+      <Link
+        key={key}
+        to={destination}
+        onClick={mobile ? () => setIsMobileMenuOpen(false) : undefined}
+        className={className}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <header
+      className={`fixed inset-x-0 top-0 z-50 px-4 transition-all duration-300 sm:px-6 ${isScrolled ? 'py-3' : 'py-5'}`}
+    >
+      <nav
+        className={[
+          'mx-auto flex max-w-[1480px] items-center justify-between border',
+          'px-4 py-3 transition-all duration-300 sm:px-5',
+          showSurface
+            ? 'border-[#171713]/15 bg-[#f4f1ea]/90 shadow-[0_12px_35px_rgba(23,23,19,0.08)] backdrop-blur-xl'
+            : 'border-transparent bg-transparent',
+        ].join(' ')}
+        aria-label="Hauptnavigation"
+      >
+        <Link to="/" className="group flex items-center gap-3 text-[#171713]">
+          <span
+            className={`grid h-9 w-9 place-items-center rounded-full bg-[#171713] text-[#b9f227]
+transition-transform group-hover:rotate-45`}
+          >
+            <Asterisk className="h-5 w-5" />
+          </span>
+          <span className="font-display text-base font-bold uppercase tracking-[-0.02em] sm:text-lg">
+            <EditableText
+              section="header"
+              field="brand.name"
+              value={headerContent?.brand?.name || 'Zero Point'}
+            />
+          </span>
+        </Link>
+
+        <div className="mx-6 hidden min-w-0 flex-1 items-center justify-center gap-7 overflow-x-auto lg:flex">
+          {navigationLinks.map((link, index) => renderNavigationLink(link, index))}
+        </div>
+
+        <div className="hidden items-center gap-3 md:flex">
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={toggleEditMode}
+              className={[
+                'rounded-full border px-4 py-2 text-[10px] font-black uppercase',
+                'tracking-[0.13em]',
+                isEditing
+                  ? 'border-[#ff4f00] bg-[#ff4f00] text-white'
+                  : 'border-[#171713]/25 text-[#171713]',
+              ].join(' ')}
+            >
+              {isEditing ? 'Editing on' : 'Edit mode'}
+            </button>
+          )}
+          <Link
+            to={authPath}
+            className={`rounded-full border border-[#171713]/25 px-4 py-2.5 text-xs font-bold
+uppercase tracking-[0.12em] text-[#171713] transition-colors hover:border-[#ff4f00]
+hover:text-[#ff4f00]`}
+          >
+            {authLabel}
+          </Link>
+          <a
+            href="https://github.com/zerox80/RustBlogCMS"
+            target="_blank"
+            rel="noreferrer"
+            className={`group inline-flex items-center gap-2 rounded-full bg-[#171713] px-5 py-2.5
+text-xs font-bold uppercase tracking-[0.12em] text-white transition-colors
+hover:bg-[#ff4f00]`}
+          >
+            GitHub <ArrowUpRight className="h-4 w-4 transition-transform group-hover:rotate-45" />
+          </a>
+        </div>
+
+        <button
+          type="button"
+          className={`grid h-10 w-10 place-items-center rounded-full border border-[#171713]/20
+text-[#171713] md:hidden`}
+          onClick={() => setIsMobileMenuOpen((open) => !open)}
+          aria-label={isMobileMenuOpen ? 'Menü schließen' : 'Menü öffnen'}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-navigation"
+        >
+          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </nav>
+
+      {isMobileMenuOpen && (
+        <div
+          id="mobile-navigation"
+          className={`mx-auto mt-2 max-w-[1480px] border border-[#171713] bg-[#f4f1ea] p-5
+shadow-2xl md:hidden`}
+        >
+          <div className="flex flex-col">
+            {navigationLinks.map((link, index) => renderNavigationLink(link, index, true))}
+          </div>
+          <div className="mt-5 flex gap-3">
+            <Link
+              to={authPath}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex-1 border border-[#171713] px-4 py-3 text-center text-xs font-bold
+uppercase tracking-[0.12em]`}
+            >
+              {authLabel}
+            </Link>
+            <a
+              href="https://github.com/zerox80/RustBlogCMS"
+              target="_blank"
+              rel="noreferrer"
+              className={`flex flex-1 items-center justify-center gap-2 bg-[#171713] px-4 py-3 text-xs
+font-bold uppercase tracking-[0.12em] text-white`}
+            >
+              GitHub <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      )}
+    </header>
+  )
 }
 
 export default Header

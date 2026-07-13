@@ -1,14 +1,14 @@
-import { createContext, useContext, useState, useEffect } from "react"
-import PropTypes from "prop-types"
-import { api } from "../api/client"
+import { createContext, useContext, useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
+import { api } from '../api/client'
 
 const AuthContext = createContext(null)
 
 /**
  * Global Authentication Provider.
- * 
+ *
  * Manages the user's session state, including login, logout, and token validation.
- * 
+ *
  * Architecture:
  * - **Initialization**: Checks `/api/me` on mount to re-hydrate session from HTTP-only cookie.
  * - **Security**: Uses `AbortController` to prevent memory leaks during async auth checks.
@@ -25,15 +25,15 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuth = async () => {
       try {
-        const userData = await api.me({ signal: controller.signal });
-        setUser(userData);
-        setIsAuthenticated(true);
+        const userData = await api.me({ signal: controller.signal })
+        setUser(userData)
+        setIsAuthenticated(true)
       } catch (err) {
         // If any error occurs (401, network error, 500, etc.), we assume the user is not authenticated
         // or the session is invalid. This prevents stale "logged in" state.
-        console.error('Auth check failed:', err);
-        setUser(null);
-        setIsAuthenticated(false);
+        console.error('Auth check failed:', err)
+        setUser(null)
+        setIsAuthenticated(false)
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false)

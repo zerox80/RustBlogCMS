@@ -18,10 +18,10 @@ export const scrollToSection = (sectionId, behavior = 'smooth') => {
   // Maps common German terms to actual section IDs
   const sectionMap = {
     grundlagen: 'tutorials', // German for "basics"
-    befehle: 'tutorials',    // German for "commands"
-    praxis: 'tutorials',     // German for "practice"
-    advanced: 'tutorials',   // English advanced content
-    tutorials: 'tutorials',  // Direct reference
+    befehle: 'tutorials', // German for "commands"
+    praxis: 'tutorials', // German for "practice"
+    advanced: 'tutorials', // English advanced content
+    tutorials: 'tutorials', // Direct reference
   }
   // Resolve target identifier through mapping
   const targetIdentifier = sectionMap[normalizedId] || normalizedId

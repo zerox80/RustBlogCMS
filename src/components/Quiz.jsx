@@ -1,44 +1,46 @@
-import { useState } from 'react';
-import { Check, X, RotateCcw } from 'lucide-react';
-import PropTypes from 'prop-types';
+import { useState } from 'react'
+import { Check, X, RotateCcw } from 'lucide-react'
+import PropTypes from 'prop-types'
 const Quiz = ({ questions }) => {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [showResults, setShowResults] = useState(false);
-  const [score, setScore] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [selectedAnswers, setSelectedAnswers] = useState({})
+  const [showResults, setShowResults] = useState(false)
+  const [score, setScore] = useState(0)
   const handleAnswer = (questionIndex, answerIndex) => {
-    setSelectedAnswers(prev => ({
+    setSelectedAnswers((prev) => ({
       ...prev,
       [questionIndex]: answerIndex,
-    }));
-  };
+    }))
+  }
   const handleSubmit = () => {
-    let correctCount = 0;
+    let correctCount = 0
     questions.forEach((q, idx) => {
       if (selectedAnswers[idx] === q.correctAnswer) {
-        correctCount++;
+        correctCount++
       }
-    });
-    setScore(correctCount);
-    setShowResults(true);
-  };
+    })
+    setScore(correctCount)
+    setShowResults(true)
+  }
   const handleReset = () => {
-    setCurrentQuestion(0);
-    setSelectedAnswers({});
-    setShowResults(false);
-    setScore(0);
-  };
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
-  const question = questions[currentQuestion];
+    setCurrentQuestion(0)
+    setSelectedAnswers({})
+    setShowResults(false)
+    setScore(0)
+  }
+  const progress = ((currentQuestion + 1) / questions.length) * 100
+  const question = questions[currentQuestion]
   if (showResults) {
-    const percentage = Math.round((score / questions.length) * 100);
-    const passed = percentage >= 70;
+    const percentage = Math.round((score / questions.length) * 100)
+    const passed = percentage >= 70
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
         <div className="text-center">
-          <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${
-            passed ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
-          }`}>
+          <div
+            className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${
+              passed ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
+            }`}
+          >
             {passed ? (
               <Check className="w-10 h-10 text-green-600 dark:text-green-400" />
             ) : (
@@ -56,14 +58,15 @@ const Quiz = ({ questions }) => {
           </p>
           <button
             onClick={handleReset}
-            className="flex items-center gap-2 mx-auto px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
+            className={`flex items-center gap-2 mx-auto px-6 py-3 bg-primary-600 text-white
+rounded-xl hover:bg-primary-700 transition-colors`}
           >
             <RotateCcw className="w-4 h-4" />
             Nochmal versuchen
           </button>
         </div>
       </div>
-    );
+    )
   }
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
@@ -107,9 +110,10 @@ const Quiz = ({ questions }) => {
       {}
       <div className="flex justify-between items-center">
         <button
-          onClick={() => setCurrentQuestion(prev => Math.max(0, prev - 1))}
+          onClick={() => setCurrentQuestion((prev) => Math.max(0, prev - 1))}
           disabled={currentQuestion === 0}
-          className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900
+dark:hover:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           Zurück
         </button>
@@ -117,30 +121,32 @@ const Quiz = ({ questions }) => {
           <button
             onClick={handleSubmit}
             disabled={Object.keys(selectedAnswers).length !== questions.length}
-            className="px-6 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className={`px-6 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700
+disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
           >
             Auswerten
           </button>
         ) : (
           <button
-            onClick={() => setCurrentQuestion(prev => Math.min(questions.length - 1, prev + 1))}
+            onClick={() => setCurrentQuestion((prev) => Math.min(questions.length - 1, prev + 1))}
             disabled={selectedAnswers[currentQuestion] === undefined}
-            className="px-6 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className={`px-6 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700
+disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
           >
             Weiter
           </button>
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 Quiz.propTypes = {
   questions: PropTypes.arrayOf(
     PropTypes.shape({
       question: PropTypes.string.isRequired,
       answers: PropTypes.arrayOf(PropTypes.string).isRequired,
       correctAnswer: PropTypes.number.isRequired,
-    })
+    }),
   ).isRequired,
-};
-export default Quiz;
+}
+export default Quiz

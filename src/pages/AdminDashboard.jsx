@@ -10,13 +10,13 @@ import SettingsEditor from '../components/admin/SettingsEditor'
 
 /**
  * The central management hub for site administrators.
- * 
+ *
  * Orchestrates:
  * - Content Editing (SiteContentEditor)
  * - Page Creation & Deletion (PageManager)
  * - Tutorial/Course Management (TutorialManagement)
  * - Global Site Settings
- * 
+ *
  * Restricted: This page should only be accessible to authenticated admin users.
  */
 const AdminDashboard = () => {
@@ -36,7 +36,10 @@ const AdminDashboard = () => {
         {activeTab === 'content' && (
           <div className="space-y-6">
             {contentLoading && (
-              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              <div
+                className={`flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4
+py-3 text-sm text-gray-600`}
+              >
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 Inhalte werden geladen…
               </div>
