@@ -2,9 +2,9 @@ import { Helmet } from 'react-helmet-async'
 import { useEffect } from 'react'
 import { useContent } from '../context/ContentContext'
 
-const FALLBACK_TITLE = 'Zero Point - IT & Rust Research'
+const FALLBACK_TITLE = 'Zero Point – Persönlicher Blog'
 const FALLBACK_DESCRIPTION =
-  'In-depth tutorials and research on Rust, Linux, and Server Infrastructure.'
+  'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.'
 
 const sanitize = (value) => {
   if (typeof value !== 'string') {

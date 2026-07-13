@@ -6,13 +6,13 @@ import { useEdit } from '../../context/EditContext'
 import { useAuth } from '../../context/AuthContext'
 import EditableText from '../cms/EditableText'
 
-const editorialLinks = [
-  { label: 'Stories', hash: 'stories' },
+const personalLinks = [
+  { label: 'Beiträge', hash: 'stories' },
   { label: 'Themen', hash: 'topics' },
-  { label: 'Manifest', hash: 'manifest' },
+  { label: 'Über diesen Blog', hash: 'about' },
 ]
 
-/** Compact global navigation for the editorial one-page experience. */
+/** Compact global navigation for the personal one-page blog. */
 const Header = () => {
   const { navigation, getSection } = useContent()
   const { isEditing, toggleEditMode } = useEdit()
@@ -65,7 +65,7 @@ transition-transform group-hover:rotate-45`}
         </Link>
 
         <div className="hidden items-center gap-7 lg:flex">
-          {editorialLinks.map((link) => (
+          {personalLinks.map((link) => (
             <a
               key={link.hash}
               href={anchorPath(link.hash)}
@@ -135,7 +135,7 @@ text-[#171713] md:hidden`}
 shadow-2xl md:hidden`}
         >
           <div className="flex flex-col">
-            {editorialLinks.map((link, index) => (
+            {personalLinks.map((link, index) => (
               <a
                 key={link.hash}
                 href={anchorPath(link.hash)}

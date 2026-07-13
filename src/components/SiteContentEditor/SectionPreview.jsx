@@ -23,7 +23,7 @@ opacity-75`}
               ></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-500"></span>
             </span>
-            {content.badgeText || 'IT Portal'}
+            {content.badgeText || 'Persönlicher Blog'}
           </span>
         </div>
         <h3 className="mb-6 text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -104,11 +104,10 @@ font-medium text-primary-700`}
       </div>
       <div className="rounded-xl bg-slate-950 p-8 text-center">
         <h2 className="text-2xl font-bold mb-4 text-white">
-          {content.title || 'Wissen teilen & erweitern'}
+          {content.title || 'Neue Notizen per Mail'}
         </h2>
         <p className="text-lg text-slate-400">
-          {content.description ||
-            'Bleib auf dem Laufenden mit den neuesten Entwicklungen in der IT-Welt.'}
+          {content.description || 'Ich melde mich, wenn es etwas Neues zu teilen gibt.'}
         </p>
       </div>
     </div>
@@ -138,11 +137,11 @@ font-medium text-primary-700`}
       </div>
       <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
         <p className="text-sm font-semibold text-gray-800">
-          {content?.title || 'IT Portal - Security, Programming & Admin'}
+          {content?.title || 'Zero Point – Persönlicher Blog'}
         </p>
         <p className="mt-2 text-sm text-gray-600 leading-relaxed">
           {content?.description ||
-            'Dein Portal für IT Security, Programmierung und Administration.'}
+            'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.'}
         </p>
       </div>
       <p className="text-xs text-gray-500">

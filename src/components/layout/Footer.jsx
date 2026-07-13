@@ -5,7 +5,7 @@ import EditableText from '../cms/EditableText'
 import { renderIcon } from '../../utils/iconMap'
 import { sanitizeExternalUrl } from '../../utils/urlValidation'
 
-/** Editorial footer that closes the one-page layout without repeating a sitemap wall. */
+/** Personal footer that closes the one-page layout without repeating a sitemap wall. */
 const Footer = () => {
   const { getSection, navigation } = useContent()
   const footerContent = getSection('footer') ?? {}
@@ -41,7 +41,7 @@ lg:px-12`}
                 field="brand.description"
                 value={
                   footerContent?.brand?.description ||
-                  'Ein unabhängiges Journal über Code, Systeme und digitale Kultur.'
+                  'Mein persönlicher Blog über Technik, Projekte, Ideen und alles dazwischen.'
                 }
                 multiline
               />
@@ -55,17 +55,17 @@ lg:px-12`}
                 'text-[#b9f227]',
               ].join(' ')}
             >
-              Explore
+              Hier entlang
             </p>
             <div className="flex flex-col gap-3 text-sm text-white/60">
               <a href="/#stories" className="hover:text-white">
-                Stories
+                Beiträge
               </a>
               <a href="/#topics" className="hover:text-white">
                 Themen
               </a>
-              <a href="/#manifest" className="hover:text-white">
-                Manifest
+              <a href="/#about" className="hover:text-white">
+                Über diesen Blog
               </a>
               {pageLinks.map((link) => (
                 <Link key={link.id} to={link.path} className="hover:text-white">
@@ -127,7 +127,7 @@ sm:justify-between`}
           <p>
             <EditableText section="footer" field="bottom.copyright" value={copyright} />
           </p>
-          <p>{footerContent?.bottom?.signature || 'Made for curious minds'}</p>
+          <p>{footerContent?.bottom?.signature || 'Persönlich notiert'}</p>
         </div>
       </div>
     </footer>

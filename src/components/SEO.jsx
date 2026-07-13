@@ -11,9 +11,10 @@ const SEO = ({
   publishedTime,
   modifiedTime,
 }) => {
-  const siteTitle = 'Rust Blog CMS'
+  const siteTitle = 'Zero Point'
   const fullTitle = title ? `${title} | ${siteTitle}` : siteTitle
-  const defaultDescription = 'Lerne Linux von Grund auf - Interaktiv, modern und praxisnah'
+  const defaultDescription =
+    'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.'
   const defaultImage = '/linux-icon.svg'
   const baseUrl = window.location.origin
   const metaDescription = description || defaultDescription

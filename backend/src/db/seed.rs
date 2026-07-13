@@ -30,20 +30,20 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
         (
             "hero",
             json!({
-                "badgeText": "Professionelles Linux Training",
+                "badgeText": "Persönlicher Blog",
                 "title": {
-                    "line1": "Lerne Linux",
-                    "line2": "von Grund auf"
+                    "line1": "Gedanken, Projekte",
+                    "line2": "& Dinge dazwischen"
                 },
-                "subtitle": "Dein umfassendes Tutorial für Linux – von den Basics bis zu Advanced-Techniken.",
-                "subline": "Interaktiv, modern und praxisnah.",
+                "subtitle": "Persönliche Notizen über Technik, Ideen und alles, was mich beschäftigt.",
+                "subline": "Ausprobiert, durchdacht und ehrlich aufgeschrieben.",
                 "primaryCta": {
-                    "label": "Los geht's",
-                    "target": { "type": "section", "value": "tutorials" }
+                    "label": "Beiträge lesen",
+                    "target": { "type": "section", "value": "stories" }
                 },
                 "secondaryCta": {
-                    "label": "Mehr erfahren",
-                    "target": { "type": "section", "value": "tutorials" }
+                    "label": "Über diesen Blog",
+                    "target": { "type": "section", "value": "about" }
                 },
                 "features": [
                     {
@@ -88,24 +88,22 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
         (
             "site_meta",
             json!({
-                "title": "Linux Tutorial - Lerne Linux Schritt für Schritt",
-                "description": "Lerne Linux von Grund auf - Interaktiv, modern und praxisnah."
+                "title": "Zero Point – Persönlicher Blog",
+                "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen."
             }),
         ),
         (
             "header",
             json!({
                 "brand": {
-                    "name": "Linux Tutorial",
-                    "tagline": "",
+                    "name": "Zero Point",
+                    "tagline": "Persönlicher Blog",
                     "icon": "Terminal"
                 },
                 "navItems": [
-                    { "id": "home", "label": "Home", "type": "section" },
-                    { "id": "grundlagen", "label": "Grundlagen", "type": "route", "path": "/grundlagen" },
-                    { "id": "befehle", "label": "Befehle", "type": "section" },
-                    { "id": "praxis", "label": "Praxis", "type": "section" },
-                    { "id": "advanced", "label": "Advanced", "type": "section" }
+                    { "id": "stories", "label": "Beiträge", "type": "section", "value": "stories" },
+                    { "id": "topics", "label": "Themen", "type": "section", "value": "topics" },
+                    { "id": "about", "label": "Über diesen Blog", "type": "section", "value": "about" }
                 ],
                 "cta": {
                     "guestLabel": "Login",
@@ -118,23 +116,18 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
             "footer",
             json!({
                 "brand": {
-                    "title": "Linux Tutorial",
-                    "description": "Dein umfassendes Tutorial für Linux - von den Basics bis zu Advanced Techniken.",
+                    "title": "Zero Point",
+                    "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.",
                     "icon": "Terminal"
                 },
                 "quickLinks": [
-                    { "label": "Grundlagen", "target": { "type": "section", "value": "grundlagen" } },
-                    { "label": "Befehle", "target": { "type": "section", "value": "befehle" } },
-                    { "label": "Praxis", "target": { "type": "section", "value": "praxis" } },
-                    { "label": "Advanced", "target": { "type": "section", "value": "advanced" } }
+                    { "label": "Beiträge", "target": { "type": "section", "value": "stories" } },
+                    { "label": "Über diesen Blog", "target": { "type": "section", "value": "about" } }
                 ],
-                "contactLinks": [
-                    { "label": "GitHub", "href": "https://github.com", "icon": "Github" },
-                    { "label": "E-Mail", "href": "mailto:info@example.com", "icon": "Mail" }
-                ],
+                "contactLinks": [],
                 "bottom": {
-                    "copyright": "© {year} Linux Tutorial. Alle Rechte vorbehalten.",
-                    "signature": "Gemacht mit Herz für die Linux Community"
+                    "copyright": "© {year} Zero Point.",
+                    "signature": "Persönlich notiert"
                 }
             }),
         ),

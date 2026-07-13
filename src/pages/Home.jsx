@@ -3,11 +3,9 @@ import { ArrowDownRight, ArrowRight, Asterisk, Loader2, Mail, Sparkles } from 'l
 import PostCard from '../components/dynamic-page/PostCard'
 import { api } from '../api/client'
 
-const ALL_TOPICS = 'Alle Stories'
+const ALL_TOPICS = 'Alle Beiträge'
 
-/**
- * Editorial one-page blog that aggregates published posts from every CMS page.
- */
+/** Personal one-page blog that collects published posts from every CMS page. */
 const Home = () => {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -95,12 +93,12 @@ lg:px-12 lg:pb-12`}
             className={`flex items-center justify-between gap-6 border-y border-[#171713]/20 py-3
 text-[11px] font-bold uppercase tracking-[0.2em] sm:text-xs`}
           >
-            <span>Independent technology journal</span>
+            <span>Mein persönlicher Blog</span>
             <span className="hidden items-center gap-2 sm:flex">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff4f00]" />
-              Publishing from Berlin · {currentYear}
+              Persönliche Notizen · {currentYear}
             </span>
-            <span>Issue No. 07</span>
+            <span>Gedanken · Projekte · Fundstücke</span>
           </div>
 
           <div
@@ -113,20 +111,20 @@ lg:py-16 xl:grid-cols-[minmax(0,1fr)_29rem]`}
 tracking-[0.18em] text-[#ff4f00]`}
               >
                 <Sparkles className="h-4 w-4" />
-                Code, culture &amp; the systems between
+                Dinge, die mich gerade beschäftigen
               </div>
               <h1
                 className={`max-w-5xl font-display text-[clamp(4.2rem,10.5vw,10rem)] font-semibold
 leading-[0.78] tracking-[-0.075em] text-[#171713]`}
               >
-                Ideas for
+                Ich denke
                 <span className="block font-serif font-normal italic tracking-[-0.055em] text-[#ff4f00]">
-                  curious minds.
+                  hier laut.
                 </span>
               </h1>
               <p className="mt-8 max-w-xl text-lg leading-relaxed text-[#171713]/65 sm:text-xl">
-                Tiefgehende Essays, praktische Guides und ehrliche Perspektiven auf Software,
-                Security und das digitale Handwerk.
+                Hier schreibe ich über Technik, Projekte, Ideen und alles, was ich unterwegs besser
+                verstehen möchte.
               </p>
             </div>
 
@@ -143,12 +141,12 @@ sm:p-12`}
                   />
                   <div>
                     <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-[#f4f1ea]/50">
-                      This week
+                      Gerade im Kopf
                     </p>
                     <p className="font-serif text-3xl leading-tight sm:text-4xl">
-                      Read less noise.
+                      Beobachten.
                       <br />
-                      Keep more signal.
+                      Ausprobieren. Teilen.
                     </p>
                   </div>
                   <a
@@ -156,7 +154,7 @@ sm:p-12`}
                     className={`group flex items-center justify-between border-t border-white/20 pt-5
 text-sm font-bold uppercase tracking-[0.16em]`}
                   >
-                    Explore stories
+                    Beiträge lesen
                     <ArrowDownRight
                       className={`h-5 w-5 transition-transform group-hover:translate-x-1
 group-hover:translate-y-1`}
@@ -168,7 +166,7 @@ group-hover:translate-y-1`}
                 className={`absolute -right-2 top-8 rounded-full bg-[#b9f227] px-5 py-3 text-xs
 font-black uppercase tracking-[0.16em] shadow-lg rotate-6`}
               >
-                Fresh thinking
+                Persönlich notiert
               </div>
             </div>
           </div>
@@ -178,15 +176,15 @@ font-black uppercase tracking-[0.16em] shadow-lg rotate-6`}
 sm:items-center sm:justify-between`}
           >
             <p className="max-w-xl text-[#171713]/55">
-              Keine Trendsammlung. Ein Arbeitsjournal für Menschen, die Technologie verstehen und
-              gestalten wollen.
+              Kein Redaktionsplan, keine feste Nische: einfach mein Platz für Gedanken, Erfahrungen
+              und Dinge, die ich gelernt habe.
             </p>
             <a
               href="#stories"
               className={`inline-flex items-center gap-3 font-bold uppercase tracking-[0.14em]
 hover:text-[#ff4f00]`}
             >
-              Aktuelle Ausgabe <ArrowRight className="h-4 w-4" />
+              Neueste Beiträge <ArrowRight className="h-4 w-4" />
             </a>
           </div>
         </div>
@@ -233,7 +231,7 @@ font-black uppercase tracking-[0.16em]`}
           >
             <div>
               <p className="mb-4 font-mono text-xs font-bold uppercase tracking-[0.22em] text-[#ff4f00]">
-                The latest / {String(visiblePosts.length).padStart(2, '0')}
+                Zuletzt notiert / {String(visiblePosts.length).padStart(2, '0')}
               </p>
               <h2
                 className={[
@@ -241,14 +239,14 @@ font-black uppercase tracking-[0.16em]`}
                   'lg:text-8xl',
                 ].join(' ')}
               >
-                Stories worth
+                Was ich zuletzt
                 <br />
-                <span className="font-serif font-normal italic">your attention.</span>
+                <span className="font-serif font-normal italic">aufgeschrieben habe.</span>
               </h2>
             </div>
             <p className="max-w-sm text-base leading-relaxed text-[#171713]/60 lg:pb-2">
-              Neue Gedanken, klare Anleitungen und technische Deep Dives – ohne Clickbait, direkt
-              aus der Praxis.
+              Mal Code, mal Alltag, mal eine Idee, die noch nicht ganz fertig ist. Alles aus meiner
+              eigenen Perspektive.
             </p>
           </div>
 
@@ -280,7 +278,7 @@ font-black uppercase tracking-[0.16em]`}
             <div className="flex min-h-80 flex-col items-center justify-center gap-4 text-[#171713]/55">
               <Loader2 className="h-9 w-9 animate-spin text-[#ff4f00]" />
               <p className="font-mono text-xs font-bold uppercase tracking-[0.2em]">
-                Stories werden kuratiert …
+                Beiträge werden geladen …
               </p>
             </div>
           ) : error ? (
@@ -290,7 +288,7 @@ sm:grid-cols-[auto_1fr] sm:items-center`}
             >
               <span className="font-serif text-6xl italic">Oops.</span>
               <div>
-                <h3 className="text-xl font-bold text-white">Die Stories machen kurz Pause.</h3>
+                <h3 className="text-xl font-bold text-white">Meine Beiträge machen kurz Pause.</h3>
                 <p className="mt-1 text-white/75">
                   {error.message || 'Der Feed konnte gerade nicht geladen werden.'}
                 </p>
@@ -305,8 +303,7 @@ border-[#171713]/40 bg-white/25 p-10 text-center`}
                 <Asterisk className="mx-auto mb-5 h-10 w-10 text-[#ff4f00]" />
                 <h3 className="font-serif text-4xl italic">Die erste Story ist in Arbeit.</h3>
                 <p className="mx-auto mt-3 max-w-md text-[#171713]/55">
-                  Sobald ein Artikel veröffentlicht wird, bekommt er hier seinen Platz auf der
-                  Titelseite.
+                  Sobald ich den ersten Beitrag veröffentliche, bekommt er hier seinen Platz.
                 </p>
               </div>
             </div>
@@ -327,7 +324,7 @@ border-[#171713]/40 bg-white/25 p-10 text-center`}
       </section>
 
       <section
-        id="manifest"
+        id="about"
         className={`border-y border-[#171713] bg-[#171713] px-5 py-20 text-[#f4f1ea] sm:px-8
 lg:px-12 lg:py-28`}
       >
@@ -336,7 +333,7 @@ lg:px-12 lg:py-28`}
             className={`flex items-center gap-3 font-mono text-xs font-bold uppercase
 tracking-[0.2em] text-[#b9f227]`}
           >
-            <Asterisk className="h-5 w-5" /> Our point of view
+            <Asterisk className="h-5 w-5" /> Warum ich schreibe
           </div>
           <div>
             <p
@@ -345,17 +342,18 @@ tracking-[0.2em] text-[#b9f227]`}
                 'tracking-[-0.045em]',
               ].join(' ')}
             >
-              Technology deserves <span className="text-[#b9f227] italic">better questions</span>,
-              not just faster answers.
+              Ich schreibe, um Dinge{' '}
+              <span className="text-[#b9f227] italic">wirklich zu verstehen</span> – und um meine
+              Gedanken nicht zu verlieren.
             </p>
             <div className="mt-12 grid gap-8 border-t border-white/20 pt-8 sm:grid-cols-2">
               <p className="leading-relaxed text-white/55">
-                Wir schreiben für Builder, Betreiber und Neugierige. Verständlich genug zum
-                Einsteigen, tief genug zum Wiederkommen.
+                Dieser Blog ist mein digitales Notizbuch. Ich teile, was ich lerne, woran ich
+                arbeite und welche Fragen mich gerade begleiten.
               </p>
               <p className="leading-relaxed text-white/55">
-                Unabhängig, quellennah und mit einer klaren Meinung. Gute Technik beginnt für uns
-                immer mit gutem Denken.
+                Die Themen dürfen wechseln. Was bleibt, ist eine persönliche Perspektive, ehrliche
+                Neugier und der Wunsch, Gedanken sauber zu Ende zu denken.
               </p>
             </div>
           </div>
@@ -372,15 +370,15 @@ tracking-[0.2em] text-[#b9f227]`}
               className={`mb-4 flex items-center gap-2 font-mono text-xs font-bold uppercase
 tracking-[0.2em]`}
             >
-              <Mail className="h-4 w-4" /> Occasional dispatch
+              <Mail className="h-4 w-4" /> Neue Notizen per Mail
             </p>
             <h2
               className={`max-w-4xl font-display text-5xl font-semibold leading-[0.92]
 tracking-[-0.06em] text-white sm:text-7xl lg:text-8xl`}
             >
-              Stay curious.
+              Ich melde mich,
               <br />
-              <span className="font-serif font-normal italic">We’ll send the signal.</span>
+              <span className="font-serif font-normal italic">wenn es etwas zu sagen gibt.</span>
             </h2>
           </div>
           <form

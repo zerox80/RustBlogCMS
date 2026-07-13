@@ -12,22 +12,22 @@ const ContentContext = createContext(null)
  */
 export const DEFAULT_CONTENT = {
   hero: {
-    badgeText: 'Professionelles IT Wissen',
+    badgeText: 'Persönlicher Blog',
     icon: 'Terminal',
     title: {
-      line1: 'IT Security, Programming',
-      line2: '& Administration',
+      line1: 'Gedanken, Projekte',
+      line2: '& Dinge dazwischen',
     },
-    subtitle: 'Dein Wissensportal für IT-Themen – von Security bis Systemadministration.',
-    subline: 'Aktuell, praxisnah und verständlich.',
+    subtitle: 'Persönliche Notizen über Technik, Ideen und alles, was mich gerade beschäftigt.',
+    subline: 'Ausprobiert, durchdacht und ehrlich aufgeschrieben.',
     heroImage: '', // URL to the hero image (can be set via CMS)
     primaryCta: {
-      label: 'Themen entdecken',
-      target: { type: 'section', value: 'features' },
+      label: 'Beiträge lesen',
+      target: { type: 'section', value: 'stories' },
     },
     secondaryCta: {
-      label: 'Blog lesen',
-      target: { type: 'route', value: '/blog' },
+      label: 'Über diesen Blog',
+      target: { type: 'section', value: 'about' },
     },
     features: [
       {
@@ -59,25 +59,24 @@ export const DEFAULT_CONTENT = {
     ],
   },
   cta_section: {
-    title: 'Wissen teilen & erweitern',
-    description: 'Bleib auf dem Laufenden mit den neuesten Entwicklungen in der IT-Welt.',
+    title: 'Neue Notizen per Mail',
+    description: 'Ich melde mich, wenn es einen neuen Gedanken oder Beitrag zu teilen gibt.',
   },
   site_meta: {
-    title: 'IT Wissensportal - Security, Programming & Admin',
-    description: 'Dein Portal für IT Security, Programmierung und Administration.',
+    title: 'Zero Point – Persönlicher Blog',
+    description: 'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.',
   },
 
   header: {
     brand: {
-      name: 'IT Portal',
-      tagline: '',
+      name: 'Zero Point',
+      tagline: 'Persönlicher Blog',
       icon: 'Terminal',
     },
     navItems: [
-      { id: 'features', label: 'Features', type: 'section', value: 'features' },
-      { id: 'tutorial', label: 'Tutorial', type: 'route', path: '/tutorial/getting-started' },
-      { id: 'blog', label: 'Blog', type: 'route', path: '/blog' },
-      { id: 'about', label: 'Über', type: 'route', path: '/about' },
+      { id: 'stories', label: 'Beiträge', type: 'section', value: 'stories' },
+      { id: 'topics', label: 'Themen', type: 'section', value: 'topics' },
+      { id: 'about', label: 'Über diesen Blog', type: 'section', value: 'about' },
     ],
     cta: {
       guestLabel: 'Login',
@@ -87,21 +86,18 @@ export const DEFAULT_CONTENT = {
   },
   footer: {
     brand: {
-      title: 'IT Wissensportal',
-      description: 'Dein Portal für IT Security, Programmierung und Administration.',
+      title: 'Zero Point',
+      description: 'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.',
       icon: 'Terminal',
     },
     quickLinks: [
-      { label: 'Home', target: { type: 'section', value: 'home' } },
-      { label: 'Blog', target: { type: 'route', value: '/blog' } },
+      { label: 'Beiträge', target: { type: 'section', value: 'stories' } },
+      { label: 'Über diesen Blog', target: { type: 'section', value: 'about' } },
     ],
-    contactLinks: [
-      { label: 'GitHub', href: 'https://github.com', icon: 'Github' },
-      { label: 'E-Mail', href: 'mailto:info@example.com', icon: 'Mail' },
-    ],
+    contactLinks: [],
     bottom: {
-      copyright: '© {year} IT Wissensportal. Alle Rechte vorbehalten.',
-      signature: 'Made for IT Professionals',
+      copyright: '© {year} Zero Point.',
+      signature: 'Persönlich notiert',
     },
   },
   login: {
@@ -113,6 +109,22 @@ export const DEFAULT_CONTENT = {
     passwordLabel: 'Passwort',
     backLinkText: 'Zurück zur Startseite',
   },
+}
+const LEGACY_STARTER_BRANDS = new Set(['IT Portal', 'IT Wissensportal', 'Linux Tutorial'])
+const normalizeStarterSection = (section, value) => {
+  if (section === 'site_meta') {
+    const legacyTitle = value?.title || ''
+    if (legacyTitle.startsWith('IT Wissensportal') || legacyTitle.startsWith('Linux Tutorial')) {
+      return DEFAULT_CONTENT.site_meta
+    }
+  }
+  if (section === 'header' && LEGACY_STARTER_BRANDS.has(value?.brand?.name)) {
+    return DEFAULT_CONTENT.header
+  }
+  if (section === 'footer' && LEGACY_STARTER_BRANDS.has(value?.brand?.title)) {
+    return DEFAULT_CONTENT.footer
+  }
+  return value
 }
 export const CONTENT_SECTIONS = Object.keys(DEFAULT_CONTENT)
 export const ContentProvider = ({ children }) => {
@@ -143,7 +155,7 @@ export const ContentProvider = ({ children }) => {
       const merged = { ...DEFAULT_CONTENT }
       if (data?.items?.length) {
         for (const item of data.items) {
-          merged[item.section] = item.content
+          merged[item.section] = normalizeStarterSection(item.section, item.content)
         }
       }
       setContent(merged)
