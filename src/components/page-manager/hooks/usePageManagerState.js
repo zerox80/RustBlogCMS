@@ -44,7 +44,10 @@ const usePageManagerState = () => {
     )
   }, [publishedPages?.publishedSlugs])
 
-  const publishedSlugList = useMemo(() => Array.from(normalizedPublishedSlugs).sort(), [normalizedPublishedSlugs])
+  const publishedSlugList = useMemo(
+    () => Array.from(normalizedPublishedSlugs).sort(),
+    [normalizedPublishedSlugs],
+  )
 
   const selectedPage = useMemo(
     () => pages.find((item) => item.id === selectedPageId) ?? null,
@@ -105,55 +108,64 @@ const usePageManagerState = () => {
     publishedPages?.refresh?.()
   }, [navigation, publishedPages])
 
-  const loadPosts = useCallback(
-    async (pageId) => {
-      if (!pageId) {
-        postsRequestRef.current += 1
-        if (postsAbortRef.current) {
-          postsAbortRef.current.abort()
-          postsAbortRef.current = null
-        }
-        lastPostsPageIdRef.current = null
-        setPosts([])
-        setPostsLoading(false)
-        setPostsError(null)
-        return
-      }
-      const controller = new AbortController()
+  const loadPosts = useCallback(async (pageId) => {
+    if (!pageId) {
+      postsRequestRef.current += 1
       if (postsAbortRef.current) {
         postsAbortRef.current.abort()
+        postsAbortRef.current = null
       }
-      postsAbortRef.current = controller
-      if (lastPostsPageIdRef.current !== pageId) {
-        setPosts([])
-      }
-      lastPostsPageIdRef.current = pageId
-      const requestId = postsRequestRef.current + 1
-      postsRequestRef.current = requestId
-      setPostsLoading(true)
+      lastPostsPageIdRef.current = null
+      setPosts([])
+      setPostsLoading(false)
       setPostsError(null)
-      try {
-        const data = await api.listPosts(pageId, { signal: controller.signal })
-        if (controller.signal.aborted || postsRequestRef.current !== requestId || !isMountedRef.current) {
-          return
-        }
-        const items = Array.isArray(data?.items) ? data.items : []
-        setPosts(items)
-      } catch (err) {
-        if (!controller.signal.aborted && postsRequestRef.current === requestId && isMountedRef.current) {
-          setPostsError(err)
-        }
-      } finally {
-        if (postsAbortRef.current === controller) {
-          postsAbortRef.current = null
-        }
-        if (!controller.signal.aborted && postsRequestRef.current === requestId && isMountedRef.current) {
-          setPostsLoading(false)
-        }
+      return
+    }
+    const controller = new AbortController()
+    if (postsAbortRef.current) {
+      postsAbortRef.current.abort()
+    }
+    postsAbortRef.current = controller
+    if (lastPostsPageIdRef.current !== pageId) {
+      setPosts([])
+    }
+    lastPostsPageIdRef.current = pageId
+    const requestId = postsRequestRef.current + 1
+    postsRequestRef.current = requestId
+    setPostsLoading(true)
+    setPostsError(null)
+    try {
+      const data = await api.listPosts(pageId, { signal: controller.signal })
+      if (
+        controller.signal.aborted ||
+        postsRequestRef.current !== requestId ||
+        !isMountedRef.current
+      ) {
+        return
       }
-    },
-    [],
-  )
+      const items = Array.isArray(data?.items) ? data.items : []
+      setPosts(items)
+    } catch (err) {
+      if (
+        !controller.signal.aborted &&
+        postsRequestRef.current === requestId &&
+        isMountedRef.current
+      ) {
+        setPostsError(err)
+      }
+    } finally {
+      if (postsAbortRef.current === controller) {
+        postsAbortRef.current = null
+      }
+      if (
+        !controller.signal.aborted &&
+        postsRequestRef.current === requestId &&
+        isMountedRef.current
+      ) {
+        setPostsLoading(false)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     loadPages()
@@ -321,7 +333,15 @@ const usePageManagerState = () => {
         setPostFormSubmitting(false)
       }
     },
-    [postFormMode, postFormData, selectedPageId, selectedPage, publishedPages, loadPosts, refreshNavigation],
+    [
+      postFormMode,
+      postFormData,
+      selectedPageId,
+      selectedPage,
+      publishedPages,
+      loadPosts,
+      refreshNavigation,
+    ],
   )
 
   const closePageForm = useCallback(() => {

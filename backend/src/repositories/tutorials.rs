@@ -71,9 +71,10 @@ pub async fn create_tutorial(
     replace_tutorial_topics_tx(&mut tx, id, topics_vec).await?;
 
     // Step 3: Fetch the finalized record (including timestamps)
-    let tutorial = sqlx::query_as::<_, Tutorial>(
-        "SELECT id, title, description, icon, color, topics, content, version, created_at, updated_at FROM tutorials WHERE id = ?"
-    )
+    let tutorial = sqlx::query_as::<_, Tutorial>(concat!(
+        "SELECT id, title, description, icon, color, topics, content, version, ",
+        "created_at, updated_at FROM tutorials WHERE id = ?"
+    ))
     .bind(id)
     .fetch_one(&mut *tx)
     .await?;
@@ -109,7 +110,8 @@ pub async fn update_tutorial(
     let result = sqlx::query(
         r#"
         UPDATE tutorials
-        SET title = ?, description = ?, icon = ?, color = ?, topics = ?, content = ?, version = ?, updated_at = datetime('now')
+        SET title = ?, description = ?, icon = ?, color = ?, topics = ?,
+            content = ?, version = ?, updated_at = datetime('now')
         WHERE id = ? AND version = ?
         "#,
     )
@@ -134,9 +136,10 @@ pub async fn update_tutorial(
     replace_tutorial_topics_tx(&mut tx, id, topics_vec).await?;
 
     // Step 3: Fetch updated state
-    let tutorial = sqlx::query_as::<_, Tutorial>(
-        "SELECT id, title, description, icon, color, topics, content, version, created_at, updated_at FROM tutorials WHERE id = ?"
-    )
+    let tutorial = sqlx::query_as::<_, Tutorial>(concat!(
+        "SELECT id, title, description, icon, color, topics, content, version, ",
+        "created_at, updated_at FROM tutorials WHERE id = ?"
+    ))
     .bind(id)
     .fetch_one(&mut *tx)
     .await?;

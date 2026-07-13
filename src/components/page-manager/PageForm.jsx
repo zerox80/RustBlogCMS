@@ -61,7 +61,6 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
   const slugHasInput = slug.trim().length > 0
   const slugHasInvalidCharacters = slugHasInput && !formSanitizedSlug
 
-
   // Helper to safely parse JSON state
   const getParsedState = (jsonString, fallback) => {
     try {
@@ -88,8 +87,8 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
       ...layoutState,
       [section]: {
         ...(layoutState[section] || {}),
-        [field]: value
-      }
+        [field]: value,
+      },
     }
     setLayout(JSON.stringify(newLayout, null, 2))
   }
@@ -149,8 +148,14 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto dark:bg-slate-900">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-800">
+    <div
+      className={`bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh]
+overflow-y-auto dark:bg-slate-900`}
+    >
+      <div
+        className={`flex items-center justify-between px-6 py-4 border-b border-gray-100
+dark:border-slate-800`}
+      >
         <div>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
             {mode === 'edit' ? 'Seite bearbeiten' : 'Neue Seite erstellen'}
@@ -162,7 +167,8 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
         <button
           type="button"
           onClick={onCancel}
-          className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"
+          className={`p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100
+dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800`}
         >
           <X className="w-5 h-5" />
         </button>
@@ -170,7 +176,11 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
 
       <form onSubmit={handleSubmit} className="space-y-8 px-6 py-6">
         {error && (
-          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
+          <div
+            className={`flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3
+text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20
+dark:text-red-300`}
+          >
             <AlertCircle className="w-4 h-4 mt-0.5" />
             <div>
               <p className="font-medium">Speichern fehlgeschlagen</p>
@@ -181,13 +191,21 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
 
         {/* Basic Info Section */}
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-gray-900 dark:text-slate-100 border-b border-gray-100 pb-2 dark:border-slate-800">Allgemein</h4>
+          <h4
+            className={`text-lg font-medium text-gray-900 dark:text-slate-100 border-b
+border-gray-100 pb-2 dark:border-slate-800`}
+          >
+            Allgemein
+          </h4>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
               Seitentitel (Intern)
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 required
@@ -197,7 +215,10 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
               URL Slug
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={slug}
                 onChange={(event) => setSlug(event.target.value)}
                 onBlur={() => setSlug(formSanitizedSlug)}
@@ -213,7 +234,10 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
             Beschreibung (Meta & Übersicht)
             <textarea
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
               rows={3}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
@@ -224,13 +248,21 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
 
         {/* Navigation Section */}
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-gray-900 dark:text-slate-100 border-b border-gray-100 pb-2 dark:border-slate-800">Navigation</h4>
+          <h4
+            className={`text-lg font-medium text-gray-900 dark:text-slate-100 border-b
+border-gray-100 pb-2 dark:border-slate-800`}
+          >
+            Navigation
+          </h4>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
               Label im Menü
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={navLabel}
                 onChange={(event) => setNavLabel(event.target.value)}
                 placeholder={title}
@@ -240,26 +272,37 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
               Reihenfolge
               <input
                 type="number"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={orderIndex}
                 onChange={(event) => setOrderIndex(event.target.value)}
               />
             </label>
           </div>
           <div className="flex flex-wrap items-center gap-6 pt-2">
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-slate-200 cursor-pointer">
+            <label
+              className={`inline-flex items-center gap-2 text-sm text-gray-700 dark:text-slate-200
+cursor-pointer`}
+            >
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-900"
+                className={`h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500
+dark:border-slate-600 dark:bg-slate-900`}
                 checked={showInNav}
                 onChange={(event) => setShowInNav(event.target.checked)}
               />
               In Navigation anzeigen
             </label>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-slate-200 cursor-pointer">
+            <label
+              className={`inline-flex items-center gap-2 text-sm text-gray-700 dark:text-slate-200
+cursor-pointer`}
+            >
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-900"
+                className={`h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500
+dark:border-slate-600 dark:bg-slate-900`}
                 checked={isPublished}
                 onChange={(event) => setIsPublished(event.target.checked)}
               />
@@ -270,13 +313,21 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
 
         {/* Hero Configuration */}
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-gray-900 dark:text-slate-100 border-b border-gray-100 pb-2 dark:border-slate-800">Hero Bereich</h4>
+          <h4
+            className={`text-lg font-medium text-gray-900 dark:text-slate-100 border-b
+border-gray-100 pb-2 dark:border-slate-800`}
+          >
+            Hero Bereich
+          </h4>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
               Badge Text
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={heroState.badge || ''}
                 onChange={(e) => updateHeroField('badge', e.target.value)}
                 placeholder="z.B. Neu"
@@ -286,7 +337,10 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
               Überschrift
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={heroState.title || heroTitle}
                 onChange={(e) => updateHeroField('title', e.target.value)}
                 placeholder="Große Überschrift"
@@ -296,7 +350,10 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
                 Untertitel
                 <textarea
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                   rows={2}
                   value={heroState.subtitle || ''}
                   onChange={(e) => updateHeroField('subtitle', e.target.value)}
@@ -309,13 +366,21 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
 
         {/* Layout Configuration */}
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-gray-900 dark:text-slate-100 border-b border-gray-100 pb-2 dark:border-slate-800">Seiten-Layout</h4>
+          <h4
+            className={`text-lg font-medium text-gray-900 dark:text-slate-100 border-b
+border-gray-100 pb-2 dark:border-slate-800`}
+          >
+            Seiten-Layout
+          </h4>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
               Titel &quot;Über diese Seite&quot;
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={layoutState.aboutSection?.title || ''}
                 onChange={(e) => updateLayoutField('aboutSection', 'title', e.target.value)}
                 placeholder="Über diese Seite"
@@ -325,7 +390,10 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
               Titel &quot;Beiträge&quot;
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                 value={layoutState.postsSection?.title || ''}
                 onChange={(e) => updateLayoutField('postsSection', 'title', e.target.value)}
                 placeholder="Beiträge"
@@ -339,7 +407,8 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+            className={`flex items-center gap-2 text-sm font-medium text-gray-500
+hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200`}
           >
             {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             Erweiterte Einstellungen (JSON)
@@ -350,7 +419,10 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
                 Hero JSON (Raw)
                 <textarea
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono
+focus:border-primary-500 focus:outline-none focus:ring-2
+focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900
+dark:text-slate-100`}
                   rows={8}
                   value={hero}
                   onChange={(event) => {
@@ -373,7 +445,9 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
                 Layout JSON (Raw)
                 <textarea
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono focus:border-primary-500 focus:outline-none focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className={`mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono
+focus:border-primary-500 focus:outline-none focus:ring-primary-100
+dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100`}
                   rows={8}
                   value={layout}
                   onChange={(event) => setLayout(event.target.value)}
@@ -388,13 +462,17 @@ const PageForm = ({ mode, initialData, onSubmit, onCancel, submitting }) => {
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            className={`inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2
+text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-slate-700
+dark:text-slate-200 dark:hover:bg-slate-800`}
           >
             Abbrechen
           </button>
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:from-primary-700 hover:to-primary-800"
+            className={`inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary-600
+to-primary-700 px-5 py-2.5 text-sm font-semibold text-white shadow-lg
+hover:from-primary-700 hover:to-primary-800`}
             disabled={submitting}
           >
             {submitting ? (

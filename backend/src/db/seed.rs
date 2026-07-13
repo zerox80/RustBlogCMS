@@ -144,34 +144,53 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
                 "hero": {
                     "badge": "Grundlagenkurs",
                     "title": "Starte deine Linux-Reise mit einem starken Fundament",
-                    "description": "In diesem Grundlagenbereich begleiten wir dich von den allerersten Schritten im Terminal bis hin zu sicheren Arbeitsabläufen. Nach diesem Kurs bewegst du dich selbstbewusst in der Linux-Welt.",
+                    "description": concat!(
+                        "In diesem Grundlagenbereich begleiten wir dich von den allerersten Schritten im Terminal ",
+                        "bis hin zu sicheren Arbeitsabläufen. Nach diesem Kurs bewegst du dich selbstbewusst in ",
+                        "der Linux-Welt.",
+                    ),
                     "icon": "BookOpen"
                 },
                 "highlights": [
                     {
                         "icon": "BookOpen",
                         "title": "Terminal Basics verstehen",
-                        "description": "Lerne die wichtigsten Shell-Befehle, arbeite sicher mit Dateien und nutze Pipes, um Aufgaben zu automatisieren."
+                        "description": concat!(
+                            "Lerne die wichtigsten Shell-Befehle, arbeite sicher mit Dateien und nutze Pipes, um ",
+                            "Aufgaben zu automatisieren.",
+                        )
                     },
                     {
                         "icon": "Compass",
                         "title": "Linux-Philosophie kennenlernen",
-                        "description": "Verstehe das Zusammenspiel von Kernel, Distribution, Paketverwaltung und warum Linux so flexibel einsetzbar ist."
+                        "description": concat!(
+                            "Verstehe das Zusammenspiel von Kernel, Distribution, Paketverwaltung und warum Linux so ",
+                            "flexibel einsetzbar ist.",
+                        )
                     },
                     {
                         "icon": "Layers",
                         "title": "Praxisnahe Übungen",
-                        "description": "Setze das Erlernte direkt in kleinen Projekten um – von der Benutzerverwaltung bis zum Einrichten eines Webservers."
+                        "description": concat!(
+                            "Setze das Erlernte direkt in kleinen Projekten um – von der Benutzerverwaltung bis zum ",
+                            "Einrichten eines Webservers.",
+                        )
                     },
                     {
                         "icon": "ShieldCheck",
                         "title": "Sicher arbeiten",
-                        "description": "Erhalte Best Practices für Benutzerrechte, sudo, SSH und weitere Sicherheitsmechanismen."
+                        "description": concat!(
+                            "Erhalte Best Practices für Benutzerrechte, sudo, SSH und weitere Sicherheitsmechanismen.",
+                        )
                     }
                 ],
                 "modules": {
                     "title": "Module im Grundlagenkurs",
-                    "description": "Unsere Tutorials bauen logisch aufeinander auf. Jedes Modul enthält praxisnahe Beispiele, Schritt-für-Schritt Anleitungen und kleine Wissenschecks, damit du deinen Fortschritt direkt sehen kannst.",
+                    "description": concat!(
+                        "Unsere Tutorials bauen logisch aufeinander auf. Jedes Modul enthält praxisnahe ",
+                        "Beispiele, Schritt-für-Schritt Anleitungen und kleine Wissenschecks, damit du deinen ",
+                        "Fortschritt direkt sehen kannst.",
+                    ),
                     "items": [
                         "Einstieg in die Shell: Navigation, grundlegende Befehle, Dateiverwaltung",
                         "Linux-Systemaufbau: Kernel, Distributionen, Paketmanager verstehen und nutzen",
@@ -186,7 +205,11 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
                 },
                 "cta": {
                     "title": "Bereit für den nächsten Schritt?",
-                    "description": "Wechsel zur Startseite und wähle das Modul, das am besten zu dir passt, oder tauche direkt in die Praxis- und Advanced-Themen ein, sobald du die Grundlagen sicher beherrschst.",
+                    "description": concat!(
+                        "Wechsel zur Startseite und wähle das Modul, das am besten zu dir passt, oder tauche ",
+                        "direkt in die Praxis- und Advanced-Themen ein, sobald du die Grundlagen sicher ",
+                        "beherrschst.",
+                    ),
                     "primary": { "label": "Zur Startseite", "href": "/" },
                     "secondary": { "label": "Tutorials verwalten", "href": "/admin" }
                 }
@@ -335,9 +358,11 @@ pub async fn insert_default_tutorials_tx(
             ))
         })?;
 
-        sqlx::query(
-            "INSERT INTO tutorials (id, title, description, icon, color, topics, content, version) VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
-        )
+        sqlx::query(concat!(
+            "INSERT INTO tutorials ",
+            "(id, title, description, icon, color, topics, content, version) ",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
+        ))
         .bind(id)
         .bind(title)
         .bind(description)

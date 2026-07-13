@@ -5,40 +5,43 @@ use sqlx;
 
 /// Fetches all site pages, ordered by their custom navigation index and title.
 pub async fn list_site_pages(pool: &DbPool) -> Result<Vec<SitePage>, sqlx::Error> {
-    sqlx::query_as::<_, SitePage>(
-        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json, created_at, updated_at FROM site_pages ORDER BY order_index, title",
-    )
+    sqlx::query_as::<_, SitePage>(concat!(
+        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, ",
+        "is_published, hero_json, layout_json, created_at, updated_at ",
+        "FROM site_pages ORDER BY order_index, title"
+    ))
     .fetch_all(pool)
     .await
 }
 
 /// Fetches pages that are specifically marked to appear in the navigation menu.
 pub async fn list_nav_pages(pool: &DbPool) -> Result<Vec<SitePage>, sqlx::Error> {
-    sqlx::query_as::<_, SitePage>(
-        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json, created_at, updated_at
-         FROM site_pages
-         WHERE show_in_nav = 1 AND is_published = 1
-         ORDER BY order_index, title",
-    )
+    sqlx::query_as::<_, SitePage>(concat!(
+        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, ",
+        "is_published, hero_json, layout_json, created_at, updated_at ",
+        "FROM site_pages WHERE show_in_nav = 1 AND is_published = 1 ",
+        "ORDER BY order_index, title"
+    ))
     .fetch_all(pool)
     .await
 }
 
 pub async fn list_published_pages(pool: &DbPool) -> Result<Vec<SitePage>, sqlx::Error> {
-    sqlx::query_as::<_, SitePage>(
-        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json, created_at, updated_at
-         FROM site_pages
-         WHERE is_published = 1
-         ORDER BY order_index, title",
-    )
+    sqlx::query_as::<_, SitePage>(concat!(
+        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, ",
+        "is_published, hero_json, layout_json, created_at, updated_at ",
+        "FROM site_pages WHERE is_published = 1 ORDER BY order_index, title"
+    ))
     .fetch_all(pool)
     .await
 }
 
 pub async fn get_site_page_by_id(pool: &DbPool, id: &str) -> Result<Option<SitePage>, sqlx::Error> {
-    sqlx::query_as::<_, SitePage>(
-        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json, created_at, updated_at FROM site_pages WHERE id = ?",
-    )
+    sqlx::query_as::<_, SitePage>(concat!(
+        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, ",
+        "is_published, hero_json, layout_json, created_at, updated_at ",
+        "FROM site_pages WHERE id = ?"
+    ))
     .bind(id)
     .fetch_optional(pool)
     .await
@@ -49,9 +52,11 @@ pub async fn get_site_page_by_slug(
     pool: &DbPool,
     slug: &str,
 ) -> Result<Option<SitePage>, sqlx::Error> {
-    sqlx::query_as::<_, SitePage>(
-        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json, created_at, updated_at FROM site_pages WHERE slug = ?",
-    )
+    sqlx::query_as::<_, SitePage>(concat!(
+        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, ",
+        "is_published, hero_json, layout_json, created_at, updated_at ",
+        "FROM site_pages WHERE slug = ?"
+    ))
     .bind(slug)
     .fetch_optional(pool)
     .await
@@ -72,10 +77,11 @@ pub async fn create_site_page(
     let order_index = page.order_index.unwrap_or(0);
 
     // Insert record
-    sqlx::query(
-        "INSERT INTO site_pages (id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    )
+    sqlx::query(concat!(
+        "INSERT INTO site_pages (id, slug, title, description, nav_label, show_in_nav, ",
+        "order_index, is_published, hero_json, layout_json) ",
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ))
     .bind(&id)
     .bind(&page.slug)
     .bind(&page.title)
@@ -140,11 +146,11 @@ pub async fn update_site_page(
     }
 
     // Execute UPDATE
-    sqlx::query(
-        "UPDATE site_pages
-         SET slug = ?, title = ?, description = ?, nav_label = ?, show_in_nav = ?, order_index = ?, is_published = ?, hero_json = ?, layout_json = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?",
-    )
+    sqlx::query(concat!(
+        "UPDATE site_pages SET slug = ?, title = ?, description = ?, nav_label = ?, ",
+        "show_in_nav = ?, order_index = ?, is_published = ?, hero_json = ?, ",
+        "layout_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ))
     .bind(&existing.slug)
     .bind(&existing.title)
     .bind(&existing.description)

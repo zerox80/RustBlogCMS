@@ -7,12 +7,11 @@ const normalizeText = (value) => {
   return String(value).replace(/\r\n?/g, '\n').trim()
 }
 
-const escapeFrontMatterValue = (value) => normalizeText(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+const escapeFrontMatterValue = (value) =>
+  normalizeText(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
 const escapeTableCell = (value) =>
-  normalizeText(value)
-    .replace(/\|/g, '\\|')
-    .replace(/\n+/g, '<br>')
+  normalizeText(value).replace(/\|/g, '\\|').replace(/\n+/g, '<br>')
 
 const formatStatus = (published) => (published ? 'Veroeffentlicht' : 'Entwurf')
 
@@ -39,7 +38,9 @@ const compareByOrderAndTitle = (left, right) => {
   return normalizeText(left?.title || left?.slug).localeCompare(
     normalizeText(right?.title || right?.slug),
     'de',
-    { sensitivity: 'base' },
+    {
+      sensitivity: 'base',
+    },
   )
 }
 
@@ -58,7 +59,9 @@ const metadataTable = (rows) => {
   return [
     '| Feld | Wert |',
     '| --- | --- |',
-    ...visibleRows.map(([label, value]) => `| ${escapeTableCell(label)} | ${escapeTableCell(value)} |`),
+    ...visibleRows.map(
+      ([label, value]) => `| ${escapeTableCell(label)} | ${escapeTableCell(value)} |`,
+    ),
   ]
 }
 

@@ -15,101 +15,107 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 
 /**
  * Blog-Only Routing Configuration.
- * 
+ *
  * The application defaults to a Blog view. The home page can be configured via
  * CMS settings to show:
  * - 'blog': The main blog listing (default)
  * - A specific page slug: A CMS-created dynamic page (shows page with its posts)
  */
 const AppRoutes = () => {
-    const { getSection } = useContent()
-    const settings = getSection('settings') || {}
-    const homePageSlug = settings.homePageSlug || 'blog'
+  const { getSection } = useContent()
+  const settings = getSection('settings') || {}
+  const homePageSlug = settings.homePageSlug || 'blog'
 
-    const homePageContent = homePageSlug === 'blog' || !homePageSlug
-        ? <Home />
-        : <DynamicPage slug={homePageSlug} />
+  const homePageContent =
+    homePageSlug === 'blog' || !homePageSlug ? <Home /> : <DynamicPage slug={homePageSlug} />
 
-    return (
-        <Routes>
-            <Route
-                path="/"
-                element={
-                    <ErrorBoundary>
-                        <Header />
-                        {homePageContent}
-                        <Footer />
-                    </ErrorBoundary>
-                }
-            />
-            <Route
-                path="/blog"
-                element={
-                    <ErrorBoundary>
-                        <Header />
-                        <Home />
-                        <Footer />
-                    </ErrorBoundary>
-                }
-            />
-            <Route
-                path="/tutorials/:id"
-                element={
-                    <ErrorBoundary>
-                        <Header />
-                        <TutorialDetail />
-                        <Footer />
-                    </ErrorBoundary>
-                }
-            />
-            <Route
-                path="/pages/:pageSlug/posts/:postSlug"
-                element={
-                    <ErrorBoundary>
-                        <Header />
-                        <PostDetail />
-                        <Footer />
-                    </ErrorBoundary>
-                }
-            />
-            <Route
-                path="/pages/:slug"
-                element={
-                    <ErrorBoundary>
-                        <Header />
-                        <DynamicPage />
-                        <Footer />
-                    </ErrorBoundary>
-                }
-            />
-            <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
-            <Route
-                path="/admin"
-                element={
-                    <ProtectedRoute>
-                        <ErrorBoundary>
-                            <AdminDashboard />
-                        </ErrorBoundary>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="*"
-                element={
-                    <ErrorBoundary>
-                        <Header />
-                        <div className="min-h-screen flex items-center justify-center bg-slate-900">
-                            <div className="text-center">
-                                <h1 className="text-6xl font-bold text-white mb-4">404</h1>
-                                <p className="text-slate-400 text-lg">Seite nicht gefunden</p>
-                            </div>
-                        </div>
-                        <Footer />
-                    </ErrorBoundary>
-                }
-            />
-        </Routes>
-    )
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <ErrorBoundary>
+            <Header />
+            {homePageContent}
+            <Footer />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/blog"
+        element={
+          <ErrorBoundary>
+            <Header />
+            <Home />
+            <Footer />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/tutorials/:id"
+        element={
+          <ErrorBoundary>
+            <Header />
+            <TutorialDetail />
+            <Footer />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/pages/:pageSlug/posts/:postSlug"
+        element={
+          <ErrorBoundary>
+            <Header />
+            <PostDetail />
+            <Footer />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/pages/:slug"
+        element={
+          <ErrorBoundary>
+            <Header />
+            <DynamicPage />
+            <Footer />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <ErrorBoundary>
+            <Login />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <ErrorBoundary>
+              <AdminDashboard />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="*"
+        element={
+          <ErrorBoundary>
+            <Header />
+            <div className="min-h-screen flex items-center justify-center bg-slate-900">
+              <div className="text-center">
+                <h1 className="text-6xl font-bold text-white mb-4">404</h1>
+                <p className="text-slate-400 text-lg">Seite nicht gefunden</p>
+              </div>
+            </div>
+            <Footer />
+          </ErrorBoundary>
+        }
+      />
+    </Routes>
+  )
 }
 
 export default AppRoutes

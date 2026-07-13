@@ -2,7 +2,7 @@ const ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
 const hasProtocol = (value) => /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)
 /**
  * Security-focused URL Sanitizer.
- * 
+ *
  * Prevents:
  * - Protocol-relative hijacking (//evil.com).
  * - XSS via `javascript:` protocols.

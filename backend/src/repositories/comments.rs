@@ -11,9 +11,10 @@ pub async fn list_comments(
     sort: Option<&str>,
 ) -> Result<Vec<Comment>, sqlx::Error> {
     // Dynamic query building for different sort orders
-    let mut query_builder = sqlx::QueryBuilder::new(
-        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin, author_username, is_guest FROM comments WHERE tutorial_id = "
-    );
+    let mut query_builder = sqlx::QueryBuilder::new(concat!(
+        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin, ",
+        "author_username, is_guest FROM comments WHERE tutorial_id = "
+    ));
     query_builder.push_bind(tutorial_id);
 
     match sort {
@@ -43,9 +44,10 @@ pub async fn list_post_comments(
     offset: i64,
     sort: Option<&str>,
 ) -> Result<Vec<Comment>, sqlx::Error> {
-    let mut query_builder = sqlx::QueryBuilder::new(
-        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin, author_username, is_guest FROM comments WHERE post_id = "
-    );
+    let mut query_builder = sqlx::QueryBuilder::new(concat!(
+        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin, ",
+        "author_username, is_guest FROM comments WHERE post_id = "
+    ));
     query_builder.push_bind(post_id);
 
     match sort {
@@ -82,9 +84,11 @@ pub async fn create_comment(
     author_username: Option<String>,
     is_guest: Option<bool>,
 ) -> Result<Comment, sqlx::Error> {
-    sqlx::query(
-        "INSERT INTO comments (id, tutorial_id, post_id, author, rate_limit_key, content, created_at, votes, is_admin, author_username, is_guest) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)"
-    )
+    sqlx::query(concat!(
+        "INSERT INTO comments (id, tutorial_id, post_id, author, rate_limit_key, content, ",
+        "created_at, votes, is_admin, author_username, is_guest) ",
+        "VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)"
+    ))
     .bind(id)
     .bind(&tutorial_id)
     .bind(&post_id)
@@ -113,12 +117,13 @@ pub async fn create_comment(
 }
 
 pub async fn get_comment(pool: &DbPool, id: &str) -> Result<Option<Comment>, sqlx::Error> {
-    sqlx::query_as::<_, Comment>(
-        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin, author_username, is_guest FROM comments WHERE id = ?",
-    )
-        .bind(id)
-        .fetch_optional(pool)
-        .await
+    sqlx::query_as::<_, Comment>(concat!(
+        "SELECT id, tutorial_id, post_id, author, content, created_at, votes, is_admin, ",
+        "author_username, is_guest FROM comments WHERE id = ?"
+    ))
+    .bind(id)
+    .fetch_optional(pool)
+    .await
 }
 
 pub async fn delete_comment(pool: &DbPool, id: &str) -> Result<bool, sqlx::Error> {

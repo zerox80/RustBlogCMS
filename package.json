@@ -57,6 +57,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext js,jsx",
+    "check:file-limits": "node scripts/check-file-limits.mjs",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",

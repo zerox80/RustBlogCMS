@@ -208,7 +208,10 @@ async fn main() -> Result<()> {
         .collect::<Result<Vec<_>>>()?;
 
     let page_rows = sqlx::query_as::<_, SitePageRow>(
-        "SELECT id, slug, title, description, nav_label, show_in_nav, order_index, is_published, hero_json, layout_json, created_at, updated_at FROM site_pages ORDER BY order_index, title",
+        r#"SELECT id, slug, title, description, nav_label, show_in_nav, order_index,
+                  is_published, hero_json, layout_json, created_at, updated_at
+           FROM site_pages
+           ORDER BY order_index, title"#,
     )
     .fetch_all(&pool)
     .await
@@ -239,7 +242,10 @@ async fn main() -> Result<()> {
         .collect::<Result<Vec<_>>>()?;
 
     let post_rows = sqlx::query_as::<_, SitePostRow>(
-        "SELECT id, page_id, title, slug, excerpt, content_markdown, is_published, published_at, order_index, created_at, updated_at FROM site_posts ORDER BY page_id, order_index, created_at",
+        r#"SELECT id, page_id, title, slug, excerpt, content_markdown, is_published,
+                  published_at, order_index, created_at, updated_at
+           FROM site_posts
+           ORDER BY page_id, order_index, created_at"#,
     )
     .fetch_all(&pool)
     .await
@@ -263,7 +269,10 @@ async fn main() -> Result<()> {
         .collect::<Vec<_>>();
 
     let tutorial_rows = sqlx::query_as::<_, TutorialRow>(
-        "SELECT id, title, description, icon, color, topics, content, version, created_at, updated_at FROM tutorials ORDER BY created_at",
+        r#"SELECT id, title, description, icon, color, topics, content, version,
+                  created_at, updated_at
+           FROM tutorials
+           ORDER BY created_at"#,
     )
     .fetch_all(&pool)
     .await
@@ -328,7 +337,10 @@ async fn main() -> Result<()> {
         .with_context(|| format!("Failed to write export file at {}", path.display()))?;
 
     println!(
-        "Export completed:\n  site_content: {}\n  pages: {}\n  posts: {}\n  tutorials: {}\n  tutorial_topics: {}\n  saved to {}",
+        concat!(
+            "Export completed:\n  site_content: {}\n  pages: {}\n  posts: {}\n",
+            "  tutorials: {}\n  tutorial_topics: {}\n  saved to {}",
+        ),
         bundle.site_content.len(),
         bundle.pages.len(),
         bundle.posts.len(),

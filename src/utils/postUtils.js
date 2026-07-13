@@ -1,9 +1,9 @@
 /**
  * Mojibake Encoding Repair Map.
- * 
- * Maps common UTF-8 interpreted as ISO-8859-1 character sequences back to 
- * their original German and Latin-1 characters. This is a critical fallback 
- * for data that might have been mangled during database migrations or 
+ *
+ * Maps common UTF-8 interpreted as ISO-8859-1 character sequences back to
+ * their original German and Latin-1 characters. This is a critical fallback
+ * for data that might have been mangled during database migrations or
  * legacy API interactions.
  */
 const MOJIBAKE_REPLACEMENTS = [
@@ -42,7 +42,7 @@ const MOJIBAKE_REPLACEMENTS = [
 ]
 /**
  * Fixes character encoding issues (Mojibake) in a string.
- * 
+ *
  * Performance: Includes a pre-flight regex check to bypass clean strings
  * and avoid unnecessary iterations.
  */
@@ -131,7 +131,7 @@ export const buildPreviewText = (post, maxLength = 240, minCutoff = 180) => {
 }
 /**
  * Generates a clean, URL-safe and SEO-friendly slug.
- * 
+ *
  * Algorithm:
  * 1. Normalize Unicode (NFKD) to decompose combined characters (e.g., 'ü' -> 'u' + '..').
  * 2. Strip diacritics using regex.
@@ -148,9 +148,7 @@ export const normalizeSlug = (value) => {
     return ''
   }
   // Remove diacritics and normalize Unicode
-  const ascii = trimmed
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '') // drop diacritics
+  const ascii = trimmed.normalize('NFKD').replace(/[\u0300-\u036f]/g, '') // drop diacritics
   // Clean and sanitize the slug
   const sanitized = ascii
     .replace(/[^0-9A-Za-z\s-]/g, '')

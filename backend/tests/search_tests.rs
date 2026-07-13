@@ -48,8 +48,12 @@ mod search_tests {
         run_migrations(&pool).await.expect("run migrations");
 
         sqlx::query(
-            "INSERT INTO tutorials (id, title, description, icon, color, topics, content, version) \
-             VALUES ('t1', 'Bash Scripting', 'Learn bash', 'Terminal', 'from-blue-500 to-cyan-500', '[\"bash\",\"scripting\"]', 'content', 1)",
+            r#"INSERT INTO tutorials (
+                   id, title, description, icon, color, topics, content, version
+               ) VALUES (
+                   't1', 'Bash Scripting', 'Learn bash', 'Terminal',
+                   'from-blue-500 to-cyan-500', '["bash","scripting"]', 'content', 1
+               )"#,
         )
         .execute(&pool)
         .await

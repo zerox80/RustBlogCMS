@@ -1,19 +1,11 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import { api } from '../api/client'
 const ContentContext = createContext(null)
 
 /**
  * Global Fallback Data Configuration.
- * 
+ *
  * Defines the initial structure and default content for the entire site.
  * This object serves as a blueprint for the backend data and also acts as
  * the reliable fallback if the API fails or returns incomplete sections.
@@ -30,7 +22,7 @@ export const DEFAULT_CONTENT = {
     subline: 'Aktuell, praxisnah und verständlich.',
     heroImage: '', // URL to the hero image (can be set via CMS)
     primaryCta: {
-      label: "Themen entdecken",
+      label: 'Themen entdecken',
       target: { type: 'section', value: 'features' },
     },
     secondaryCta: {
@@ -139,7 +131,7 @@ export const ContentProvider = ({ children }) => {
   const publishedPageSlugsRef = useRef([])
   /**
    * Loads global site content (Hero, Features, Stats, etc.) from the backend.
-   * 
+   *
    * Merges backend data on top of `DEFAULT_CONTENT` to ensure structural integrity
    * even if specific sections haven't been customized in the CMS yet.
    */
@@ -196,9 +188,7 @@ export const ContentProvider = ({ children }) => {
     }
   }, [])
   useEffect(() => {
-    publishedPageSlugsRef.current = Array.isArray(publishedPageSlugs)
-      ? publishedPageSlugs
-      : []
+    publishedPageSlugsRef.current = Array.isArray(publishedPageSlugs) ? publishedPageSlugs : []
   }, [publishedPageSlugs])
 
   const fetchPublishedPage = useCallback(
@@ -307,10 +297,10 @@ export const ContentProvider = ({ children }) => {
   }, [])
   /**
    * Generates a unified navigation model combining static and dynamic items.
-   * 
+   *
    * static: Defined in the `header` section of DEFAULT_CONTENT/CMS.
    * dynamic: Automatically generated from published CMS pages.
-   * 
+   *
    * Items are normalized into a consistent shape { id, label, path, source }
    * for consumption by Navbar / Footer components.
    */
@@ -332,18 +322,18 @@ export const ContentProvider = ({ children }) => {
 
     const filteredDynamic = Array.isArray(dynamicNavItems)
       ? dynamicNavItems.filter((item) => {
-        if (!item || typeof item.slug !== 'string') {
-          return false
-        }
-        const normalizedSlug = item.slug.trim().toLowerCase()
-        if (!normalizedSlug) {
-          return false
-        }
-        if (restrictToPublished && !normalizedPublishedSlugs.has(normalizedSlug)) {
-          return false
-        }
-        return true
-      })
+          if (!item || typeof item.slug !== 'string') {
+            return false
+          }
+          const normalizedSlug = item.slug.trim().toLowerCase()
+          if (!normalizedSlug) {
+            return false
+          }
+          if (restrictToPublished && !normalizedPublishedSlugs.has(normalizedSlug)) {
+            return false
+          }
+          return true
+        })
       : []
     const sortedDynamic = [...filteredDynamic].sort(
       (a, b) => (a?.order_index ?? 0) - (b?.order_index ?? 0),
@@ -366,53 +356,56 @@ export const ContentProvider = ({ children }) => {
       items: [...staticNormalized, ...dynamicNormalized],
     }
   }, [content, dynamicNavItems, publishedPageSlugs])
-  const value = useMemo(() => ({
-    content,
-    loading,
-    error,
-    refreshContent: loadContent,
-    getSection: (section) => content[section] ?? DEFAULT_CONTENT[section],
-    getDefaultSection: (section) => DEFAULT_CONTENT[section],
-    getSiteMeta: () => content?.site_meta ?? DEFAULT_CONTENT.site_meta,
-    updateSection,
-    savingSections,
-    navigation: {
-      ...navigationData,
-      loading: navLoading,
-      error: navError,
-      refresh: loadNavigation,
-    },
-    pages: {
-      cache: pageCache,
-      fetch: fetchPublishedPage,
-      publishedSlugs: publishedPageSlugs,
-      loading: publishedPagesLoading,
-      error: publishedPagesError,
-      refresh: loadPublishedPages,
-      invalidate: invalidatePageCache,
-      getPost: api.getPublishedPost.bind(api),
-    },
-  }), [
-    content,
-    loading,
-    error,
-    loadContent,
-    updateSection,
-    savingSections,
-    navigationData,
-    navLoading,
-    navError,
-    loadNavigation,
-    pageCache,
-    fetchPublishedPage,
-    publishedPageSlugs,
-    publishedPagesLoading,
-    publishedPagesError,
-    loadPublishedPages,
-    invalidatePageCache,
-  ]);
-  return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
-};
+  const value = useMemo(
+    () => ({
+      content,
+      loading,
+      error,
+      refreshContent: loadContent,
+      getSection: (section) => content[section] ?? DEFAULT_CONTENT[section],
+      getDefaultSection: (section) => DEFAULT_CONTENT[section],
+      getSiteMeta: () => content?.site_meta ?? DEFAULT_CONTENT.site_meta,
+      updateSection,
+      savingSections,
+      navigation: {
+        ...navigationData,
+        loading: navLoading,
+        error: navError,
+        refresh: loadNavigation,
+      },
+      pages: {
+        cache: pageCache,
+        fetch: fetchPublishedPage,
+        publishedSlugs: publishedPageSlugs,
+        loading: publishedPagesLoading,
+        error: publishedPagesError,
+        refresh: loadPublishedPages,
+        invalidate: invalidatePageCache,
+        getPost: api.getPublishedPost.bind(api),
+      },
+    }),
+    [
+      content,
+      loading,
+      error,
+      loadContent,
+      updateSection,
+      savingSections,
+      navigationData,
+      navLoading,
+      navError,
+      loadNavigation,
+      pageCache,
+      fetchPublishedPage,
+      publishedPageSlugs,
+      publishedPagesLoading,
+      publishedPagesError,
+      loadPublishedPages,
+      invalidatePageCache,
+    ],
+  )
+  return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>
+}
 ContentProvider.propTypes = {
   children: PropTypes.node,
 }

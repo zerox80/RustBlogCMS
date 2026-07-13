@@ -1,186 +1,187 @@
 // Bump this whenever cache policy changes so previously cached responses cannot
 // survive a security fix.
-const CACHE_NAME = 'rust-blog-v2';
+const CACHE_NAME = 'rust-blog-v2'
 
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/linux-icon.svg',
-  '/manifest.json',
-];
+const urlsToCache = ['/', '/index.html', '/linux-icon.svg', '/manifest.json']
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker - caching core assets');
+  console.log('[SW] Installing service worker - caching core assets')
 
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches
+      .open(CACHE_NAME)
       .then((cache) => {
-        console.log(`[SW] Cache opened: ${CACHE_NAME}`);
-        return cache.addAll(urlsToCache);
+        console.log(`[SW] Cache opened: ${CACHE_NAME}`)
+        return cache.addAll(urlsToCache)
       })
       .then(() => {
-        console.log('[SW] Core assets cached successfully');
-        return self.skipWaiting();
+        console.log('[SW] Core assets cached successfully')
+        return self.skipWaiting()
       })
       .catch((error) => {
-        console.error('[SW] Failed to cache core assets:', error);
-      })
-  );
-});
+        console.error('[SW] Failed to cache core assets:', error)
+      }),
+  )
+})
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker - cleaning up old caches');
+  console.log('[SW] Activating service worker - cleaning up old caches')
 
   event.waitUntil(
-    caches.keys()
+    caches
+      .keys()
       .then((cacheNames) => {
-        console.log('[SW] Current caches:', cacheNames);
+        console.log('[SW] Current caches:', cacheNames)
 
         return Promise.all(
           cacheNames
             .filter((cacheName) => {
-              const shouldDelete = cacheName !== CACHE_NAME;
+              const shouldDelete = cacheName !== CACHE_NAME
               if (shouldDelete) {
-                console.log(`[SW] Deleting old cache: ${cacheName}`);
+                console.log(`[SW] Deleting old cache: ${cacheName}`)
               }
-              return shouldDelete;
+              return shouldDelete
             })
-            .map((cacheName) => caches.delete(cacheName))
-        );
+            .map((cacheName) => caches.delete(cacheName)),
+        )
       })
       .then(() => {
-        console.log('[SW] Cache cleanup completed');
-        return self.clients.claim();
+        console.log('[SW] Cache cleanup completed')
+        return self.clients.claim()
       })
       .catch((error) => {
-        console.error('[SW] Error during cache cleanup:', error);
-      })
-  );
-});
+        console.error('[SW] Error during cache cleanup:', error)
+      }),
+  )
+})
 
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  const requestUrl = new URL(request.url);
-  const url = requestUrl.href;
+  const request = event.request
+  const requestUrl = new URL(request.url)
+  const url = requestUrl.href
 
   if (!url.startsWith(self.location.origin)) {
-    console.log(`[SW] Skipping cross-origin request: ${url}`);
-    return;
+    console.log(`[SW] Skipping cross-origin request: ${url}`)
+    return
   }
 
   // API responses can be personalized and the API client deliberately requests
   // them with `cache: 'no-store'`. Cache Storage does not enforce HTTP cache
   // directives itself, so never intercept API traffic here.
   if (requestUrl.pathname.startsWith('/api/')) {
-    console.log(`[SW] Bypassing API request: ${url}`);
-    return;
+    console.log(`[SW] Bypassing API request: ${url}`)
+    return
   }
 
   // Cache Storage only supports GET requests. Let the browser handle all
   // mutating or otherwise non-cacheable requests directly.
   if (request.method !== 'GET') {
-    console.log(`[SW] Bypassing non-GET request: ${url}`);
-    return;
+    console.log(`[SW] Bypassing non-GET request: ${url}`)
+    return
   }
 
-  console.log(`[SW] Static request (cache-first): ${url}`);
+  console.log(`[SW] Static request (cache-first): ${url}`)
 
   event.respondWith(
-    caches.match(request)
+    caches
+      .match(request)
       .then((cachedResponse) => {
         if (cachedResponse) {
-          console.log(`[SW] Serving from cache: ${url}`);
-          return cachedResponse;
+          console.log(`[SW] Serving from cache: ${url}`)
+          return cachedResponse
         }
 
-        console.log(`[SW] Fetching from network: ${url}`);
-        return fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME)
-                .then((cache) => cache.put(request, responseClone))
-                .catch((error) => console.log('[SW] Failed to cache response:', error));
-            }
-            return response;
-          });
+        console.log(`[SW] Fetching from network: ${url}`)
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone()
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(request, responseClone))
+              .catch((error) => console.log('[SW] Failed to cache response:', error))
+          }
+          return response
+        })
       })
       .catch((error) => {
-        console.log(`[SW] Network and cache failed for: ${url}`);
+        console.log(`[SW] Network and cache failed for: ${url}`)
 
         if (request.destination === 'document') {
-          console.log('[SW] Serving offline fallback page');
-          return caches.match('/index.html');
+          console.log('[SW] Serving offline fallback page')
+          return caches.match('/index.html')
         }
 
         if (request.destination === 'image') {
           return new Response(
-            '<svg width="1" height="1" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="transparent"/></svg>',
+            [
+              '<svg width="1" height="1" xmlns="http://www.w3.org/2000/svg">',
+              '<rect width="1" height="1" fill="transparent"/></svg>',
+            ].join(''),
             {
               headers: { 'Content-Type': 'image/svg+xml' },
-              status: 200
-            }
-          );
+              status: 200,
+            },
+          )
         }
 
         return new Response(
           JSON.stringify({
             error: 'Offline - Resource not available',
-            message: 'This resource is not available offline. Please check your connection.'
+            message: 'This resource is not available offline. Please check your connection.',
           }),
           {
             headers: { 'Content-Type': 'application/json' },
-            status: 503
-          }
-        );
-      })
-  );
-});
+            status: 503,
+          },
+        )
+      }),
+  )
+})
 
 self.addEventListener('message', (event) => {
-  const { type, payload } = event.data;
+  const { type, payload } = event.data
 
   switch (type) {
     case 'SKIP_WAITING':
-      self.skipWaiting();
-      break;
+      self.skipWaiting()
+      break
 
     case 'CACHE_CLEAR':
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => caches.delete(cacheName))
-        );
-      }).then(() => {
-        event.ports[0].postMessage({ success: true });
-      });
-      break;
+      caches
+        .keys()
+        .then((cacheNames) => {
+          return Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)))
+        })
+        .then(() => {
+          event.ports[0].postMessage({ success: true })
+        })
+      break
 
     case 'CACHE_UPDATE':
       if (payload && payload.urls) {
-        caches.open(CACHE_NAME)
+        caches
+          .open(CACHE_NAME)
           .then((cache) => cache.addAll(payload.urls))
           .then(() => {
-            event.ports[0].postMessage({ success: true });
+            event.ports[0].postMessage({ success: true })
           })
           .catch((error) => {
-            event.ports[0].postMessage({ success: false, error: error.message });
-          });
+            event.ports[0].postMessage({ success: false, error: error.message })
+          })
       }
-      break;
+      break
 
     default:
-      console.log('[SW] Unknown message type:', type);
+      console.log('[SW] Unknown message type:', type)
   }
-});
+})
 
 self.addEventListener('sync', (event) => {
   if (event.tag === 'background-sync') {
-    console.log('[SW] Background sync triggered');
-    event.waitUntil(
-      Promise.resolve()
-    );
+    console.log('[SW] Background sync triggered')
+    event.waitUntil(Promise.resolve())
   }
-});
+})
 
 /*
 self.addEventListener('push', (event) => {
@@ -202,11 +203,11 @@ self.addEventListener('push', (event) => {
 */
 
 self.addEventListener('error', (event) => {
-  console.error('[SW] Service Worker error:', event.error);
-});
+  console.error('[SW] Service Worker error:', event.error)
+})
 
 self.addEventListener('unhandledrejection', (event) => {
-  console.error('[SW] Unhandled promise rejection:', event.reason);
-});
+  console.error('[SW] Unhandled promise rejection:', event.reason)
+})
 
-console.log('[SW] Service Worker loaded successfully');
+console.log('[SW] Service Worker loaded successfully')

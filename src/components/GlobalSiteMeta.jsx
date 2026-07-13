@@ -3,7 +3,8 @@ import { useEffect } from 'react'
 import { useContent } from '../context/ContentContext'
 
 const FALLBACK_TITLE = 'Zero Point - IT & Rust Research'
-const FALLBACK_DESCRIPTION = 'In-depth tutorials and research on Rust, Linux, and Server Infrastructure.'
+const FALLBACK_DESCRIPTION =
+  'In-depth tutorials and research on Rust, Linux, and Server Infrastructure.'
 
 const sanitize = (value) => {
   if (typeof value !== 'string') {

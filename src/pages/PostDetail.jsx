@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useContent } from '../context/ContentContext'
@@ -9,7 +8,7 @@ import { Calendar, Clock, User, Share2, Bookmark } from 'lucide-react'
 
 /**
  * In-depth Blog Post Viewer.
- * 
+ *
  * Features:
  * - Table of Contents (ToC): Implements a Scroll-Spy to highlight current section.
  * - Dynamic SEO: Injects post-specific meta tags for social sharing and search.
@@ -27,15 +26,19 @@ const PostDetail = () => {
         const data = await pages.getPost(pageSlug, postSlug)
         setPost(data.post)
       } catch (err) {
-        console.error("CMS: Failed to load post:", err)
+        console.error('CMS: Failed to load post:', err)
       }
     }
     fetchPost()
   }, [pageSlug, postSlug, pages])
 
-  if (!post) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
+  if (!post)
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
+    )
 
-  const readTimeDisplay = post.readTime || `${Math.ceil((post.content_markdown?.length || 0) / 1000) + 1} min read`
+  const readTimeDisplay =
+    post.readTime || `${Math.ceil((post.content_markdown?.length || 0) / 1000) + 1} min read`
 
   return (
     <div className="min-h-screen bg-slate-950 pt-24 pb-20">
@@ -46,9 +49,16 @@ const PostDetail = () => {
       {/* Hero Header */}
       <div className="relative w-full h-[40vh] md:h-[50vh] flex items-center justify-center mb-12">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-10" />
+          <div
+            className={`absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80
+to-transparent z-10`}
+          />
           {post.image && (
-            <img src={post.image} alt={post.title} className="w-full h-full object-cover opacity-60" />
+            <img
+              src={post.image}
+              alt={post.title}
+              className="w-full h-full object-cover opacity-60"
+            />
           )}
           {/* Fallback pattern if no image */}
           {!post.image && (
@@ -57,10 +67,19 @@ const PostDetail = () => {
         </div>
 
         <div className="container px-6 relative z-20 max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-medium text-neon-cyan mb-6">
-            {post.category || "Technology"}
+          <div
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10
+backdrop-blur-md border border-white/10 text-xs font-medium text-neon-cyan
+mb-6`}
+          >
+            {post.category || 'Technology'}
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6 leading-tight">
+          <h1
+            className={[
+              'text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6',
+              'leading-tight',
+            ].join(' ')}
+          >
             {post.title}
           </h1>
 
@@ -71,11 +90,11 @@ const PostDetail = () => {
                   <User className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <span className="font-medium text-white">{post.author || "Admin"}</span>
+              <span className="font-medium text-white">{post.author || 'Admin'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              <span>{formatDate(post.published_at || post.created_at) || "Recently"}</span>
+              <span>{formatDate(post.published_at || post.created_at) || 'Recently'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -85,21 +104,32 @@ const PostDetail = () => {
         </div>
       </div>
 
-      <div className="container px-6 mx-auto relative max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div
+        className={`container px-6 mx-auto relative max-w-7xl grid grid-cols-1 lg:grid-cols-12
+gap-12`}
+      >
         {/* Sidebar - Table of Contents */}
         <aside className="hidden lg:block lg:col-span-3">
           <div className="sticky top-32 glass-card p-6 rounded-2xl">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Table of Contents</h4>
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+              Table of Contents
+            </h4>
             <nav className="space-y-1">
               {/* Note: In a real app, generate these from markdown AST. For now static or simple regex */}
               <div className="text-sm text-slate-500 italic">Sections auto-generated</div>
             </nav>
 
             <div className="mt-8 pt-8 border-t border-white/5 flex gap-4">
-              <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
+              <button
+                className={`p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white
+transition-colors`}
+              >
                 <Share2 className="w-5 h-5" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
+              <button
+                className={`p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white
+transition-colors`}
+              >
                 <Bookmark className="w-5 h-5" />
               </button>
             </div>
@@ -109,10 +139,7 @@ const PostDetail = () => {
         {/* Main Content */}
         <main className="lg:col-span-8 lg:col-start-4">
           <article className="max-w-none">
-            <MarkdownRenderer
-              content={post.content_markdown}
-              withBreaks
-            />
+            <MarkdownRenderer content={post.content_markdown} withBreaks />
           </article>
 
           {/* Footer / Comments Area */}
@@ -128,7 +155,8 @@ const PostDetail = () => {
                 <div className="flex-1">
                   <textarea
                     placeholder="What are your thoughts?"
-                    className="w-full bg-transparent border-0 text-white placeholder-slate-500 focus:ring-0 resize-none h-24"
+                    className={`w-full bg-transparent border-0 text-white placeholder-slate-500 focus:ring-0
+resize-none h-24`}
                   />
                 </div>
               </div>
