@@ -4,6 +4,7 @@ import { useContent, DEFAULT_CONTENT } from '../../context/ContentContext'
 import { LoginForm, SiteMetaForm } from './AccountContentForms'
 import { CtaSectionForm, HeroContentForm, StatsForm } from './HomepageContentForms'
 import { FooterForm, HeaderForm } from './NavigationContentForms'
+import { AboutContentForm } from './EditorialContentForms'
 import { SectionPreview } from './SectionPreview'
 import {
   cloneContent,
@@ -228,6 +229,10 @@ text-sm text-red-700`}
 
           {selectedSection === 'cta_section' && (
             <CtaSectionForm content={draftContent} onFieldChange={handleStructuredFieldChange} />
+          )}
+
+          {selectedSection === 'about' && (
+            <AboutContentForm content={draftContent} onFieldChange={handleStructuredFieldChange} />
           )}
 
           {selectedSection === 'login' && (

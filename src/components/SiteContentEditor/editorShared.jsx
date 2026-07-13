@@ -5,6 +5,7 @@ export const sectionLabels = {
   hero: 'Startseite: Hauptbereich (Hero)',
   stats: 'Startseite: Statistiken',
   cta_section: 'Startseite: Aufruf (CTA)',
+  about: 'Startseite: Über diesen Blog',
   header: 'Navigation & Header',
   footer: 'Footer',
   site_meta: 'globale Meta-Daten (SEO)',

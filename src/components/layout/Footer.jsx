@@ -5,12 +5,31 @@ import EditableText from '../cms/EditableText'
 import { renderIcon } from '../../utils/iconMap'
 import { sanitizeExternalUrl } from '../../utils/urlValidation'
 
+const resolveFooterTarget = (target) => {
+  if (!target || typeof target !== 'object') return null
+  const rawValue = target.value ?? target.path ?? target.href
+  if (typeof rawValue !== 'string' || !rawValue.trim()) return null
+  const value = rawValue.trim()
+
+  if (target.type === 'section') return { href: `/#${value}`, internal: false }
+  if (target.type === 'page') {
+    return { href: value.startsWith('/') ? value : `/pages/${value}`, internal: true }
+  }
+  if (target.type === 'route') return { href: value, internal: true }
+  if (target.type === 'external' || target.type === 'href') {
+    const href = sanitizeExternalUrl(value)
+    return href ? { href, internal: false } : null
+  }
+  return null
+}
+
 /** Personal footer that closes the one-page layout without repeating a sitemap wall. */
 const Footer = () => {
   const { getSection, navigation } = useContent()
   const footerContent = getSection('footer') ?? {}
   const contactLinks = Array.isArray(footerContent?.contactLinks) ? footerContent.contactLinks : []
-  const pageLinks = (navigation?.dynamic || []).slice(0, 4)
+  const quickLinks = Array.isArray(footerContent?.quickLinks) ? footerContent.quickLinks : []
+  const pageLinks = Array.isArray(navigation?.dynamic) ? navigation.dynamic : []
   const copyright = (
     footerContent?.bottom?.copyright || '© {year} Zero Point. Alle Rechte vorbehalten.'
   ).replace('{year}', new Date().getFullYear())
@@ -58,15 +77,36 @@ lg:px-12`}
               Hier entlang
             </p>
             <div className="flex flex-col gap-3 text-sm text-white/60">
-              <a href="/#stories" className="hover:text-white">
-                Beiträge
-              </a>
-              <a href="/#topics" className="hover:text-white">
-                Themen
-              </a>
-              <a href="/#about" className="hover:text-white">
-                Über diesen Blog
-              </a>
+              {quickLinks.map((link, index) => {
+                const destination = resolveFooterTarget(link?.target)
+                if (!destination) return null
+                const content = (
+                  <EditableText
+                    section="footer"
+                    field={`quickLinks.${index}.label`}
+                    value={link?.label || 'Link'}
+                  />
+                )
+                if (destination.internal) {
+                  return (
+                    <Link key={`${destination.href}-${index}`} to={destination.href} className="hover:text-white">
+                      {content}
+                    </Link>
+                  )
+                }
+                const external = /^https?:\/\//i.test(destination.href)
+                return (
+                  <a
+                    key={`${destination.href}-${index}`}
+                    href={destination.href}
+                    target={external ? '_blank' : undefined}
+                    rel={external ? 'noopener noreferrer' : undefined}
+                    className="hover:text-white"
+                  >
+                    {content}
+                  </a>
+                )
+              })}
               {pageLinks.map((link) => (
                 <Link key={link.id} to={link.path} className="hover:text-white">
                   {link.label}

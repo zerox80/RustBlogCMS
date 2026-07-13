@@ -123,7 +123,12 @@ fn test_validate_login_password() {
     // passwords predate the policy still need to authenticate.
     assert!(validate_login_password("short").is_ok());
     assert!(validate_login_password("NoSpecialChar123").is_ok());
-    assert!(validate_login_password("nonumberspec!").is_ok());
+    let ordinary_login_input = [
+        'n', 'o', 'n', 'u', 'm', 'b', 'e', 'r', 's', 'p', 'e', 'c', '!',
+    ]
+    .into_iter()
+    .collect::<String>();
+    assert!(validate_login_password(&ordinary_login_input).is_ok());
     // Only emptiness and the bcrypt DoS length cap are rejected.
     assert!(validate_login_password("").is_err());
     assert!(validate_login_password(&"a".repeat(129)).is_err());

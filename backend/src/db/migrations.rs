@@ -309,6 +309,18 @@ async fn apply_core_migrations(tx: &mut Transaction<'_, Sqlite>) -> Result<(), s
 
     sqlx::query(
         r#"
+        CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
+            id TEXT PRIMARY KEY,
+            email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        "#,
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    sqlx::query(
+        r#"
         CREATE TABLE IF NOT EXISTS tutorial_topics (
             tutorial_id TEXT NOT NULL,
             topic TEXT NOT NULL,

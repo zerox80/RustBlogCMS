@@ -93,6 +93,30 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
             }),
         ),
         (
+            "about",
+            json!({
+                "eyebrow": "Warum ich schreibe",
+                "lead": "Ich schreibe, um Dinge wirklich zu verstehen – und um meine Gedanken nicht zu verlieren.",
+                "paragraphs": [
+                    concat!(
+                        "Dieser Blog ist mein digitales Notizbuch. Ich teile, was ich lerne, ",
+                        "woran ich arbeite und welche Fragen mich gerade begleiten."
+                    ),
+                    concat!(
+                        "Die Themen dürfen wechseln. Was bleibt, ist eine persönliche Perspektive, ",
+                        "ehrliche Neugier und der Wunsch, Gedanken sauber zu Ende zu denken."
+                    )
+                ]
+            }),
+        ),
+        (
+            "cta_section",
+            json!({
+                "title": "Neue Notizen per Mail",
+                "description": "Ich melde mich, wenn es einen neuen Gedanken oder Beitrag zu teilen gibt."
+            }),
+        ),
+        (
             "header",
             json!({
                 "brand": {
@@ -173,7 +197,8 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
                         "icon": "ShieldCheck",
                         "title": "Sicher arbeiten",
                         "description": concat!(
-                            "Erhalte Best Practices für Benutzerrechte, sudo, SSH und weitere Sicherheitsmechanismen.",
+                            "Erhalte Best Practices für Benutzerrechte, sudo, SSH und weitere ",
+                            "Sicherheitsmechanismen."
                         )
                     }
                 ],

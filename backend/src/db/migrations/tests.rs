@@ -81,6 +81,17 @@ async fn run_migrations_backfills_rate_limit_key_for_legacy_comments() {
 
     assert!(has_rate_limit_key);
 
+    let has_newsletter_table: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master \
+         WHERE type = 'table' AND name = 'newsletter_subscriptions'",
+    )
+    .fetch_one(&pool)
+    .await
+    .map(|count: i64| count == 1)
+    .expect("check newsletter table");
+
+    assert!(has_newsletter_table);
+
     let (rate_limit_key,): (String,) =
         sqlx::query_as("SELECT rate_limit_key FROM comments WHERE id = 'legacy-comment'")
             .fetch_one(&pool)

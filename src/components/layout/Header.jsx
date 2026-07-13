@@ -5,12 +5,7 @@ import { useContent } from '../../context/ContentContext'
 import { useEdit } from '../../context/EditContext'
 import { useAuth } from '../../context/AuthContext'
 import EditableText from '../cms/EditableText'
-
-const personalLinks = [
-  { label: 'Beiträge', hash: 'stories' },
-  { label: 'Themen', hash: 'topics' },
-  { label: 'Über diesen Blog', hash: 'about' },
-]
+import { sanitizeExternalUrl } from '../../utils/urlValidation'
 
 /** Compact global navigation for the personal one-page blog. */
 const Header = () => {
@@ -31,8 +26,81 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const dynamicLinks = (navigation?.dynamic || []).slice(0, 2)
+  const navigationLinks = Array.isArray(navigation?.items) ? navigation.items : []
   const anchorPath = (hash) => (location.pathname === '/' ? `#${hash}` : `/#${hash}`)
+  const authPath = isAuthenticated ? '/admin' : '/login'
+  const authLabel = isAuthenticated
+    ? headerContent?.cta?.authLabel || 'Admin'
+    : headerContent?.cta?.guestLabel || 'Login'
+
+  const renderNavigationLink = (link, index, mobile = false) => {
+    const value = link?.value ?? link?.path ?? link?.href
+    const isSection = link?.type === 'section'
+    const isExternal = link?.type === 'external' || link?.type === 'href'
+    const pagePath =
+      link?.type === 'page' && typeof value === 'string' && !value.startsWith('/')
+        ? `/pages/${value}`
+        : value
+    const sectionId = typeof value === 'string' ? value.trim() : ''
+    const destination = isSection ? (sectionId ? anchorPath(sectionId) : null) : pagePath
+    const key = link?.id || `${link?.label || 'navigation'}-${index}`
+    const className = mobile
+      ? `flex items-center justify-between border-b border-[#171713]/15 py-4 font-display
+text-2xl font-semibold tracking-[-0.04em] text-[#171713]`
+      : `shrink-0 text-xs font-bold uppercase tracking-[0.14em] text-[#171713]/65
+transition-colors hover:text-[#ff4f00]`
+    const content = (
+      <>
+        {link?.label || 'Seite'}
+        {mobile && (
+          <span className="font-serif text-sm italic text-[#171713]/35">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+        )}
+      </>
+    )
+
+    if (!destination || typeof destination !== 'string') return null
+    if (isSection) {
+      return (
+        <a
+          key={key}
+          href={destination}
+          onClick={mobile ? () => setIsMobileMenuOpen(false) : undefined}
+          className={className}
+        >
+          {content}
+        </a>
+      )
+    }
+    if (isExternal) {
+      const safeDestination = sanitizeExternalUrl(destination)
+      if (!safeDestination) return null
+      const opensNewTab = /^https?:\/\//i.test(safeDestination)
+      return (
+        <a
+          key={key}
+          href={safeDestination}
+          target={opensNewTab ? '_blank' : undefined}
+          rel={opensNewTab ? 'noopener noreferrer' : undefined}
+          onClick={mobile ? () => setIsMobileMenuOpen(false) : undefined}
+          className={className}
+        >
+          {content}
+        </a>
+      )
+    }
+    return (
+      <Link
+        key={key}
+        to={destination}
+        onClick={mobile ? () => setIsMobileMenuOpen(false) : undefined}
+        className={className}
+      >
+        {content}
+      </Link>
+    )
+  }
 
   return (
     <header
@@ -64,27 +132,8 @@ transition-transform group-hover:rotate-45`}
           </span>
         </Link>
 
-        <div className="hidden items-center gap-7 lg:flex">
-          {personalLinks.map((link) => (
-            <a
-              key={link.hash}
-              href={anchorPath(link.hash)}
-              className={`text-xs font-bold uppercase tracking-[0.14em] text-[#171713]/65
-transition-colors hover:text-[#ff4f00]`}
-            >
-              {link.label}
-            </a>
-          ))}
-          {dynamicLinks.map((link) => (
-            <Link
-              key={link.id}
-              to={link.path}
-              className={`text-xs font-bold uppercase tracking-[0.14em] text-[#171713]/65
-transition-colors hover:text-[#ff4f00]`}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="mx-6 hidden min-w-0 flex-1 items-center justify-center gap-7 overflow-x-auto lg:flex">
+          {navigationLinks.map((link, index) => renderNavigationLink(link, index))}
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -103,6 +152,14 @@ transition-colors hover:text-[#ff4f00]`}
               {isEditing ? 'Editing on' : 'Edit mode'}
             </button>
           )}
+          <Link
+            to={authPath}
+            className={`rounded-full border border-[#171713]/25 px-4 py-2.5 text-xs font-bold
+uppercase tracking-[0.12em] text-[#171713] transition-colors hover:border-[#ff4f00]
+hover:text-[#ff4f00]`}
+          >
+            {authLabel}
+          </Link>
           <a
             href="https://github.com/zerox80/RustBlogCMS"
             target="_blank"
@@ -135,38 +192,16 @@ text-[#171713] md:hidden`}
 shadow-2xl md:hidden`}
         >
           <div className="flex flex-col">
-            {personalLinks.map((link, index) => (
-              <a
-                key={link.hash}
-                href={anchorPath(link.hash)}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center justify-between border-b border-[#171713]/15 py-4
-font-display text-2xl font-semibold tracking-[-0.04em] text-[#171713]`}
-              >
-                {link.label}
-                <span className="font-serif text-sm italic text-[#171713]/35">0{index + 1}</span>
-              </a>
-            ))}
-            {dynamicLinks.map((link) => (
-              <Link
-                key={link.id}
-                to={link.path}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`border-b border-[#171713]/15 py-4 font-display text-2xl font-semibold
-tracking-[-0.04em] text-[#171713]`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navigationLinks.map((link, index) => renderNavigationLink(link, index, true))}
           </div>
           <div className="mt-5 flex gap-3">
             <Link
-              to="/login"
+              to={authPath}
               onClick={() => setIsMobileMenuOpen(false)}
               className={`flex-1 border border-[#171713] px-4 py-3 text-center text-xs font-bold
 uppercase tracking-[0.12em]`}
             >
-              Login
+              {authLabel}
             </Link>
             <a
               href="https://github.com/zerox80/RustBlogCMS"

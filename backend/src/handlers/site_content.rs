@@ -40,6 +40,7 @@ fn allowed_sections() -> &'static HashSet<&'static str> {
             "site_meta",        // SEO titles/description
             "stats",            // Numbers/stats display
             "cta_section",      // Call to action
+            "about",            // Personal homepage introduction
             "settings",         // System-wide toggles
             "login",            // Custom login page text
         ]

@@ -62,6 +62,16 @@ export const DEFAULT_CONTENT = {
     title: 'Neue Notizen per Mail',
     description: 'Ich melde mich, wenn es einen neuen Gedanken oder Beitrag zu teilen gibt.',
   },
+  about: {
+    eyebrow: 'Warum ich schreibe',
+    lead: 'Ich schreibe, um Dinge wirklich zu verstehen – und um meine Gedanken nicht zu verlieren.',
+    paragraphs: [
+      'Dieser Blog ist mein digitales Notizbuch. Ich teile, was ich lerne, woran ich arbeite ' +
+        'und welche Fragen mich gerade begleiten.',
+      'Die Themen dürfen wechseln. Was bleibt, ist eine persönliche Perspektive, ehrliche ' +
+        'Neugier und der Wunsch, Gedanken sauber zu Ende zu denken.',
+    ],
+  },
   site_meta: {
     title: 'Zero Point – Persönlicher Blog',
     description: 'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.',

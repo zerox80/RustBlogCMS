@@ -66,8 +66,8 @@ tracking-[0.16em] text-[#171713]/50`}
           className={`inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase
 tracking-[0.14em] text-[#171713]/45`}
         >
-          <Clock3 className="h-3.5 w-3.5" /> {estimateReadingTime(post.content || previewText)} Min.
-          Lesezeit
+          <Clock3 className="h-3.5 w-3.5" />{' '}
+          {estimateReadingTime(post.content_markdown || previewText)} Min. Lesezeit
         </span>
         {href && (
           <span

@@ -1,16 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowDownRight, ArrowRight, Asterisk, Loader2, Mail, Sparkles } from 'lucide-react'
+import { ArrowDownRight, ArrowRight, Asterisk, Loader2, Sparkles } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import PostCard from '../components/dynamic-page/PostCard'
+import NewsletterSection from '../components/home/NewsletterSection'
 import { api } from '../api/client'
+import { useContent } from '../context/ContentContext'
+import EditableText from '../components/cms/EditableText'
+import { navigateContentTarget } from '../utils/contentNavigation'
 
 const ALL_TOPICS = 'Alle Beiträge'
 
 /** Personal one-page blog that collects published posts from every CMS page. */
 const Home = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { getSection } = useContent()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTopic, setActiveTopic] = useState(ALL_TOPICS)
+  const heroContent = getSection('hero') ?? {}
+  const aboutContent = getSection('about') ?? {}
+  const ctaContent = getSection('cta_section') ?? {}
 
   useEffect(() => {
     const fetchAllPosts = async () => {
@@ -93,7 +104,13 @@ lg:px-12 lg:pb-12`}
             className={`flex items-center justify-between gap-6 border-y border-[#171713]/20 py-3
 text-[11px] font-bold uppercase tracking-[0.2em] sm:text-xs`}
           >
-            <span>Mein persönlicher Blog</span>
+            <span>
+              <EditableText
+                section="hero"
+                field="badgeText"
+                value={heroContent?.badgeText || 'Mein persönlicher Blog'}
+              />
+            </span>
             <span className="hidden items-center gap-2 sm:flex">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff4f00]" />
               Persönliche Notizen · {currentYear}
@@ -117,14 +134,29 @@ tracking-[0.18em] text-[#ff4f00]`}
                 className={`max-w-5xl font-display text-[clamp(4.2rem,10.5vw,10rem)] font-semibold
 leading-[0.78] tracking-[-0.075em] text-[#171713]`}
               >
-                Ich denke
+                <EditableText
+                  section="hero"
+                  field="title.line1"
+                  value={heroContent?.title?.line1 || 'Ich denke'}
+                />
                 <span className="block font-serif font-normal italic tracking-[-0.055em] text-[#ff4f00]">
-                  hier laut.
+                  <EditableText
+                    section="hero"
+                    field="title.line2"
+                    value={heroContent?.title?.line2 || 'hier laut.'}
+                  />
                 </span>
               </h1>
               <p className="mt-8 max-w-xl text-lg leading-relaxed text-[#171713]/65 sm:text-xl">
-                Hier schreibe ich über Technik, Projekte, Ideen und alles, was ich unterwegs besser
-                verstehen möchte.
+                <EditableText
+                  section="hero"
+                  field="subtitle"
+                  value={
+                    heroContent?.subtitle ||
+                    'Hier schreibe ich über Technik, Projekte, Ideen und alles, was ich besser verstehen möchte.'
+                  }
+                  multiline
+                />
               </p>
             </div>
 
@@ -149,17 +181,23 @@ sm:p-12`}
                       Ausprobieren. Teilen.
                     </p>
                   </div>
-                  <a
-                    href="#stories"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigateContentTarget(heroContent?.primaryCta?.target, {
+                        navigate,
+                        location,
+                      })
+                    }
                     className={`group flex items-center justify-between border-t border-white/20 pt-5
 text-sm font-bold uppercase tracking-[0.16em]`}
                   >
-                    Beiträge lesen
+                    {heroContent?.primaryCta?.label || 'Beiträge lesen'}
                     <ArrowDownRight
                       className={`h-5 w-5 transition-transform group-hover:translate-x-1
 group-hover:translate-y-1`}
                     />
-                  </a>
+                  </button>
                 </div>
               </div>
               <div
@@ -176,8 +214,12 @@ font-black uppercase tracking-[0.16em] shadow-lg rotate-6`}
 sm:items-center sm:justify-between`}
           >
             <p className="max-w-xl text-[#171713]/55">
-              Kein Redaktionsplan, keine feste Nische: einfach mein Platz für Gedanken, Erfahrungen
-              und Dinge, die ich gelernt habe.
+              <EditableText
+                section="hero"
+                field="subline"
+                value={heroContent?.subline || 'Ausprobiert, durchdacht und ehrlich aufgeschrieben.'}
+                multiline
+              />
             </p>
             <a
               href="#stories"
@@ -333,7 +375,12 @@ lg:px-12 lg:py-28`}
             className={`flex items-center gap-3 font-mono text-xs font-bold uppercase
 tracking-[0.2em] text-[#b9f227]`}
           >
-            <Asterisk className="h-5 w-5" /> Warum ich schreibe
+            <Asterisk className="h-5 w-5" />{' '}
+            <EditableText
+              section="about"
+              field="eyebrow"
+              value={aboutContent?.eyebrow || 'Warum ich schreibe'}
+            />
           </div>
           <div>
             <p
@@ -342,72 +389,39 @@ tracking-[0.2em] text-[#b9f227]`}
                 'tracking-[-0.045em]',
               ].join(' ')}
             >
-              Ich schreibe, um Dinge{' '}
-              <span className="text-[#b9f227] italic">wirklich zu verstehen</span> – und um meine
-              Gedanken nicht zu verlieren.
+              <EditableText
+                section="about"
+                field="lead"
+                value={
+                  aboutContent?.lead ||
+                  'Ich schreibe, um Dinge wirklich zu verstehen – und um meine Gedanken nicht zu verlieren.'
+                }
+                multiline
+              />
             </p>
             <div className="mt-12 grid gap-8 border-t border-white/20 pt-8 sm:grid-cols-2">
               <p className="leading-relaxed text-white/55">
-                Dieser Blog ist mein digitales Notizbuch. Ich teile, was ich lerne, woran ich
-                arbeite und welche Fragen mich gerade begleiten.
+                <EditableText
+                  section="about"
+                  field="paragraphs.0"
+                  value={aboutContent?.paragraphs?.[0] || 'Dieser Blog ist mein digitales Notizbuch.'}
+                  multiline
+                />
               </p>
               <p className="leading-relaxed text-white/55">
-                Die Themen dürfen wechseln. Was bleibt, ist eine persönliche Perspektive, ehrliche
-                Neugier und der Wunsch, Gedanken sauber zu Ende zu denken.
+                <EditableText
+                  section="about"
+                  field="paragraphs.1"
+                  value={aboutContent?.paragraphs?.[1] || 'Die Themen dürfen wechseln.'}
+                  multiline
+                />
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section
-        id="newsletter"
-        className="bg-[#ff4f00] px-5 py-16 text-white sm:px-8 lg:px-12 lg:py-20"
-      >
-        <div className="mx-auto grid max-w-[1480px] gap-10 lg:grid-cols-[1fr_0.8fr] lg:items-end">
-          <div>
-            <p
-              className={`mb-4 flex items-center gap-2 font-mono text-xs font-bold uppercase
-tracking-[0.2em]`}
-            >
-              <Mail className="h-4 w-4" /> Neue Notizen per Mail
-            </p>
-            <h2
-              className={`max-w-4xl font-display text-5xl font-semibold leading-[0.92]
-tracking-[-0.06em] text-white sm:text-7xl lg:text-8xl`}
-            >
-              Ich melde mich,
-              <br />
-              <span className="font-serif font-normal italic">wenn es etwas zu sagen gibt.</span>
-            </h2>
-          </div>
-          <form
-            className="border-b-2 border-white pb-3"
-            onSubmit={(event) => event.preventDefault()}
-          >
-            <label htmlFor="newsletter-email" className="sr-only">
-              E-Mail-Adresse
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                id="newsletter-email"
-                type="email"
-                placeholder="you@example.com"
-                className={`min-w-0 flex-1 bg-transparent py-3 text-xl text-white outline-none
-placeholder:text-white/55`}
-              />
-              <button
-                type="submit"
-                aria-label="Newsletter abonnieren"
-                className={`grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#171713]
-transition-transform hover:rotate-[-12deg]`}
-              >
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            </div>
-          </form>
-        </div>
-      </section>
+      <NewsletterSection content={ctaContent} />
     </main>
   )
 }

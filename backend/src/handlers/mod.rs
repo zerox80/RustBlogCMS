@@ -147,6 +147,7 @@ pub mod search; // Full-text search functionality
 
 // Content Management Handlers
 pub mod comments; // Comment system management
+pub mod newsletter; // Public newsletter subscriptions
 pub mod tutorials; // Tutorial CRUD operations
 pub mod upload; // Image upload
 

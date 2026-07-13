@@ -9,6 +9,7 @@ pub mod app_metadata; // Generic key-value storage
 pub mod comments; // Comment and voting persistence
 pub mod common; // Shared validation and serialization utilities
 pub mod content; // Dynamic landing page sections
+pub mod newsletter; // Newsletter subscription persistence
 pub mod pages; // Site page structure
 pub mod posts; // Detailed blog post content
 pub mod token_blacklist; // Authentication revocation state

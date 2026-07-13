@@ -398,6 +398,13 @@ class ApiClient {
   async listPublishedPages(options = {}) {
     return this.request('/public/published-pages', options)
   }
+  async subscribeNewsletter(email, options = {}) {
+    return this.request('/public/newsletter', {
+      method: 'POST',
+      body: { email },
+      ...options,
+    })
+  }
   async getPublishedPost(pageSlug, postSlug, options = {}) {
     return this.request(
       `/public/pages/${encodeURIComponent(pageSlug)}/posts/${encodeURIComponent(postSlug)}`,

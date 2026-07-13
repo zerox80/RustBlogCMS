@@ -151,6 +151,28 @@ font-medium text-primary-700`}
   )
 }
 
+const AboutPreview = ({ content }) => (
+  <div className="rounded-2xl bg-[#171713] p-8 text-[#f4f1ea] shadow-xl">
+    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b9f227]">
+      {content?.eyebrow || 'Warum ich schreibe'}
+    </p>
+    <p className="mt-5 font-serif text-3xl leading-tight">
+      {content?.lead || 'Ein persönlicher Ort für Gedanken und Erfahrungen.'}
+    </p>
+    <div className="mt-6 grid gap-4 border-t border-white/20 pt-5 sm:grid-cols-2">
+      {(Array.isArray(content?.paragraphs) ? content.paragraphs : []).slice(0, 2).map((text, index) => (
+        <p key={`about-preview-${index}`} className="text-sm leading-relaxed text-white/60">
+          {text}
+        </p>
+      ))}
+    </div>
+  </div>
+)
+
+AboutPreview.propTypes = {
+  content: PropTypes.object.isRequired,
+}
+
 SiteMetaPreview.propTypes = {
   content: PropTypes.object.isRequired,
 }
@@ -163,6 +185,8 @@ export const SectionPreview = ({ section, content }) => {
       return <StatsPreview content={content} />
     case 'cta_section':
       return <CtaSectionPreview content={content} />
+    case 'about':
+      return <AboutPreview content={content} />
     case 'site_meta':
       return <SiteMetaPreview content={content} />
     default:
