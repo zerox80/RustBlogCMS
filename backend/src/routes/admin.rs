@@ -27,35 +27,38 @@ pub fn routes(
     pool: DbPool,
     rate_limit_config: Arc<GovernorConfig<TrustedClientIpKeyExtractor, NoOpMiddleware>>,
 ) -> Router<DbPool> {
-    Router::new()
+    // Dashboard initialization loads several independent resources in
+    // parallel. Rate-limiting those reads by client IP makes a normal refresh
+    // exhaust the small write burst and returns a misleading 429 response.
+    // Keep the limiter for state-changing operations only.
+    let read_routes = Router::new()
+        .route("/api/pages", get(site_pages::list_site_pages))
+        .route("/api/pages/{id}", get(site_pages::get_site_page))
+        .route(
+            "/api/pages/{page_id}/posts",
+            get(site_posts::list_posts_for_page),
+        )
+        .route("/api/posts/{id}", get(site_posts::get_post));
+
+    let write_routes = Router::new()
         .route("/api/tutorials", post(tutorials::create_tutorial))
         .route(
             "/api/tutorials/{id}",
             put(tutorials::update_tutorial).delete(tutorials::delete_tutorial),
         )
-        .route(
-            "/api/pages",
-            get(site_pages::list_site_pages).post(site_pages::create_site_page),
-        )
+        .route("/api/pages", post(site_pages::create_site_page))
         .route(
             "/api/pages/{id}",
-            get(site_pages::get_site_page)
-                .put(site_pages::update_site_page)
-                .delete(site_pages::delete_site_page),
+            put(site_pages::update_site_page).delete(site_pages::delete_site_page),
         )
-        .route(
-            "/api/pages/{page_id}/posts",
-            get(site_posts::list_posts_for_page).post(site_posts::create_post),
-        )
+        .route("/api/pages/{page_id}/posts", post(site_posts::create_post))
         .route(
             "/api/content/{section}",
             put(site_content::update_site_content),
         )
         .route(
             "/api/posts/{id}",
-            get(site_posts::get_post)
-                .put(site_posts::update_post)
-                .delete(site_posts::delete_post),
+            put(site_posts::update_post).delete(site_posts::delete_post),
         )
         .route(
             "/api/tutorials/{id}/comments",
@@ -63,6 +66,11 @@ pub fn routes(
         )
         .route("/api/comments/{id}", delete(comments::delete_comment))
         .route("/api/upload", post(upload::upload_image))
+        .layer(GovernorLayer::new(rate_limit_config));
+
+    Router::new()
+        .merge(read_routes)
+        .merge(write_routes)
         .route_layer(axum::middleware::from_fn_with_state(
             pool.clone(),
             enforce_csrf,
@@ -72,5 +80,26 @@ pub fn routes(
             auth_middleware,
         ))
         .layer(RequestBodyLimitLayer::new(ADMIN_BODY_LIMIT))
-        .layer(GovernorLayer::new(rate_limit_config))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::SqlitePool;
+    use tower_governor::governor::GovernorConfigBuilder;
+
+    #[tokio::test]
+    async fn read_and_write_routes_merge_without_conflicts() {
+        let pool = SqlitePool::connect_lazy("sqlite::memory:").expect("valid in-memory SQLite URL");
+        let config = Arc::new(
+            GovernorConfigBuilder::default()
+                .per_second(1)
+                .burst_size(3)
+                .key_extractor(TrustedClientIpKeyExtractor)
+                .finish()
+                .expect("valid governor configuration"),
+        );
+
+        let _router = routes(pool, config);
+    }
 }
