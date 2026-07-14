@@ -15,6 +15,11 @@
 /* Import Tailwind CSS base styles */
 @import "tailwindcss";
 
+/* Tailwind v4 otherwise applies `dark:*` through the operating-system setting.
+ * This site deliberately uses the light editorial theme, so dark utilities may
+ * only activate when a real `.dark` class is present on the document. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Custom theme configuration extending Tailwind's design system */
 @theme {
   /* Aurora Dark Palette */
@@ -196,6 +201,33 @@ input {
   .nav-link:hover::after {
     @apply w-full;
   }
+}
+
+/* Public articles must stay readable even when legacy markdown classes contain
+ * dark-theme utilities or a visitor prefers a dark operating-system theme. */
+.editorial-markdown,
+.editorial-markdown p,
+.editorial-markdown ul,
+.editorial-markdown ol,
+.editorial-markdown li,
+.editorial-markdown blockquote,
+.editorial-markdown td,
+.editorial-markdown th {
+  color: #34342d;
+}
+
+.editorial-markdown h1,
+.editorial-markdown h2,
+.editorial-markdown h3,
+.editorial-markdown h4,
+.editorial-markdown h5,
+.editorial-markdown h6,
+.editorial-markdown strong {
+  color: #171713;
+}
+
+.editorial-markdown a {
+  color: #b73800;
 }
 
 /* Utilities */

@@ -9,6 +9,16 @@ const API_RESPONSES = {
     page: { title: 'E2E Page' },
     posts: [{ id: 'e2e-post', title: 'E2E article', slug: 'e2e-article', excerpt: 'Test content' }],
   },
+  '/api/public/pages/e2e-page/posts/e2e-article': {
+    post: {
+      id: 'e2e-post',
+      title: 'E2E article',
+      slug: 'e2e-article',
+      excerpt: 'Test content',
+      content_markdown: '# Article heading\n\nReadable body text with **strong emphasis**.',
+      published_at: '2026-07-14T08:00:00Z',
+    },
+  },
   '/api/tutorials': [],
 }
 
@@ -39,6 +49,15 @@ test.describe('Homepage', () => {
 
     await expect(page.locator('html')).not.toHaveClass(/dark/)
     await expect(page.locator('main')).toHaveCSS('background-color', 'rgb(244, 241, 234)')
+  })
+
+  test('keeps article text dark when the operating system prefers dark mode', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.goto('/posts/e2e-page/e2e-article')
+
+    await expect(page.locator('article header h1')).toHaveCSS('color', 'rgb(23, 23, 19)')
+    await expect(page.locator('.editorial-markdown p')).toHaveCSS('color', 'rgb(52, 52, 45)')
+    await expect(page.locator('.editorial-markdown strong')).toHaveCSS('color', 'rgb(23, 23, 19)')
   })
 
   test('shows posts returned through published page slugs', async ({ page }) => {

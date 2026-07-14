@@ -117,7 +117,7 @@ uppercase tracking-[0.18em] text-[#ff4f00]`}
                 </div>
                 <h1
                   className={`max-w-5xl font-display text-[clamp(3.4rem,8vw,7.8rem)]
-font-semibold leading-[0.88] tracking-[-0.065em]`}
+font-semibold leading-[0.88] tracking-[-0.065em] text-[#171713]`}
                 >
                   {post.title}
                 </h1>
