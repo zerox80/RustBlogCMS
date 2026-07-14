@@ -116,8 +116,8 @@ uppercase tracking-[0.18em] text-[#ff4f00]`}
                   <Asterisk className="h-4 w-4" /> Persönlich notiert
                 </div>
                 <h1
-                  className={`max-w-5xl font-display text-[clamp(3.4rem,8vw,7.8rem)]
-font-semibold leading-[0.88] tracking-[-0.065em] text-[#171713]`}
+                  className={`max-w-4xl font-display text-[clamp(2.75rem,4.2vw,4.5rem)]
+font-semibold leading-[0.98] tracking-[-0.045em] text-[#171713]`}
                 >
                   {post.title}
                 </h1>

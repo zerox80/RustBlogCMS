@@ -60,6 +60,13 @@ test.describe('Homepage', () => {
     await expect(page.locator('.editorial-markdown strong')).toHaveCSS('color', 'rgb(23, 23, 19)')
   })
 
+  test('keeps the article title at a readable desktop size', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await page.goto('/posts/e2e-page/e2e-article')
+
+    await expect(page.locator('article header h1')).toHaveCSS('font-size', '72px')
+  })
+
   test('shows posts returned through published page slugs', async ({ page }) => {
     await page.goto('/')
 
