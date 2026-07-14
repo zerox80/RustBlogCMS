@@ -50,7 +50,7 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
         (
             "site_meta",
             json!({
-                "title": "Zero Point – Persönlicher Blog",
+                "title": "minos – Persönlicher Blog",
                 "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen."
             }),
         ),
@@ -82,7 +82,7 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
             "header",
             json!({
                 "brand": {
-                    "name": "Zero Point",
+                    "name": "minos",
                     "tagline": "Persönlicher Blog",
                     "icon": "Terminal"
                 },
@@ -101,7 +101,7 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
             "footer",
             json!({
                 "brand": {
-                    "title": "Zero Point",
+                    "title": "minos",
                     "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.",
                     "icon": "Terminal"
                 },
@@ -111,7 +111,7 @@ fn default_site_content() -> Vec<(&'static str, serde_json::Value)> {
                 ],
                 "contactLinks": [],
                 "bottom": {
-                    "copyright": "© {year} Zero Point.",
+                    "copyright": "© {year} minos.",
                     "signature": "Persönlich notiert"
                 }
             }),

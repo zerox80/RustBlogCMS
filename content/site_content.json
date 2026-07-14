@@ -24,7 +24,7 @@
     {
       "section": "site_meta",
       "content": {
-        "title": "Zero Point – Persönlicher Blog",
+        "title": "minos – Persönlicher Blog",
         "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen."
       },
       "updated_at": "2026-07-14 00:00:00"
@@ -53,7 +53,7 @@
       "section": "header",
       "content": {
         "brand": {
-          "name": "Zero Point",
+          "name": "minos",
           "tagline": "Persönlicher Blog",
           "icon": "Terminal"
         },
@@ -73,7 +73,7 @@
       "section": "footer",
       "content": {
         "brand": {
-          "title": "Zero Point",
+          "title": "minos",
           "description": "Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.",
           "icon": "Terminal"
         },
@@ -83,7 +83,7 @@
         ],
         "contactLinks": [],
         "bottom": {
-          "copyright": "© {year} Zero Point.",
+          "copyright": "© {year} minos.",
           "signature": "Persönlich notiert"
         }
       },

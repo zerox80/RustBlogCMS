@@ -1,10 +1,10 @@
 # manifest.json Documentation
 
 ## Overview
-This is the Progressive Web App (PWA) manifest file for the RustBlogCMS project. It defines how the web application appears and behaves when installed on a user's device, enabling native app-like functionality.
+This is the Progressive Web App (PWA) manifest file for the minos project. It defines how the web application appears and behaves when installed on a user's device, enabling native app-like functionality.
 
 ## File Purpose
-- Enables PWA capabilities for the Rust Blog CMS
+- Enables PWA capabilities for minos
 - Defines app metadata for installation and display
 - Configures offline behavior and app appearance
 - Specifies icons, colors, and launch parameters
@@ -12,7 +12,7 @@ This is the Progressive Web App (PWA) manifest file for the RustBlogCMS project.
 ## Application Identity
 
 ### Basic Information
-- **name**: "Rust Blog CMS" - Full application name displayed during installation
+- **name**: "minos – Persönlicher Blog" - Full application name displayed during installation
 - **short_name**: "Linux Tutorial" - Shortened name for limited UI spaces (home screen, taskbar)
 - **description**: "Learn Linux from scratch - Interactive, modern, and practical" - App description for app stores and installation prompts
 

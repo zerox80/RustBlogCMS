@@ -27,7 +27,7 @@ const Footer = () => {
   const contactLinks = Array.isArray(footerContent?.contactLinks) ? footerContent.contactLinks : []
   const quickLinks = Array.isArray(footerContent?.quickLinks) ? footerContent.quickLinks : []
   const copyright = (
-    footerContent?.bottom?.copyright || '© {year} Zero Point. Alle Rechte vorbehalten.'
+    footerContent?.bottom?.copyright || '© {year} minos. Alle Rechte vorbehalten.'
   ).replace('{year}', new Date().getFullYear())
 
   return (
@@ -46,7 +46,7 @@ lg:px-12`}
                 <EditableText
                   section="footer"
                   field={footerContent?.brand?.title ? 'brand.title' : 'brand.name'}
-                  value={footerContent?.brand?.title || footerContent?.brand?.name || 'Zero Point'}
+                  value={footerContent?.brand?.title || footerContent?.brand?.name || 'minos'}
                 />
               </span>
             </Link>

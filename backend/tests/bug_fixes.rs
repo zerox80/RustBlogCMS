@@ -1,4 +1,4 @@
-use rust_blog_backend::models::{Tutorial, TutorialSummaryResponse};
+use minos_backend::models::{Tutorial, TutorialSummaryResponse};
 use sqlx::SqlitePool;
 
 #[tokio::test]

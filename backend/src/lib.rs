@@ -1,6 +1,6 @@
-//! Rust Blog CMS - Library Root Module
+//! minos - Library Root Module
 //!
-//! This module serves as the main entry point for the Rust Blog CMS backend library.
+//! This module serves as the main entry point for the minos backend library.
 //! It organizes all application modules into a coherent structure for both binary and library usage.
 //!
 //! Architecture Overview:
@@ -92,8 +92,8 @@
 //!
 //! Example as a library:
 //! ```rust,no_run
-//! use rust_blog_backend::db;
-//! use rust_blog_backend::security::auth;
+//! use minos_backend::db;
+//! use minos_backend::security::auth;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {

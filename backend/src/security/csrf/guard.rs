@@ -16,7 +16,7 @@ use super::*;
 /// # Usage
 /// ```rust,ignore
 /// use axum::{Router, routing::post, middleware};
-/// use rust_blog_backend::security::csrf::CsrfGuard;
+/// use minos_backend::security::csrf::CsrfGuard;
 /// async fn handler() {}
 ///
 /// let app = Router::new()

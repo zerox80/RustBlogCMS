@@ -1,7 +1,7 @@
 /**
  * Content Export Utility
  *
- * This binary utility exports all site content from the Rust Blog CMS database
+ * This binary utility exports all site content from the minos database
  * to a structured JSON file. It's designed for backup purposes, content migration,
  * and development environment setup.
  *
@@ -37,7 +37,7 @@ use serde::Serialize;
 use serde_json::Value;
 use sqlx::FromRow;
 
-use rust_blog_backend::db;
+use minos_backend::db;
 
 #[derive(Debug, FromRow)]
 struct SiteContentRow {

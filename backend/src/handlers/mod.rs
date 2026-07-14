@@ -1,7 +1,7 @@
 /*
  * HTTP Handlers Module
  *
- * This module contains all HTTP request handlers for the Rust Blog CMS API.
+ * This module contains all HTTP request handlers for the minos API.
  * Each handler module is organized by domain and follows RESTful conventions
  * for HTTP endpoints. All handlers include comprehensive error handling,
  * input validation, and security controls.

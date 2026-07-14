@@ -73,13 +73,13 @@ export const DEFAULT_CONTENT = {
     ],
   },
   site_meta: {
-    title: 'Zero Point – Persönlicher Blog',
+    title: 'minos – Persönlicher Blog',
     description: 'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.',
   },
 
   header: {
     brand: {
-      name: 'Zero Point',
+      name: 'minos',
       tagline: 'Persönlicher Blog',
       icon: 'Terminal',
     },
@@ -95,7 +95,7 @@ export const DEFAULT_CONTENT = {
   },
   footer: {
     brand: {
-      title: 'Zero Point',
+      title: 'minos',
       description: 'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.',
       icon: 'Terminal',
     },
@@ -105,12 +105,12 @@ export const DEFAULT_CONTENT = {
     ],
     contactLinks: [],
     bottom: {
-      copyright: '© {year} Zero Point.',
+      copyright: '© {year} minos.',
       signature: 'Persönlich notiert',
     },
   },
   login: {
-    title: 'Rust Blog',
+    title: 'minos',
     subtitle: 'Admin Login',
     icon: 'Terminal',
     buttonLabel: 'Anmelden',

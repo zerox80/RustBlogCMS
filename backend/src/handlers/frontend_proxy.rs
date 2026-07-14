@@ -139,11 +139,11 @@ pub async fn serve_index(State(pool): State<db::DbPool>) -> impl IntoResponse {
     let stored_title = site_meta
         .get("title")
         .and_then(|v| v.as_str())
-        .unwrap_or("Zero Point – Persönlicher Blog");
+        .unwrap_or("minos – Persönlicher Blog");
     let is_starter_content =
         stored_title.starts_with("Linux Tutorial") || stored_title.starts_with("IT Wissensportal");
     let title = if is_starter_content {
-        "Zero Point – Persönlicher Blog"
+        "minos – Persönlicher Blog"
     } else {
         stored_title
     };

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # ==============================================================================
-# RustBlogCMS - Docker Startup Script
+# minos - Docker Startup Script
 # ==============================================================================
 #
-# This script automates the deployment of the Rust Blog CMS using Docker
+# This script automates the deployment of minos using Docker
 # Compose. It performs pre-flight checks, builds containers, starts services,
 # and provides access information for the deployed application.
 #
@@ -28,12 +28,12 @@
 #   --dev      : Start in development mode with mounted volumes
 #
 # @version 1.0.0
-# @author RustBlogCMS Team
+# @author minos Team
 # ==============================================================================
 
 # Script configuration
 set -euo pipefail  # Exit on error, undefined vars, and pipe failures
-readonly SCRIPT_NAME="RustBlogCMS Docker Startup"
+readonly SCRIPT_NAME="minos Docker Startup"
 readonly DEFAULT_PORT="8489"
 
 # Color codes for output formatting
@@ -133,7 +133,7 @@ wait_for_service() {
 
 print_header "$SCRIPT_NAME"
 
-print_info "Starting Rust Blog CMS deployment..."
+print_info "Starting minos deployment..."
 
 # Check Docker installation
 if ! command_exists docker; then
@@ -310,7 +310,7 @@ fi
 
 print_header "Deployment Complete"
 
-print_success "Rust Blog CMS has been deployed successfully!"
+print_success "minos has been deployed successfully!"
 echo ""
 
 # Access URLs

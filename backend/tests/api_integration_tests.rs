@@ -3,7 +3,7 @@ use axum::{
     extract::ConnectInfo,
     http::{Request, StatusCode},
 };
-use rust_blog_backend::{
+use minos_backend::{
     handlers, routes,
     security::{auth, csrf},
 };

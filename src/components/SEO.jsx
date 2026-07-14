@@ -11,7 +11,7 @@ const SEO = ({
   publishedTime,
   modifiedTime,
 }) => {
-  const siteTitle = 'Zero Point'
+  const siteTitle = 'minos'
   const fullTitle = title ? `${title} | ${siteTitle}` : siteTitle
   const defaultDescription =
     'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.'

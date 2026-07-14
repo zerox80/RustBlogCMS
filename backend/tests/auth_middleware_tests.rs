@@ -3,7 +3,7 @@ use axum::{
     extract::ConnectInfo,
     http::{Request, StatusCode},
 };
-use rust_blog_backend::{db, handlers, routes, security::auth};
+use minos_backend::{db, handlers, routes, security::auth};
 use sqlx::SqlitePool;
 use std::env;
 use std::net::SocketAddr;
@@ -29,7 +29,7 @@ fn init_test_secrets() {
     let _ = auth::init_jwt_secret();
 
     env::set_var("CSRF_SECRET", deterministic_test_material("csrf-hmac", 32));
-    let _ = rust_blog_backend::security::csrf::init_csrf_secret();
+    let _ = minos_backend::security::csrf::init_csrf_secret();
 }
 
 fn with_connect_info(mut request: Request<Body>) -> Request<Body> {

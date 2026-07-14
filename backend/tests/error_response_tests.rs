@@ -1,4 +1,4 @@
-use rust_blog_backend::models::tutorial::ErrorResponse;
+use minos_backend::models::tutorial::ErrorResponse;
 use serde_json::json;
 
 #[test]

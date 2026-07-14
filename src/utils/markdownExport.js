@@ -175,13 +175,13 @@ export const buildPagesMarkdownExport = (pagesWithPosts, options = {}) => {
   )
   const lines = [
     '---',
-    'title: "RustBlogCMS Seiten Export"',
+    'title: "minos Seiten Export"',
     `generated_at: "${escapeFrontMatterValue(generatedAt.toISOString())}"`,
     `page_count: ${pageCount}`,
     `post_count: ${postCount}`,
     '---',
     '',
-    '# RustBlogCMS Seiten Export',
+    '# minos Seiten Export',
     '',
     `Erstellt am: ${generatedAt.toISOString()}`,
   ]
@@ -199,7 +199,7 @@ export const buildPagesMarkdownExport = (pagesWithPosts, options = {}) => {
 
 export const buildPagesMarkdownFilename = (date = new Date()) => {
   const stamp = date.toISOString().slice(0, 10)
-  return `rustblogcms-seiten-export-${stamp}.md`
+  return `minos-seiten-export-${stamp}.md`
 }
 
 export const downloadMarkdownFile = (markdown, filename = buildPagesMarkdownFilename()) => {

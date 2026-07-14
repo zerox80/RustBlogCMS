@@ -121,7 +121,7 @@ transition-transform group-hover:rotate-45`}
             <EditableText
               section="header"
               field="brand.name"
-              value={headerContent?.brand?.name || 'Zero Point'}
+              value={headerContent?.brand?.name || 'minos'}
             />
           </span>
         </Link>

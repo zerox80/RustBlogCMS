@@ -1,4 +1,4 @@
-use rust_blog_backend::models::tutorial::{Tutorial, TutorialResponse, TutorialSummaryResponse};
+use minos_backend::models::tutorial::{Tutorial, TutorialResponse, TutorialSummaryResponse};
 use std::convert::TryFrom;
 
 #[test]

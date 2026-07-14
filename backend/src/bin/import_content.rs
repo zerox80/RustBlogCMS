@@ -2,7 +2,7 @@
  * Content Import Utility
  *
  * This binary utility imports site content from a structured JSON file into the
- * Rust Blog CMS database. It's designed for content restoration, development
+ * minos database. It's designed for content restoration, development
  * environment setup, and content migration between instances.
  *
  * Usage:
@@ -44,7 +44,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use sqlx::{Sqlite, Transaction};
 
-use rust_blog_backend::db;
+use minos_backend::db;
 
 #[derive(Debug, Deserialize)]
 struct SiteContentImport {

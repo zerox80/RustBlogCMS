@@ -1,4 +1,4 @@
-use rust_blog_backend::models::site::{SiteContent, SiteContentResponse, UpdateSiteContentRequest};
+use minos_backend::models::site::{SiteContent, SiteContentResponse, UpdateSiteContentRequest};
 use serde_json::json;
 
 #[test]

@@ -1,4 +1,4 @@
-use rust_blog_backend::security::auth::{create_jwt, init_jwt_secret, verify_jwt, Claims};
+use minos_backend::security::auth::{create_jwt, init_jwt_secret, verify_jwt, Claims};
 use std::env;
 
 #[test]

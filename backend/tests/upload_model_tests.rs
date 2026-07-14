@@ -1,4 +1,4 @@
-use rust_blog_backend::models::tutorial::UploadResponse;
+use minos_backend::models::tutorial::UploadResponse;
 use serde_json::json;
 
 #[test]

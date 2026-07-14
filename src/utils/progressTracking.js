@@ -1,7 +1,7 @@
 // Storage configuration constants
-const STORAGE_KEY = 'rust_blog_cms_progress_v2'
-const BOOKMARKS_KEY = 'rust_blog_cms_bookmarks_v2'
-const STORAGE_PREFIX = 'rust_blog_cms_'
+const STORAGE_KEY = 'minos_progress_v2'
+const BOOKMARKS_KEY = 'minos_bookmarks_v2'
+const STORAGE_PREFIX = 'minos_'
 const MAX_STORAGE_RETRIES = 2
 // Performance and security limits
 const MAX_STORAGE_SIZE = 5 * 1024 * 1024 // 5MB limit

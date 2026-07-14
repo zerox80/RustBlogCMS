@@ -1,7 +1,7 @@
 # package.json Documentation
 
 ## Overview
-This is the main Node.js package configuration file for the RustBlogCMS project. It defines project metadata, dependencies, scripts, and build configurations for the React frontend.
+This is the main Node.js package configuration file for the minos project. It defines project metadata, dependencies, scripts, and build configurations for the React frontend.
 
 ## File Purpose
 - Defines the project as a Node.js package with ES modules support
@@ -12,7 +12,7 @@ This is the main Node.js package configuration file for the RustBlogCMS project.
 ## Project Metadata
 
 ### Basic Information
-- **name**: "rust-blog-cms" - The package name used in npm registry
+- **name**: "minos" - The package name used in npm registry
 - **version**: "1.0.0" - Current semantic version of the project
 - **description**: A modern, fully customizable CMS for creating beautiful tutorial websites with React and Rust
 - **author**: "zerox80" - Project author/maintainer
@@ -23,7 +23,7 @@ This is the main Node.js package configuration file for the RustBlogCMS project.
 ```json
 "repository": {
   "type": "git",
-  "url": "https://github.com/zerox80/RustBlogCMS"
+  "url": "https://github.com/zerox80/minos"
 }
 ```
 - Defines the Git repository location for cloning and contributions

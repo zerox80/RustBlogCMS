@@ -53,7 +53,7 @@ describe('markdownExport', () => {
       { generatedAt: new Date('2026-06-23T12:00:00Z') },
     )
 
-    expect(markdown).toContain('title: "RustBlogCMS Seiten Export"')
+    expect(markdown).toContain('title: "minos Seiten Export"')
     expect(markdown).toContain('generated_at: "2026-06-23T12:00:00.000Z"')
     expect(markdown).toContain('page_count: 1')
     expect(markdown).toContain('post_count: 2')
@@ -84,7 +84,7 @@ describe('markdownExport', () => {
 
   it('builds stable dated markdown filenames', () => {
     expect(buildPagesMarkdownFilename(new Date('2026-06-23T12:00:00Z'))).toBe(
-      'rustblogcms-seiten-export-2026-06-23.md',
+      'minos-seiten-export-2026-06-23.md',
     )
   })
 })

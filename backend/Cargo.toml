@@ -1,12 +1,12 @@
 [package]
-name = "rust-blog-backend"
+name = "minos-backend"
 version = "1.0.0"
 edition = "2021"
 rust-version = "1.88"  # Minimum Supported Rust Version
 authors = ["zerox80"]
 license = "MIT"
-description = "High-performance Rust backend API for RustBlogCMS"
-repository = "https://github.com/zerox80/RustBlogCMS"
+description = "High-performance Rust backend API for minos"
+repository = "https://github.com/zerox80/minos"
 keywords = ["cms", "api", "tutorial", "axum", "education"]
 categories = ["web-programming", "web-programming::http-server"]
 

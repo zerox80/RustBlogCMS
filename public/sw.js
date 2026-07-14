@@ -1,6 +1,6 @@
 // Bump this whenever cache policy changes so previously cached responses cannot
 // survive a security fix.
-const CACHE_NAME = 'rust-blog-v2'
+const CACHE_NAME = 'minos-v2'
 
 const urlsToCache = ['/', '/index.html', '/linux-icon.svg', '/manifest.json']
 
@@ -197,7 +197,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('Rust Blog CMS', options)
+    self.registration.showNotification('minos', options)
   );
 });
 */

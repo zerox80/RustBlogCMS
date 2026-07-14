@@ -1,4 +1,4 @@
-# Security Review: RustBlogCMS
+# Security Review: minos
 
 **Datum:** 2025-12-19  
 **Reviewer:** IT Security Professor  

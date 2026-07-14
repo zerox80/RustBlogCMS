@@ -1,4 +1,4 @@
-use rust_blog_backend::models::comment::Comment;
+use minos_backend::models::comment::Comment;
 use serde_json::json;
 
 #[test]

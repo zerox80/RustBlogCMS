@@ -15,7 +15,7 @@ use axum::{
     extract::ConnectInfo,
     http::{Request, StatusCode},
 };
-use rust_blog_backend::{
+use minos_backend::{
     db::migrations::run_migrations,
     routes,
     security::{auth, csrf},
@@ -30,7 +30,7 @@ fn init_test_secrets() {
         "LOGIN_ATTEMPT_SALT",
         "this_is_a_test_salt_for_login_attempts_at_least_32_chars",
     );
-    let _ = rust_blog_backend::handlers::auth::init_login_attempt_salt();
+    let _ = minos_backend::handlers::auth::init_login_attempt_salt();
 
     env::set_var(
         "JWT_SECRET",

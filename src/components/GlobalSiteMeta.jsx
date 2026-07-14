@@ -2,7 +2,7 @@ import { Helmet } from 'react-helmet-async'
 import { useEffect } from 'react'
 import { useContent } from '../context/ContentContext'
 
-const FALLBACK_TITLE = 'Zero Point – Persönlicher Blog'
+const FALLBACK_TITLE = 'minos – Persönlicher Blog'
 const FALLBACK_DESCRIPTION =
   'Persönliche Notizen über Technik, Projekte, Ideen und alles dazwischen.'
 

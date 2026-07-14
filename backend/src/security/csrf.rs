@@ -21,14 +21,14 @@
 //!
 //! ## Initialization
 //! ```rust,no_run
-//! use rust_blog_backend::security::csrf;
+//! use minos_backend::security::csrf;
 //! csrf::init_csrf_secret().expect("Failed to initialize CSRF secret");
 //! ```
 //!
 //! ## Protection
 //! ```rust,ignore
 //! use axum::{Router, routing::post, middleware};
-//! use rust_blog_backend::security::csrf::CsrfGuard;
+//! use minos_backend::security::csrf::CsrfGuard;
 //! async fn handler() {}
 //!
 //! let app = Router::new()
@@ -104,7 +104,7 @@ static CSRF_SECRET: OnceLock<Vec<u8>> = OnceLock::new();
 ///
 /// # Example
 /// ```rust,no_run
-/// use rust_blog_backend::security::csrf;
+/// use minos_backend::security::csrf;
 /// csrf::init_csrf_secret().expect("Failed to initialize CSRF secret");
 /// ```
 pub fn init_csrf_secret() -> Result<(), String> {

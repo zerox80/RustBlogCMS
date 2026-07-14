@@ -172,7 +172,7 @@ ring-white/10 shadow-inner-glow animate-float`}
                 <IconComponent className="w-10 h-10 text-primary-400 drop-shadow-neon" />
               </div>
               <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
-                {loginContent.title || 'Rust Blog'}
+                {loginContent.title || 'minos'}
               </h1>
               <p className="text-surface-300 text-sm font-medium">
                 {loginContent.subtitle || 'Admin Login'}

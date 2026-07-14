@@ -16,7 +16,7 @@ or stale lockfile therefore fails the build rather than silently changing the
 dependency graph.
 
 ```bash
-docker build -t rust-blog-cms-backend -f backend/Dockerfile backend/
+docker build -t minos-backend -f backend/Dockerfile backend/
 ```
 
 To validate the same graph outside Docker:

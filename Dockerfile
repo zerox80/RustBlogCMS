@@ -1,8 +1,8 @@
 # ==============================================================================
-# RustBlogCMS Frontend Dockerfile
+# minos Frontend Dockerfile
 # ==============================================================================
 #
-# Multi-stage Docker build for the Rust Blog CMS frontend application.
+# Multi-stage Docker build for the minos frontend application.
 # This Dockerfile creates an optimized production container using Nginx
 # to serve the React/Vite application.
 #
@@ -25,7 +25,7 @@
 # - PORT: Nginx listening port (default: 80)
 #
 # @version 1.0.0
-# @author RustBlogCMS Team
+# @author minos Team
 # ==============================================================================
 
 # ==============================================================================
@@ -119,20 +119,20 @@ CMD ["nginx", "-g", "daemon off;"]
 # ==============================================================================
 #
 # Build the frontend container:
-# docker build -t rust-blog-cms-frontend .
+# docker build -t minos-frontend .
 #
 # Run the container:
-# docker run -p 80:80 rust-blog-cms-frontend
+# docker run -p 80:80 minos-frontend
 #
 # With environment variables:
 # docker run -p 80:80 \
 #   -e VITE_API_URL=https://api.example.com \
-#   rust-blog-cms-frontend
+#   minos-frontend
 #
 # With custom configuration:
 # docker run -p 80:80 \
 #   -v $(pwd)/nginx/frontend.conf:/etc/nginx/conf.d/default.conf \
-#   rust-blog-cms-frontend
+#   minos-frontend
 #
 
 # ==============================================================================

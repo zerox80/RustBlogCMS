@@ -137,7 +137,7 @@ font-medium text-primary-700`}
       </div>
       <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
         <p className="text-sm font-semibold text-gray-800">
-          {content?.title || 'Zero Point – Persönlicher Blog'}
+          {content?.title || 'minos – Persönlicher Blog'}
         </p>
         <p className="mt-2 text-sm text-gray-600 leading-relaxed">
           {content?.description ||

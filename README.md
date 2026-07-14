@@ -1,4 +1,4 @@
-# RustBlogCMS
+# minos
 
 I built this because I was sick of WordPress. I wanted something that is actually fast and secure.
 

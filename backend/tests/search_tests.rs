@@ -11,7 +11,7 @@ mod search_tests {
         assert!(long_query.len() > 500);
     }
 
-    use rust_blog_backend::handlers::search::sanitize_fts_query;
+    use minos_backend::handlers::search::sanitize_fts_query;
 
     #[test]
     fn test_search_query_sanitization() {
@@ -39,7 +39,7 @@ mod search_tests {
         routing::get,
         Router,
     };
-    use rust_blog_backend::{db::migrations::run_migrations, handlers::search::search_tutorials};
+    use minos_backend::{db::migrations::run_migrations, handlers::search::search_tutorials};
     use sqlx::SqlitePool;
     use tower::ServiceExt;
 

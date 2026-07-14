@@ -1,6 +1,6 @@
 # Backend Cargo configuration
 
-`Cargo.toml` defines the `rust-blog-backend` application crate and two content
+`Cargo.toml` defines the `minos-backend` application crate and two content
 utilities (`export_content` and `import_content`). The project uses Rust 2021
 with **Rust 1.88** as its minimum supported compiler.
 

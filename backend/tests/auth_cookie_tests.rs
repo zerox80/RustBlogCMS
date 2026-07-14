@@ -1,7 +1,7 @@
-use rust_blog_backend::security::auth::{
+use minos_backend::security::auth::{
     build_auth_cookie, build_cookie_removal, AUTH_COOKIE_NAME,
 };
-use rust_blog_backend::security::csrf::csrf_cookie_name;
+use minos_backend::security::csrf::csrf_cookie_name;
 
 #[test]
 fn test_auth_cookie_properties() {

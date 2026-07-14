@@ -1,9 +1,9 @@
 // The binary is a thin wrapper around the library crate (lib.rs). Declaring
 // the modules here a second time would compile the whole tree twice and make
 // `main.rs` types distinct from the library's types.
-use rust_blog_backend::{db, handlers, routes, security};
+use minos_backend::{db, handlers, routes, security};
 
-use rust_blog_backend::middleware::{cors, security as security_middleware};
+use minos_backend::middleware::{cors, security as security_middleware};
 
 // HTTP-related imports for building the web server
 use axum::{extract::DefaultBodyLimit, routing::get, Router};

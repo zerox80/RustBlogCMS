@@ -1,5 +1,5 @@
-use rust_blog_backend::models::user::LoginRequest;
-use rust_blog_backend::security::csrf::{init_csrf_secret, issue_csrf_token};
+use minos_backend::models::user::LoginRequest;
+use minos_backend::security::csrf::{init_csrf_secret, issue_csrf_token};
 use std::env;
 
 #[test]

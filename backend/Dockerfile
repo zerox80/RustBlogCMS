@@ -1,8 +1,8 @@
 # ==============================================================================
-# RustBlogCMS Backend Dockerfile
+# minos Backend Dockerfile
 # ==============================================================================
 #
-# Multi-stage Docker build for the Rust Blog CMS Rust backend service.
+# Multi-stage Docker build for the minos Rust backend service.
 # This Dockerfile creates an optimized, secure production container for the
 # Rust-based API server.
 #
@@ -28,7 +28,7 @@
 # - JWT_SECRET: JWT token secret key
 #
 # @version 1.0.0
-# @author RustBlogCMS Team
+# @author minos Team
 # ==============================================================================
 
 # ==============================================================================
@@ -93,7 +93,7 @@ RUN touch src/main.rs && \
     cargo build --release --locked
 
 # Verify binary was built successfully
-RUN test -f target/release/rust-blog-backend || (echo "Build failed - binary not found" && exit 1)
+RUN test -f target/release/minos-backend || (echo "Build failed - binary not found" && exit 1)
 
 # ==============================================================================
 # STAGE 2: PRODUCTION RUNTIME CONTAINER
@@ -127,7 +127,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy compiled binary from builder stage
 # Only the optimized binary, not source code or build artifacts
-COPY --from=builder /app/target/release/rust-blog-backend /app/backend
+COPY --from=builder /app/target/release/minos-backend /app/backend
 
 # Set appropriate permissions for the binary
 # Ensure the binary is executable and has correct ownership
@@ -176,25 +176,25 @@ CMD ["/app/backend"]
 # ==============================================================================
 #
 # Build the backend container:
-# docker build -t rust-blog-cms-backend -f backend/Dockerfile backend/
+# docker build -t minos-backend -f backend/Dockerfile backend/
 #
 # Run the container with environment variables:
 # docker run -p 8489:8489 \
 #   -e RUST_LOG=info \
 #   -e DATABASE_URL=postgresql://user:pass@localhost/db \
 #   -e JWT_SECRET=your-secret-key \
-#   rust-blog-cms-backend
+#   minos-backend
 #
 # With volume mounts for configuration:
 # docker run -p 8489:8489 \
 #   -v $(pwd)/config.toml:/app/config.toml \
 #   -e RUST_LOG=debug \
-#   rust-blog-cms-backend
+#   minos-backend
 #
 # With custom build arguments:
 # docker build \
 #   --build-arg RUSTFLAGS="-C target-cpu=native" \
-#   -t rust-blog-cms-backend \
+#   -t minos-backend \
 #   -f backend/Dockerfile backend/
 #
 

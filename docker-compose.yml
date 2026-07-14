@@ -1,6 +1,6 @@
-# Docker Compose Configuration for Rust Blog CMS
+# Docker Compose Configuration for minos
 #
-# This file defines the complete containerized deployment of the Rust Blog CMS.
+# This file defines the complete containerized deployment of minos.
 # It orchestrates three main services: Rust backend, React frontend, and Nginx reverse proxy.
 #
 # Architecture Overview:
@@ -35,7 +35,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: rust-blog-backend
+    container_name: minos-backend
     restart: unless-stopped
 
     # Resource limits for stability and resource management
@@ -95,7 +95,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: rust-blog-frontend
+    container_name: minos-frontend
     restart: unless-stopped
 
     # Resource limits (lightweight - serves static content only)
@@ -122,7 +122,7 @@ services:
   ##############################################################################
   nginx:
     image: nginx:alpine
-    container_name: rust-blog-nginx
+    container_name: minos-nginx
     restart: unless-stopped
 
     # Port mapping: Host:Container

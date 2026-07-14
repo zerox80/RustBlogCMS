@@ -1,4 +1,4 @@
-use rust_blog_backend::models::site::{NavigationItemResponse, NavigationResponse};
+use minos_backend::models::site::{NavigationItemResponse, NavigationResponse};
 use serde_json::json;
 
 #[test]
