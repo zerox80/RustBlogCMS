@@ -246,3 +246,39 @@ async fn rerunning_migrations_preserves_existing_blog_posts() {
         )
     );
 }
+
+#[tokio::test]
+async fn run_migrations_updates_persisted_site_branding() {
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .expect("create sqlite pool");
+
+    run_migrations(&pool).await.expect("create current schema");
+
+    let stale_brand = ["Zero", "Point"].join(" ");
+    let stale_content = serde_json::json!({
+        "brand": { "name": stale_brand },
+        "nested": [format!("{} archive", ["Zero", "Point"].join(" "))]
+    });
+    sqlx::query("UPDATE site_content SET content_json = ? WHERE section = 'header'")
+        .bind(stale_content.to_string())
+        .execute(&pool)
+        .await
+        .expect("insert stale site branding");
+
+    run_migrations(&pool)
+        .await
+        .expect("migrate persisted site branding");
+
+    let (content_json,): (String,) =
+        sqlx::query_as("SELECT content_json FROM site_content WHERE section = 'header'")
+            .fetch_one(&pool)
+            .await
+            .expect("read migrated site branding");
+    let content: serde_json::Value = serde_json::from_str(&content_json).expect("valid JSON");
+
+    assert_eq!(content["brand"]["name"], "minos");
+    assert_eq!(content["nested"][0], "minos archive");
+}

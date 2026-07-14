@@ -120,6 +120,20 @@ export const DEFAULT_CONTENT = {
   },
 }
 const LEGACY_STARTER_BRANDS = new Set(['IT Portal', 'IT Wissensportal', 'Linux Tutorial'])
+const normalizeLegacyBranding = (value) => {
+  if (typeof value === 'string') {
+    return value.replace(/zero[\s_-]+point/gi, 'minos')
+  }
+  if (Array.isArray(value)) {
+    return value.map(normalizeLegacyBranding)
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [key, normalizeLegacyBranding(nestedValue)]),
+    )
+  }
+  return value
+}
 const normalizeStarterSection = (section, value) => {
   if (section === 'site_meta') {
     const legacyTitle = value?.title || ''
@@ -139,7 +153,7 @@ const normalizeStarterSection = (section, value) => {
   ) {
     return DEFAULT_CONTENT.hero
   }
-  return value
+  return normalizeLegacyBranding(value)
 }
 export const CONTENT_SECTIONS = Object.keys(DEFAULT_CONTENT)
 export const ContentProvider = ({ children }) => {
@@ -308,7 +322,7 @@ export const ContentProvider = ({ children }) => {
     setSavingSections((prev) => ({ ...prev, [section]: true }))
     try {
       const response = await api.updateSiteContentSection(section, newContent)
-      const updatedContent = response?.content ?? newContent
+      const updatedContent = normalizeLegacyBranding(response?.content ?? newContent)
       setContent((prev) => ({
         ...prev,
         [section]: updatedContent,

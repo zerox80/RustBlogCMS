@@ -98,6 +98,13 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
     // Create site-related schema (pages, posts, content)
     ensure_site_page_schema(pool).await?;
 
+    // Migrate persisted CMS content to the current project branding.
+    {
+        let mut tx = pool.begin().await?;
+        apply_site_content_branding_migration(&mut tx).await?;
+        tx.commit().await?;
+    }
+
     // Apply site post schema migrations (add allow_comments)
     {
         let mut tx = pool.begin().await?;

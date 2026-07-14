@@ -71,6 +71,31 @@ describe('ContentContext', () => {
     expect(result.current.content).toEqual(DEFAULT_CONTENT)
   })
 
+  it('normalizes persisted legacy branding in loaded content', async () => {
+    const staleBrand = ['Zero', 'Point'].join(' ')
+    api.getSiteContent.mockResolvedValue({
+      items: [
+        { section: 'header', content: { brand: { name: staleBrand } } },
+        { section: 'footer', content: { brand: { title: staleBrand } } },
+        { section: 'site_meta', content: { title: `${staleBrand} – Blog` } },
+      ],
+    })
+    api.getNavigation.mockResolvedValue({ items: [] })
+    api.listPublishedPages.mockResolvedValue([])
+
+    const { result } = renderHook(() => useContent(), {
+      wrapper: ContentProvider,
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.content.header.brand.name).toBe('minos')
+    expect(result.current.content.footer.brand.title).toBe('minos')
+    expect(result.current.content.site_meta.title).toBe('minos – Blog')
+  })
+
   it('updateSection updates content and calls api', async () => {
     // Initial load
     api.getSiteContent.mockResolvedValue({ items: [] })

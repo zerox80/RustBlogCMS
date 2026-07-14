@@ -1,4 +1,84 @@
 use super::*;
+use regex::Regex;
+use std::sync::LazyLock;
+
+/// Matches the former project branding in its common persisted spellings.
+static LEGACY_BRAND_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)zero[\s_-]+point").expect("valid legacy branding regex"));
+
+/// Replaces the former project branding in a JSON value while preserving all
+/// other CMS content and its structure.
+fn replace_legacy_branding(value: &mut serde_json::Value) -> bool {
+    match value {
+        serde_json::Value::String(text) => {
+            let replaced = LEGACY_BRAND_RE.replace_all(text, "minos").into_owned();
+            if replaced == *text {
+                false
+            } else {
+                *text = replaced;
+                true
+            }
+        }
+        serde_json::Value::Array(items) => items.iter_mut().fold(false, |changed, item| {
+            replace_legacy_branding(item) || changed
+        }),
+        serde_json::Value::Object(fields) => fields.values_mut().fold(false, |changed, field| {
+            replace_legacy_branding(field) || changed
+        }),
+        serde_json::Value::Null | serde_json::Value::Bool(_) | serde_json::Value::Number(_) => {
+            false
+        }
+    }
+}
+
+/// Backfills the current project branding into persisted CMS content.
+///
+/// Site content is intentionally user-editable, so the regular seed routine
+/// does not overwrite existing rows. This migration updates only occurrences
+/// of the former project name and leaves all other customized content intact.
+pub(super) async fn apply_site_content_branding_migration(
+    tx: &mut Transaction<'_, Sqlite>,
+) -> Result<(), sqlx::Error> {
+    let rows: Vec<(String, String)> =
+        sqlx::query_as("SELECT section, content_json FROM site_content")
+            .fetch_all(&mut **tx)
+            .await?;
+
+    let mut updated_sections = 0u64;
+    for (section, content_json) in rows {
+        let Ok(mut content) = serde_json::from_str::<serde_json::Value>(&content_json) else {
+            tracing::warn!(
+                section = %section,
+                "Skipping branding migration for invalid site content JSON"
+            );
+            continue;
+        };
+
+        if !replace_legacy_branding(&mut content) {
+            continue;
+        }
+
+        let serialized = serde_json::to_string(&content)
+            .map_err(|error| sqlx::Error::Protocol(error.to_string().into()))?;
+        sqlx::query(
+            "UPDATE site_content SET content_json = ?, updated_at = CURRENT_TIMESTAMP WHERE section = ?",
+        )
+        .bind(serialized)
+        .bind(&section)
+        .execute(&mut **tx)
+        .await?;
+        updated_sections += 1;
+    }
+
+    if updated_sections > 0 {
+        tracing::info!(
+            "Updated branding in {} persisted site content section(s)",
+            updated_sections
+        );
+    }
+
+    Ok(())
+}
 
 /// Adds `author_username` and `is_guest` columns to `comments` for authorization.
 ///
