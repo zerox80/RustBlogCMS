@@ -31,6 +31,46 @@
   --color-neon-violet: #8b5cf6;
   --color-neon-purple: #d8b4fe;
 
+  /* Legacy admin palette, declared as Tailwind v4 theme tokens. */
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-200: #bae6fd;
+  --color-primary-300: #7dd3fc;
+  --color-primary-400: #38bdf8;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+  --color-primary-950: #082f49;
+
+  --color-surface-50: #50629d;
+  --color-surface-100: #455792;
+  --color-surface-200: #3a4c88;
+  --color-surface-300: #314279;
+  --color-surface-400: #2a3a6d;
+  --color-surface-500: #22315f;
+  --color-surface-600: #1c2c4f;
+  --color-surface-700: #15243f;
+  --color-surface-800: #101f3d;
+  --color-surface-900: #0b1733;
+  --color-surface-950: #050a1a;
+
+  --color-accent-cyan: #22d3ee;
+  --color-accent-emerald: #34d399;
+  --color-accent-violet: #a855f7;
+
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #e2e8f0;
+  --color-neutral-200: #cbd5f5;
+  --color-neutral-300: #94a3b8;
+  --color-neutral-400: #64748b;
+  --color-neutral-500: #475569;
+  --color-neutral-600: #334155;
+  --color-neutral-700: #1f2937;
+  --color-neutral-800: #111827;
+  --color-neutral-900: #0b1120;
+
   /* Typography */
   --font-sans: "Space Grotesk", "Arial", "sans-serif";
   --font-display: "Space Grotesk", "Arial", "sans-serif";

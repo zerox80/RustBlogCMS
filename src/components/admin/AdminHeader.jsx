@@ -26,10 +26,10 @@ shadow-primary-900/20`}
               <Terminal className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
+              <h1 className="text-2xl font-bold text-slate-100">
                 Admin Dashboard
               </h1>
-              <p className="text-sm text-gray-600 dark:text-slate-400">
+              <p className="text-sm text-slate-400">
                 Willkommen, {user?.username}
               </p>
             </div>
