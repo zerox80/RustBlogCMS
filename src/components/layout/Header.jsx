@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowUpRight, Asterisk, Menu, X } from 'lucide-react'
+import { Asterisk, Menu, X } from 'lucide-react'
 import { useContent } from '../../context/ContentContext'
 import { useEdit } from '../../context/EditContext'
 import { useAuth } from '../../context/AuthContext'
@@ -26,7 +26,14 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const navigationLinks = Array.isArray(navigation?.items) ? navigation.items : []
+  const onePageSections = new Set(['stories', 'about'])
+  const navigationLinks = Array.isArray(navigation?.static)
+    ? navigation.static.filter((item) => {
+        const value = item?.value ?? item?.path ?? item?.href
+        if (item?.type === 'section') return onePageSections.has(value)
+        return item?.type === 'external' || item?.type === 'href'
+      })
+    : []
   const anchorPath = (hash) => (location.pathname === '/' ? `#${hash}` : `/#${hash}`)
   const authPath = isAuthenticated ? '/admin' : '/login'
   const authLabel = isAuthenticated
@@ -37,12 +44,8 @@ const Header = () => {
     const value = link?.value ?? link?.path ?? link?.href
     const isSection = link?.type === 'section'
     const isExternal = link?.type === 'external' || link?.type === 'href'
-    const pagePath =
-      link?.type === 'page' && typeof value === 'string' && !value.startsWith('/')
-        ? `/pages/${value}`
-        : value
     const sectionId = typeof value === 'string' ? value.trim() : ''
-    const destination = isSection ? (sectionId ? anchorPath(sectionId) : null) : pagePath
+    const destination = isSection ? (sectionId ? anchorPath(sectionId) : null) : value
     const key = link?.id || `${link?.label || 'navigation'}-${index}`
     const className = mobile
       ? `flex items-center justify-between border-b border-[#171713]/15 py-4 font-display
@@ -90,16 +93,7 @@ transition-colors hover:text-[#ff4f00]`
         </a>
       )
     }
-    return (
-      <Link
-        key={key}
-        to={destination}
-        onClick={mobile ? () => setIsMobileMenuOpen(false) : undefined}
-        className={className}
-      >
-        {content}
-      </Link>
-    )
+    return null
   }
 
   return (
@@ -160,16 +154,6 @@ hover:text-[#ff4f00]`}
           >
             {authLabel}
           </Link>
-          <a
-            href="https://github.com/zerox80/RustBlogCMS"
-            target="_blank"
-            rel="noreferrer"
-            className={`group inline-flex items-center gap-2 rounded-full bg-[#171713] px-5 py-2.5
-text-xs font-bold uppercase tracking-[0.12em] text-white transition-colors
-hover:bg-[#ff4f00]`}
-          >
-            GitHub <ArrowUpRight className="h-4 w-4 transition-transform group-hover:rotate-45" />
-          </a>
         </div>
 
         <button
@@ -194,24 +178,15 @@ shadow-2xl md:hidden`}
           <div className="flex flex-col">
             {navigationLinks.map((link, index) => renderNavigationLink(link, index, true))}
           </div>
-          <div className="mt-5 flex gap-3">
+          <div className="mt-5">
             <Link
               to={authPath}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex-1 border border-[#171713] px-4 py-3 text-center text-xs font-bold
+              className={`block w-full border border-[#171713] px-4 py-3 text-center text-xs font-bold
 uppercase tracking-[0.12em]`}
             >
               {authLabel}
             </Link>
-            <a
-              href="https://github.com/zerox80/RustBlogCMS"
-              target="_blank"
-              rel="noreferrer"
-              className={`flex flex-1 items-center justify-center gap-2 bg-[#171713] px-4 py-3 text-xs
-font-bold uppercase tracking-[0.12em] text-white`}
-            >
-              GitHub <ArrowUpRight className="h-4 w-4" />
-            </a>
           </div>
         </div>
       )}

@@ -163,3 +163,86 @@ async fn run_migrations_rehashes_legacy_plaintext_blacklist_tokens() {
         .expect("read blacklist row after re-run");
     assert_eq!(stored_again.0, stored.0);
 }
+
+/// Updating the application must never rewrite or remove existing blog posts.
+/// The one-page blog is a presentation change; legacy page associations remain
+/// the durable storage model so old links and post metadata keep working.
+#[tokio::test]
+async fn rerunning_migrations_preserves_existing_blog_posts() {
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .expect("create sqlite pool");
+
+    run_migrations(&pool).await.expect("create current schema");
+
+    sqlx::query(
+        r#"
+        INSERT INTO site_pages (
+            id, slug, title, description, show_in_nav, order_index,
+            is_published, hero_json, layout_json
+        ) VALUES ('legacy-page', 'gedanken', 'Gedanken', 'Bestehende Seite', 1, 7, 1, '{}', '{}')
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("insert existing page");
+
+    sqlx::query(
+        r#"
+        INSERT INTO site_posts (
+            id, page_id, title, slug, excerpt, content_markdown,
+            is_published, allow_comments, published_at, order_index
+        ) VALUES (
+            'legacy-post', 'legacy-page', 'Mein bestehender Beitrag', 'bestehender-beitrag',
+            'Unverwechselbarer Auszug', '# Unverwechselbarer Inhalt', 1, 0,
+            '2025-04-03T12:30:00Z', 11
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("insert existing post");
+
+    run_migrations(&pool)
+        .await
+        .expect("rerun migrations after update");
+
+    let preserved: (
+        String,
+        String,
+        String,
+        String,
+        String,
+        i64,
+        i64,
+        String,
+        i64,
+    ) = sqlx::query_as(
+        r#"
+            SELECT page_id, title, slug, excerpt, content_markdown,
+                   is_published, allow_comments, published_at, order_index
+            FROM site_posts
+            WHERE id = 'legacy-post'
+            "#,
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("existing post must still be present");
+
+    assert_eq!(
+        preserved,
+        (
+            "legacy-page".into(),
+            "Mein bestehender Beitrag".into(),
+            "bestehender-beitrag".into(),
+            "Unverwechselbarer Auszug".into(),
+            "# Unverwechselbarer Inhalt".into(),
+            1,
+            0,
+            "2025-04-03T12:30:00Z".into(),
+            11,
+        )
+    );
+}

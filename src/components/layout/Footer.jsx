@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Asterisk } from 'lucide-react'
+import { Asterisk } from 'lucide-react'
 import { useContent } from '../../context/ContentContext'
 import EditableText from '../cms/EditableText'
 import { renderIcon } from '../../utils/iconMap'
@@ -12,9 +12,6 @@ const resolveFooterTarget = (target) => {
   const value = rawValue.trim()
 
   if (target.type === 'section') return { href: `/#${value}`, internal: false }
-  if (target.type === 'page') {
-    return { href: value.startsWith('/') ? value : `/pages/${value}`, internal: true }
-  }
   if (target.type === 'route') return { href: value, internal: true }
   if (target.type === 'external' || target.type === 'href') {
     const href = sanitizeExternalUrl(value)
@@ -25,11 +22,10 @@ const resolveFooterTarget = (target) => {
 
 /** Personal footer that closes the one-page layout without repeating a sitemap wall. */
 const Footer = () => {
-  const { getSection, navigation } = useContent()
+  const { getSection } = useContent()
   const footerContent = getSection('footer') ?? {}
   const contactLinks = Array.isArray(footerContent?.contactLinks) ? footerContent.contactLinks : []
   const quickLinks = Array.isArray(footerContent?.quickLinks) ? footerContent.quickLinks : []
-  const pageLinks = Array.isArray(navigation?.dynamic) ? navigation.dynamic : []
   const copyright = (
     footerContent?.bottom?.copyright || '© {year} Zero Point. Alle Rechte vorbehalten.'
   ).replace('{year}', new Date().getFullYear())
@@ -40,7 +36,7 @@ const Footer = () => {
 lg:px-12`}
     >
       <div className="mx-auto max-w-[1480px]">
-        <div className="grid gap-12 pb-16 pt-6 md:grid-cols-[1.3fr_0.7fr_0.7fr]">
+        <div className="grid gap-12 pb-16 pt-6 md:grid-cols-[1.4fr_0.8fr_0.8fr]">
           <div>
             <Link to="/" className="mb-6 inline-flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-[#b9f227] text-[#171713]">
@@ -107,11 +103,6 @@ lg:px-12`}
                   </a>
                 )
               })}
-              {pageLinks.map((link) => (
-                <Link key={link.id} to={link.path} className="hover:text-white">
-                  {link.label}
-                </Link>
-              ))}
             </div>
           </div>
 
@@ -146,15 +137,6 @@ lg:px-12`}
                   </a>
                 )
               })}
-              <a
-                href="https://github.com/zerox80/RustBlogCMS"
-                target="_blank"
-                rel="noreferrer"
-                className="group inline-flex items-center gap-2 hover:text-white"
-              >
-                GitHub{' '}
-                <ArrowUpRight className="h-4 w-4 transition-transform group-hover:rotate-45" />
-              </a>
             </div>
           </div>
         </div>

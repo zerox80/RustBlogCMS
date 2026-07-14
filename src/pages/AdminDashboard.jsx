@@ -2,25 +2,19 @@ import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useContent } from '../context/ContentContext'
 import SiteContentEditor from '../components/SiteContentEditor'
-import PageManager from '../components/page-manager'
 import AdminHeader from '../components/admin/AdminHeader'
-import TutorialManagement from '../components/admin/TutorialManagement'
+import BlogPostManager from '../components/admin/BlogPostManager'
 import DashboardTabs from '../components/admin/dashboard/DashboardTabs'
-import SettingsEditor from '../components/admin/SettingsEditor'
 
 /**
  * The central management hub for site administrators.
  *
- * Orchestrates:
- * - Content Editing (SiteContentEditor)
- * - Page Creation & Deletion (PageManager)
- * - Tutorial/Course Management (TutorialManagement)
- * - Global Site Settings
+ * Orchestrates the unified post list and the editable one-page content.
  *
  * Restricted: This page should only be accessible to authenticated admin users.
  */
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('tutorials')
+  const [activeTab, setActiveTab] = useState('posts')
   const { loading: contentLoading } = useContent()
 
   return (
@@ -29,8 +23,7 @@ const AdminDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Tab Content: Tutorials */}
-        {activeTab === 'tutorials' && <TutorialManagement />}
+        {activeTab === 'posts' && <BlogPostManager />}
 
         {/* Tab Content: Site Content */}
         {activeTab === 'content' && (
@@ -47,12 +40,6 @@ py-3 text-sm text-gray-600`}
             <SiteContentEditor />
           </div>
         )}
-
-        {/* Tab Content: Pages */}
-        {activeTab === 'pages' && <PageManager />}
-
-        {/* Tab Content: Settings */}
-        {activeTab === 'settings' && <SettingsEditor />}
       </main>
     </div>
   )

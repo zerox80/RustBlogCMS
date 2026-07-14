@@ -67,6 +67,23 @@ describe('Home', () => {
     expect(api.getPublishedPage).toHaveBeenCalledWith('security')
   })
 
+  it('merges existing posts from every published legacy page into one feed', async () => {
+    api.listPublishedPages.mockResolvedValue(['projekte', 'notizen'])
+    api.getPublishedPage.mockImplementation(async (slug) => ({
+      posts:
+        slug === 'projekte'
+          ? [{ id: 'post-1', title: 'Bestehendes Projekt', created_at: '2025-01-01T00:00:00Z' }]
+          : [{ id: 'post-2', title: 'Bestehende Notiz', created_at: '2025-02-01T00:00:00Z' }],
+    }))
+
+    renderHome()
+
+    expect(await screen.findByText('Bestehendes Projekt')).toBeInTheDocument()
+    expect(screen.getByText('Bestehende Notiz')).toBeInTheDocument()
+    expect(api.getPublishedPage).toHaveBeenCalledWith('projekte')
+    expect(api.getPublishedPage).toHaveBeenCalledWith('notizen')
+  })
+
   it('renders editorial copy from the CMS', async () => {
     renderHome()
 

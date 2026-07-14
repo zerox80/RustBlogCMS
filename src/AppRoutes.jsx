@@ -1,86 +1,60 @@
-import { Routes, Route } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { lazy } from 'react'
-import { useContent } from './context/ContentContext'
+import PropTypes from 'prop-types'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
-import Home from './pages/Home' // Blog view
+import Home from './pages/Home'
 import PostDetail from './pages/PostDetail'
-import DynamicPage from './pages/DynamicPage'
 
 const Login = lazy(() => import('./pages/Login'))
-const TutorialDetail = lazy(() => import('./pages/TutorialDetail'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 
-/**
- * Blog-Only Routing Configuration.
- *
- * The application defaults to a Blog view. The home page can be configured via
- * CMS settings to show:
- * - 'blog': The main blog listing (default)
- * - A specific page slug: A CMS-created dynamic page (shows page with its posts)
- */
+const PublicLayout = ({ children }) => (
+  <ErrorBoundary>
+    <Header />
+    {children}
+    <Footer />
+  </ErrorBoundary>
+)
+
+PublicLayout.propTypes = {
+  children: PropTypes.node.isRequired,
+}
+
+/** The public website is one personal blog, not a collection of CMS pages. */
 const AppRoutes = () => {
-  const { getSection } = useContent()
-  const settings = getSection('settings') || {}
-  const homePageSlug = settings.homePageSlug || 'blog'
-
-  const homePageContent =
-    homePageSlug === 'blog' || !homePageSlug ? <Home /> : <DynamicPage slug={homePageSlug} />
-
   return (
     <Routes>
       <Route
         path="/"
         element={
-          <ErrorBoundary>
-            <Header />
-            {homePageContent}
-            <Footer />
-          </ErrorBoundary>
-        }
-      />
-      <Route
-        path="/blog"
-        element={
-          <ErrorBoundary>
-            <Header />
+          <PublicLayout>
             <Home />
-            <Footer />
-          </ErrorBoundary>
+          </PublicLayout>
         }
       />
+      <Route path="/blog" element={<Navigate to="/" replace />} />
       <Route
-        path="/tutorials/:id"
+        path="/posts/:pageSlug/:postSlug"
         element={
-          <ErrorBoundary>
-            <Header />
-            <TutorialDetail />
-            <Footer />
-          </ErrorBoundary>
+          <PublicLayout>
+            <PostDetail />
+          </PublicLayout>
         }
       />
+      {/* Keep old article URLs working without exposing public CMS page views. */}
       <Route
         path="/pages/:pageSlug/posts/:postSlug"
         element={
-          <ErrorBoundary>
-            <Header />
+          <PublicLayout>
             <PostDetail />
-            <Footer />
-          </ErrorBoundary>
+          </PublicLayout>
         }
       />
-      <Route
-        path="/pages/:slug"
-        element={
-          <ErrorBoundary>
-            <Header />
-            <DynamicPage />
-            <Footer />
-          </ErrorBoundary>
-        }
-      />
+      <Route path="/pages/:slug" element={<Navigate to="/#stories" replace />} />
+      <Route path="/tutorials/:id" element={<Navigate to="/#stories" replace />} />
       <Route
         path="/login"
         element={
@@ -102,16 +76,21 @@ const AppRoutes = () => {
       <Route
         path="*"
         element={
-          <ErrorBoundary>
-            <Header />
-            <div className="min-h-screen flex items-center justify-center bg-slate-900">
-              <div className="text-center">
-                <h1 className="text-6xl font-bold text-white mb-4">404</h1>
-                <p className="text-slate-400 text-lg">Seite nicht gefunden</p>
+          <PublicLayout>
+            <div className="grid min-h-[75vh] place-items-center bg-[#f4f1ea] px-6 pt-24">
+              <div className="text-center text-[#171713]">
+                <p className="font-serif text-8xl italic text-[#ff4f00]">404</p>
+                <h1 className="mt-3 text-3xl font-semibold">Hier gibt es nichts zu lesen.</h1>
+                <a
+                  href="/#stories"
+                  className={`mt-8 inline-flex rounded-full bg-[#171713] px-6 py-3 text-sm
+font-bold uppercase tracking-[0.12em] text-white`}
+                >
+                  Zurück zu den Beiträgen
+                </a>
               </div>
             </div>
-            <Footer />
-          </ErrorBoundary>
+          </PublicLayout>
         }
       />
     </Routes>

@@ -34,16 +34,22 @@ test.describe('Homepage', () => {
     await expect(page.locator('nav')).toBeVisible()
   })
 
-  test('enforces dark mode', async ({ page }) => {
+  test('uses the editorial light theme', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.locator('html')).toHaveClass(/dark/)
+    await expect(page.locator('html')).not.toHaveClass(/dark/)
+    await expect(page.locator('main')).toHaveCSS('background-color', 'rgb(244, 241, 234)')
   })
 
   test('shows posts returned through published page slugs', async ({ page }) => {
     await page.goto('/')
 
     await expect(page.getByText('E2E article')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Beitrag lesen: E2E article' })).toHaveAttribute(
+      'href',
+      '/posts/e2e-page/e2e-article',
+    )
+    await expect(page.locator('nav a[href^="/pages/"]')).toHaveCount(0)
   })
 
   test('exposes an accessible mobile menu', async ({ page }) => {

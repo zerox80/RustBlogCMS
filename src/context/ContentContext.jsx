@@ -85,7 +85,6 @@ export const DEFAULT_CONTENT = {
     },
     navItems: [
       { id: 'stories', label: 'Beiträge', type: 'section', value: 'stories' },
-      { id: 'topics', label: 'Themen', type: 'section', value: 'topics' },
       { id: 'about', label: 'Über diesen Blog', type: 'section', value: 'about' },
     ],
     cta: {
@@ -133,6 +132,12 @@ const normalizeStarterSection = (section, value) => {
   }
   if (section === 'footer' && LEGACY_STARTER_BRANDS.has(value?.brand?.title)) {
     return DEFAULT_CONTENT.footer
+  }
+  if (
+    section === 'hero' &&
+    (value?.title?.line1 === 'Lerne Linux' || value?.badgeText === 'Professionelles Linux Training')
+  ) {
+    return DEFAULT_CONTENT.hero
   }
   return value
 }

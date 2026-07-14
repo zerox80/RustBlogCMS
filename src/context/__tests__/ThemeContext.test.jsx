@@ -3,37 +3,38 @@ import { renderHook, act } from '@testing-library/react'
 import { ThemeProvider, useTheme } from '../ThemeContext'
 
 describe('ThemeContext', () => {
-  it('provides "dark" as the default theme', () => {
+  it('provides "light" as the default theme', () => {
     const { result } = renderHook(() => useTheme(), {
       wrapper: ThemeProvider,
     })
 
-    expect(result.current.theme).toBe('dark')
+    expect(result.current.theme).toBe('light')
   })
 
-  it('adds "dark" class to document.documentElement on mount', () => {
-    // Mock document.documentElement.classList.add
-    const addMock = vi.spyOn(document.documentElement.classList, 'add')
+  it('removes a stale "dark" class from document.documentElement on mount', () => {
+    document.documentElement.classList.add('dark')
+    const removeMock = vi.spyOn(document.documentElement.classList, 'remove')
 
     renderHook(() => useTheme(), {
       wrapper: ThemeProvider,
     })
 
-    expect(addMock).toHaveBeenCalledWith('dark')
-    addMock.mockRestore()
+    expect(removeMock).toHaveBeenCalledWith('dark')
+    expect(document.documentElement).not.toHaveClass('dark')
+    removeMock.mockRestore()
   })
 
-  it('toggleTheme does not change the theme (enforced dark mode)', () => {
+  it('toggleTheme keeps the editorial light theme', () => {
     const { result } = renderHook(() => useTheme(), {
       wrapper: ThemeProvider,
     })
 
-    expect(result.current.theme).toBe('dark')
+    expect(result.current.theme).toBe('light')
 
     act(() => {
       result.current.toggleTheme()
     })
 
-    expect(result.current.theme).toBe('dark')
+    expect(result.current.theme).toBe('light')
   })
 })

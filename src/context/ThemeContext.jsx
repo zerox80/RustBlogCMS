@@ -77,12 +77,12 @@ export const ThemeProvider = ({ children }) => {
    *
    * This ensures theme persists across sessions and respects user preferences.
    */
-  const [theme] = useState('dark')
+  const [theme] = useState('light')
 
   /**
    * Effect: Apply theme to DOM
    *
-   * Always adds 'dark' class to document root.
+   * The editorial public design uses one intentional light color system.
    */
   useEffect(() => {
     if (typeof window === 'undefined' || !window.document?.documentElement) {
@@ -90,11 +90,11 @@ export const ThemeProvider = ({ children }) => {
     }
 
     const root = window.document.documentElement
-    root.classList.add('dark')
+    root.classList.remove('dark')
 
     // Optional: Persist 'dark' just in case, though we force it anyway
     try {
-      window.localStorage?.setItem('theme', 'dark')
+      window.localStorage?.setItem('theme', 'light')
     } catch {
       // Ignore
     }
@@ -103,7 +103,7 @@ export const ThemeProvider = ({ children }) => {
   /**
    * Toggle Theme Function
    *
-   * No-op as we are enforcing dark mode.
+   * No-op because this design has one deliberate visual identity.
    */
   const toggleTheme = () => {
     // No-op

@@ -15,7 +15,7 @@ const PostCard = ({ post, pageSlug, index = 0, featured = false }) => {
   const publishedDate = formatDate(post.published_at || post.created_at)
   const previewText = buildPreviewText(post)
   const postSlug = normalizeSlug(post?.slug)
-  const href = postSlug ? `/pages/${pageSlug}/posts/${postSlug}` : null
+  const href = postSlug ? `/posts/${pageSlug}/${postSlug}` : null
   const cardNumber = String(index + 1).padStart(2, '0')
 
   const content = (
@@ -30,9 +30,7 @@ hover:bg-[#fffdf7] sm:p-8`}
             className={`flex flex-wrap items-center gap-3 font-mono text-[10px] font-bold uppercase
 tracking-[0.16em] text-[#171713]/50`}
           >
-            <span className="rounded-full bg-[#b9f227] px-3 py-1.5 text-[#171713]">
-              {post.pageTitle || 'Notiz'}
-            </span>
+            <span className="rounded-full bg-[#b9f227] px-3 py-1.5 text-[#171713]">Notiz</span>
             {publishedDate && (
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays className="h-3.5 w-3.5" />
@@ -85,6 +83,7 @@ group-hover:text-white`}
   return href ? (
     <Link
       to={href}
+      aria-label={`Beitrag lesen: ${post.title}`}
       className={[
         'block focus-visible:outline focus-visible:outline-2',
         'focus-visible:outline-offset-[-2px] focus-visible:outline-[#ff4f00]',

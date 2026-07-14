@@ -6,13 +6,11 @@ import Footer from '../Footer'
 
 const authState = vi.hoisted(() => ({ authenticated: false }))
 const navigation = vi.hoisted(() => ({
-  items: [
+  static: [
     { id: 'stories', label: 'Stories', type: 'section', value: 'stories' },
     { id: 'topics', label: 'Topics', type: 'section', value: 'topics' },
     { id: 'about', label: 'About', type: 'section', value: 'about' },
-    { id: 'page-one', label: 'Page one', type: 'route', path: '/pages/one' },
-    { id: 'page-two', label: 'Page two', type: 'route', path: '/pages/two' },
-    { id: 'page-three', label: 'Page three', type: 'route', path: '/pages/three' },
+    { id: 'legacy-page', label: 'Legacy page', type: 'route', path: '/pages/legacy' },
   ],
   dynamic: [
     { id: 'page-one', label: 'Page one', path: '/pages/one' },
@@ -57,14 +55,13 @@ describe('CMS navigation', () => {
     authState.authenticated = false
   })
 
-  it('shows every configured header item and a desktop login link', () => {
+  it('shows one-page anchors, hides legacy page routes, and includes login', () => {
     renderInRouter(<Header />)
 
     expect(screen.getByRole('link', { name: 'Stories' })).toHaveAttribute('href', '#stories')
-    expect(screen.getByRole('link', { name: 'Page three' })).toHaveAttribute(
-      'href',
-      '/pages/three',
-    )
+    expect(screen.queryByRole('link', { name: 'Topics' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Legacy page' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Page three' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
   })
 
@@ -75,17 +72,11 @@ describe('CMS navigation', () => {
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/admin')
   })
 
-  it('uses CMS quick links and does not truncate dynamic footer pages', () => {
+  it('uses one-page quick links without exposing CMS page navigation', () => {
     renderInRouter(<Footer />)
 
     expect(screen.getByRole('link', { name: 'Latest' })).toHaveAttribute('href', '/#stories')
-    expect(screen.getByRole('link', { name: 'CMS page' })).toHaveAttribute(
-      'href',
-      '/pages/custom',
-    )
-    expect(screen.getByRole('link', { name: 'Page three' })).toHaveAttribute(
-      'href',
-      '/pages/three',
-    )
+    expect(screen.queryByRole('link', { name: 'CMS page' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Page three' })).not.toBeInTheDocument()
   })
 })

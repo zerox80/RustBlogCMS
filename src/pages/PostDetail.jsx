@@ -1,170 +1,181 @@
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useContent } from '../context/ContentContext'
-import { formatDate } from '../utils/postUtils'
+import { useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
+import { ArrowLeft, Asterisk, CalendarDays, Clock3, Loader2, Share2 } from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
+import { api } from '../api/client'
 import MarkdownRenderer from '../components/markdown/MarkdownRenderer'
-import { Calendar, Clock, User, Share2, Bookmark } from 'lucide-react'
+import { formatDate } from '../utils/postUtils'
 
-/**
- * In-depth Blog Post Viewer.
- *
- * Features:
- * - Table of Contents (ToC): Implements a Scroll-Spy to highlight current section.
- * - Dynamic SEO: Injects post-specific meta tags for social sharing and search.
- * - Advanced Meta: Calculates "Read Time" if not provided by backend.
- * - Interaction: Integrated comments section and share functionality.
- */
+const readingTime = (content) => {
+  const words = String(content || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length
+  return Math.max(2, Math.ceil(words / 200))
+}
+
+/** Editorial article view matching the public one-page blog design. */
 const PostDetail = () => {
   const { pageSlug, postSlug } = useParams()
-  const { pages } = useContent()
   const [post, setPost] = useState(null)
+  const [error, setError] = useState(null)
+  const [shareLabel, setShareLabel] = useState('Teilen')
 
   useEffect(() => {
-    const fetchPost = async () => {
+    const controller = new AbortController()
+
+    const loadPost = async () => {
       try {
-        const data = await pages.getPost(pageSlug, postSlug)
-        setPost(data.post)
-      } catch (err) {
-        console.error('CMS: Failed to load post:', err)
+        setError(null)
+        const data = await api.getPublishedPost(pageSlug, postSlug, {
+          signal: controller.signal,
+        })
+        if (!controller.signal.aborted) setPost(data?.post || data)
+      } catch (loadError) {
+        if (!controller.signal.aborted) setError(loadError)
       }
     }
-    fetchPost()
-  }, [pageSlug, postSlug, pages])
 
-  if (!post)
+    loadPost()
+    return () => controller.abort()
+  }, [pageSlug, postSlug])
+
+  const minutes = useMemo(() => readingTime(post?.content_markdown), [post?.content_markdown])
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.title, url: window.location.href })
+      } else {
+        await navigator.clipboard.writeText(window.location.href)
+        setShareLabel('Link kopiert')
+        window.setTimeout(() => setShareLabel('Teilen'), 1800)
+      }
+    } catch (shareError) {
+      if (shareError?.name !== 'AbortError') setShareLabel('Nicht möglich')
+    }
+  }
+
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
+      <main
+        className={`grid min-h-[75vh] place-items-center bg-[#f4f1ea] px-6 pt-28
+text-[#171713]`}
+      >
+        <div className="max-w-lg text-center">
+          <p className="font-serif text-7xl italic text-[#ff4f00]">Oops.</p>
+          <h1 className="mt-4 text-3xl font-semibold">Dieser Beitrag ist nicht verfügbar.</h1>
+          <Link
+            to="/#stories"
+            className={`mt-8 inline-flex items-center gap-2 rounded-full bg-[#171713] px-6 py-3
+text-sm font-bold uppercase tracking-[0.12em] text-white`}
+          >
+            <ArrowLeft className="h-4 w-4" /> Alle Beiträge
+          </Link>
+        </div>
+      </main>
     )
+  }
 
-  const readTimeDisplay =
-    post.readTime || `${Math.ceil((post.content_markdown?.length || 0) / 1000) + 1} min read`
+  if (!post) {
+    return (
+      <main className="grid min-h-[75vh] place-items-center bg-[#f4f1ea] pt-28 text-[#171713]">
+        <div className="flex items-center gap-3 font-mono text-xs font-bold uppercase tracking-[0.18em]">
+          <Loader2 className="h-5 w-5 animate-spin text-[#ff4f00]" /> Beitrag wird geladen
+        </div>
+      </main>
+    )
+  }
+
+  const publishedDate = formatDate(post.published_at || post.created_at)
 
   return (
-    <div className="min-h-screen bg-slate-950 pt-24 pb-20">
+    <main className="bg-[#f4f1ea] pb-24 pt-28 text-[#171713] sm:pt-32">
       <Helmet>
-        <title>{post.meta?.title || post.title} | RustCMS</title>
+        <title>{post.meta?.title || post.title}</title>
+        {post.excerpt && <meta name="description" content={post.excerpt} />}
       </Helmet>
 
-      {/* Hero Header */}
-      <div className="relative w-full h-[40vh] md:h-[50vh] flex items-center justify-center mb-12">
-        <div className="absolute inset-0 z-0">
-          <div
-            className={`absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80
-to-transparent z-10`}
+      <article>
+        <header className="border-b border-[#171713] px-5 pb-14 sm:px-8 lg:px-12 lg:pb-20">
+          <div className="mx-auto max-w-[1180px]">
+            <Link
+              to="/#stories"
+              className={`inline-flex items-center gap-2 text-xs font-bold uppercase
+tracking-[0.14em] text-[#171713]/60 transition-colors hover:text-[#ff4f00]`}
+            >
+              <ArrowLeft className="h-4 w-4" /> Zurück zum Blog
+            </Link>
+
+            <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-end">
+              <div>
+                <div
+                  className={`mb-6 flex items-center gap-3 font-mono text-[11px] font-bold
+uppercase tracking-[0.18em] text-[#ff4f00]`}
+                >
+                  <Asterisk className="h-4 w-4" /> Persönlich notiert
+                </div>
+                <h1
+                  className={`max-w-5xl font-display text-[clamp(3.4rem,8vw,7.8rem)]
+font-semibold leading-[0.88] tracking-[-0.065em]`}
+                >
+                  {post.title}
+                </h1>
+                {post.excerpt && (
+                  <p className="mt-8 max-w-3xl text-xl leading-relaxed text-[#171713]/60 sm:text-2xl">
+                    {post.excerpt}
+                  </p>
+                )}
+              </div>
+
+              <div
+                className={`border-t border-[#171713]/20 pt-5 font-mono text-[11px] font-bold
+uppercase tracking-[0.13em] text-[#171713]/55 lg:border-l lg:border-t-0
+lg:pl-6 lg:pt-0`}
+              >
+                {publishedDate && (
+                  <p className="flex items-center gap-2 py-2">
+                    <CalendarDays className="h-4 w-4 text-[#ff4f00]" /> {publishedDate}
+                  </p>
+                )}
+                <p className="flex items-center gap-2 py-2">
+                  <Clock3 className="h-4 w-4 text-[#ff4f00]" /> {minutes} Min. Lesezeit
+                </p>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="flex items-center gap-2 py-2 transition-colors hover:text-[#ff4f00]"
+                >
+                  <Share2 className="h-4 w-4 text-[#ff4f00]" /> {shareLabel}
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
+          <MarkdownRenderer
+            content={post.content_markdown}
+            withBreaks
+            className="editorial-markdown mx-auto max-w-[780px]"
           />
-          {post.image && (
-            <img
-              src={post.image}
-              alt={post.title}
-              className="w-full h-full object-cover opacity-60"
-            />
-          )}
-          {/* Fallback pattern if no image */}
-          {!post.image && (
-            <div className="w-full h-full bg-slate-900 aurora-bg-animated opacity-30" />
-          )}
         </div>
 
-        <div className="container px-6 relative z-20 max-w-4xl text-center">
-          <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10
-backdrop-blur-md border border-white/10 text-xs font-medium text-neon-cyan
-mb-6`}
-          >
-            {post.category || 'Technology'}
+        <footer className="mx-auto max-w-[1180px] border-t border-[#171713] px-5 pt-10 sm:px-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-serif text-3xl italic">Danke fürs Lesen.</p>
+            <Link
+              to="/#stories"
+              className={`inline-flex items-center gap-2 self-start rounded-full bg-[#171713]
+px-6 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white transition-colors
+hover:bg-[#ff4f00]`}
+            >
+              <ArrowLeft className="h-4 w-4" /> Weitere Beiträge
+            </Link>
           </div>
-          <h1
-            className={[
-              'text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6',
-              'leading-tight',
-            ].join(' ')}
-          >
-            {post.title}
-          </h1>
-
-          <div className="flex flex-wrap items-center justify-center gap-6 text-slate-300 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-purple to-neon-blue p-0.5">
-                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <span className="font-medium text-white">{post.author || 'Admin'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>{formatDate(post.published_at || post.created_at) || 'Recently'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              <span>{readTimeDisplay}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        className={`container px-6 mx-auto relative max-w-7xl grid grid-cols-1 lg:grid-cols-12
-gap-12`}
-      >
-        {/* Sidebar - Table of Contents */}
-        <aside className="hidden lg:block lg:col-span-3">
-          <div className="sticky top-32 glass-card p-6 rounded-2xl">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-              Table of Contents
-            </h4>
-            <nav className="space-y-1">
-              {/* Note: In a real app, generate these from markdown AST. For now static or simple regex */}
-              <div className="text-sm text-slate-500 italic">Sections auto-generated</div>
-            </nav>
-
-            <div className="mt-8 pt-8 border-t border-white/5 flex gap-4">
-              <button
-                className={`p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white
-transition-colors`}
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
-              <button
-                className={`p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white
-transition-colors`}
-              >
-                <Bookmark className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="lg:col-span-8 lg:col-start-4">
-          <article className="max-w-none">
-            <MarkdownRenderer content={post.content_markdown} withBreaks />
-          </article>
-
-          {/* Footer / Comments Area */}
-          <div className="mt-20 border-t border-white/10 pt-10">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-bold text-white">Discussion</h3>
-              <button className="btn-primary px-4 py-2 text-sm">Post Comment</button>
-            </div>
-
-            <div className="glass-card p-6 mb-6">
-              <div className="flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-slate-800 flex-shrink-0" />
-                <div className="flex-1">
-                  <textarea
-                    placeholder="What are your thoughts?"
-                    className={`w-full bg-transparent border-0 text-white placeholder-slate-500 focus:ring-0
-resize-none h-24`}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
+        </footer>
+      </article>
+    </main>
   )
 }
 

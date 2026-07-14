@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowDownRight, ArrowRight, Asterisk, Loader2, Sparkles } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PostCard from '../components/dynamic-page/PostCard'
@@ -8,9 +8,7 @@ import { useContent } from '../context/ContentContext'
 import EditableText from '../components/cms/EditableText'
 import { navigateContentTarget } from '../utils/contentNavigation'
 
-const ALL_TOPICS = 'Alle Beiträge'
-
-/** Personal one-page blog that collects published posts from every CMS page. */
+/** Personal one-page blog that merges every stored post into one chronological feed. */
 const Home = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -18,7 +16,6 @@ const Home = () => {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTopic, setActiveTopic] = useState(ALL_TOPICS)
   const heroContent = getSection('hero') ?? {}
   const aboutContent = getSection('about') ?? {}
   const ctaContent = getSection('cta_section') ?? {}
@@ -42,12 +39,11 @@ const Home = () => {
             slug: typeof pageReference === 'string' ? pageReference : pageReference?.slug,
           }))
           .filter(({ slug }) => Boolean(slug))
-          .map(async ({ reference, slug }) => {
+          .map(async ({ slug }) => {
             const pageData = await api.getPublishedPage(slug)
             return (pageData?.posts || []).map((post) => ({
               ...post,
               pageSlug: slug,
-              pageTitle: pageData?.page?.title || reference?.title || slug,
             }))
           })
 
@@ -72,17 +68,6 @@ const Home = () => {
 
     fetchAllPosts()
   }, [])
-
-  const topics = useMemo(
-    () => [ALL_TOPICS, ...new Set(posts.map((post) => post.pageTitle).filter(Boolean))],
-    [posts],
-  )
-
-  const visiblePosts = useMemo(
-    () =>
-      activeTopic === ALL_TOPICS ? posts : posts.filter((post) => post.pageTitle === activeTopic),
-    [activeTopic, posts],
-  )
 
   const currentYear = new Date().getFullYear()
 
@@ -232,37 +217,6 @@ hover:text-[#ff4f00]`}
         </div>
       </section>
 
-      <section
-        id="topics"
-        aria-label="Themen"
-        className="border-b border-[#171713] bg-[#b9f227] py-4"
-      >
-        <div
-          className={`topic-marquee flex min-w-max items-center gap-8 whitespace-nowrap text-sm
-font-black uppercase tracking-[0.16em]`}
-        >
-          {[
-            'Rust',
-            'Security',
-            'Open Source',
-            'DevOps',
-            'Digital Culture',
-            'Linux',
-            'Web Engineering',
-            'Rust',
-            'Security',
-            'Open Source',
-            'DevOps',
-            'Digital Culture',
-          ].map((topic, index) => (
-            <span key={`${topic}-${index}`} className="flex items-center gap-8">
-              {topic}
-              <Asterisk className="h-4 w-4" />
-            </span>
-          ))}
-        </div>
-      </section>
-
       <section id="stories" className="px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-[1480px]">
           <div
@@ -273,7 +227,7 @@ font-black uppercase tracking-[0.16em]`}
           >
             <div>
               <p className="mb-4 font-mono text-xs font-bold uppercase tracking-[0.22em] text-[#ff4f00]">
-                Zuletzt notiert / {String(visiblePosts.length).padStart(2, '0')}
+                Zuletzt notiert / {String(posts.length).padStart(2, '0')}
               </p>
               <h2
                 className={[
@@ -291,30 +245,6 @@ font-black uppercase tracking-[0.16em]`}
               eigenen Perspektive.
             </p>
           </div>
-
-          {topics.length > 1 && (
-            <div
-              className="flex gap-2 overflow-x-auto border-b border-[#171713]/15 py-6"
-              aria-label="Artikel nach Thema filtern"
-            >
-              {topics.map((topic) => (
-                <button
-                  key={topic}
-                  type="button"
-                  onClick={() => setActiveTopic(topic)}
-                  className={[
-                    'shrink-0 rounded-full border px-5 py-2.5 text-xs font-bold uppercase',
-                    'tracking-[0.12em] transition-colors',
-                    activeTopic === topic
-                      ? 'border-[#171713] bg-[#171713] text-white'
-                      : 'border-[#171713]/20 hover:border-[#171713]',
-                  ].join(' ')}
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-          )}
 
           {loading ? (
             <div className="flex min-h-80 flex-col items-center justify-center gap-4 text-[#171713]/55">
@@ -336,7 +266,7 @@ sm:grid-cols-[auto_1fr] sm:items-center`}
                 </p>
               </div>
             </div>
-          ) : visiblePosts.length === 0 ? (
+          ) : posts.length === 0 ? (
             <div
               className={`my-10 grid min-h-72 place-items-center border border-dashed
 border-[#171713]/40 bg-white/25 p-10 text-center`}
@@ -351,7 +281,7 @@ border-[#171713]/40 bg-white/25 p-10 text-center`}
             </div>
           ) : (
             <div className="grid border-l border-t border-[#171713] md:grid-cols-2 xl:grid-cols-3">
-              {visiblePosts.map((post, index) => (
+              {posts.map((post, index) => (
                 <PostCard
                   key={`${post.pageSlug}-${post.id || post.slug}`}
                   post={post}

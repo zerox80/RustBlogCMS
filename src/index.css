@@ -236,7 +236,7 @@ input {
   }
 
   .markdown-renderer code {
-    @apply align-baseline font-mono text-neon-cyan bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-700/50;
+    @apply align-baseline rounded border border-[#171713]/15 bg-[#171713]/5 px-1.5 py-0.5 font-mono text-[#b73800];
     white-space: normal !important;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -255,18 +255,18 @@ input {
     white-space: pre-wrap !important;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    @apply bg-transparent border-none p-0 text-slate-300;
+    @apply border-none bg-transparent p-0 text-slate-200;
   }
 
   .markdown-renderer {
     white-space: normal;
-    @apply text-slate-300 leading-relaxed;
+    @apply leading-relaxed text-[#34342d];
   }
 
   .markdown-renderer h1,
   .markdown-renderer h2,
   .markdown-renderer h3 {
-    @apply text-white font-serif mt-8 mb-4;
+    @apply mb-4 mt-8 font-display text-[#171713];
   }
 
   .markdown-renderer p {

@@ -4,7 +4,6 @@ import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { ContentProvider } from './context/ContentContext'
 import { EditProvider } from './context/EditContext'
-import { TutorialProvider } from './context/TutorialContext'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import GlobalSiteMeta from './components/GlobalSiteMeta'
@@ -25,14 +24,12 @@ function App() {
             <AuthProvider>
               <ContentProvider>
                 <EditProvider>
-                  <TutorialProvider>
-                    <div className="min-h-screen bg-[#f4f1ea] transition-colors">
-                      <GlobalSiteMeta />
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <AppRoutes />
-                      </Suspense>
-                    </div>
-                  </TutorialProvider>
+                  <div className="min-h-screen bg-[#f4f1ea] transition-colors">
+                    <GlobalSiteMeta />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AppRoutes />
+                    </Suspense>
+                  </div>
                 </EditProvider>
               </ContentProvider>
             </AuthProvider>
