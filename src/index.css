@@ -10,7 +10,8 @@
  */
 
 /* Editorial font pairing: geometric sans + expressive serif. */
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 /* Import Tailwind CSS base styles */
 @import "tailwindcss";
@@ -207,11 +208,15 @@ input {
 
   /* Neon Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-300 px-6 py-3 text-white shadow-lg shadow-neon-violet/20 bg-gradient-to-r from-neon-violet to-neon-cyan hover:brightness-110 hover:shadow-neon-violet/40 hover:-translate-y-0.5 active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-300
+      px-6 py-3 text-white shadow-lg shadow-neon-violet/20 bg-gradient-to-r from-neon-violet to-neon-cyan
+      hover:brightness-110 hover:shadow-neon-violet/40 hover:-translate-y-0.5 active:scale-95;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-300 px-6 py-3 border border-slate-700 text-slate-300 bg-slate-800/50 backdrop-blur-md hover:bg-slate-800 hover:text-white hover:border-slate-600;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-300
+      px-6 py-3 border border-slate-700 text-slate-300 bg-slate-800/50 backdrop-blur-md
+      hover:bg-slate-800 hover:text-white hover:border-slate-600;
   }
 
   /* Typography Components */
@@ -230,7 +235,8 @@ input {
 
   /* Navigation Links */
   .nav-link {
-    @apply relative text-slate-400 hover:text-white transition-colors duration-300 font-medium tracking-wide text-sm uppercase;
+    @apply relative text-slate-400 hover:text-white transition-colors duration-300 font-medium tracking-wide
+      text-sm uppercase;
   }
 
   .nav-link::after {

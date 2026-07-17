@@ -5,7 +5,7 @@ import process from 'node:process'
 const MAX_LINES = 500
 const MAX_COLUMNS = 120
 const ROOT = process.cwd()
-const EXTENSIONS = new Set(['.cjs', '.js', '.jsx', '.mjs', '.rs'])
+const EXTENSIONS = new Set(['.cjs', '.css', '.js', '.jsx', '.mjs', '.rs'])
 const IGNORED_DIRECTORIES = new Set(['.git', 'dist', 'node_modules', 'target'])
 
 const sourceFiles = []
@@ -47,5 +47,7 @@ if (violations.length > 0) {
   violations.forEach((violation) => console.error(`- ${violation}`))
   process.exitCode = 1
 } else {
-  console.log(`Checked ${sourceFiles.length} Rust and JavaScript files: all file limits passed.`)
+  console.log(
+    `Checked ${sourceFiles.length} Rust, JavaScript, and CSS files: all file limits passed.`,
+  )
 }

@@ -55,7 +55,7 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Check source file limits
+    - name: Check source file limits (Rust, JavaScript, CSS)
       run: npm run check:file-limits
 
     - name: Run tests
