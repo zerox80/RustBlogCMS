@@ -10,6 +10,21 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  file-limits:
+    name: Line Limits (Rust, JavaScript, CSS)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20'
+
+    - name: Enforce 500 lines and 120 characters per line
+      run: node scripts/check-file-limits.mjs
+
   backend:
     name: Backend Tests (Rust)
     runs-on: ubuntu-latest
@@ -54,9 +69,6 @@ jobs:
 
     - name: Install dependencies
       run: npm ci
-
-    - name: Check source file limits (Rust, JavaScript, CSS)
-      run: npm run check:file-limits
 
     - name: Run tests
       run: npm test -- --run
