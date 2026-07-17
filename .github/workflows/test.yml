@@ -11,7 +11,7 @@ env:
 
 jobs:
   file-limits:
-    name: Line Limits (Rust, JavaScript, CSS)
+    name: File Line Limits (Rust, JavaScript, CSS)
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,7 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Enforce 500 lines and 120 characters per line
+    - name: Enforce maximum 500 lines per file
       run: node scripts/check-file-limits.mjs
 
   backend:

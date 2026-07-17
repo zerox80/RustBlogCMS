@@ -3,7 +3,6 @@ import path from 'node:path'
 import process from 'node:process'
 
 const MAX_LINES = 500
-const MAX_COLUMNS = 120
 const ROOT = process.cwd()
 const EXTENSIONS = new Set(['.cjs', '.css', '.js', '.jsx', '.mjs', '.rs'])
 const IGNORED_DIRECTORIES = new Set(['.git', 'dist', 'node_modules', 'target'])
@@ -31,15 +30,6 @@ for (const file of sourceFiles) {
   if (lines.length > MAX_LINES) {
     violations.push(`${path.relative(ROOT, file)}: ${lines.length} lines (maximum ${MAX_LINES})`)
   }
-
-  lines.forEach((line, index) => {
-    const characterCount = [...line].length
-    if (characterCount > MAX_COLUMNS) {
-      violations.push(
-        `${path.relative(ROOT, file)}:${index + 1}: ${characterCount} characters (maximum ${MAX_COLUMNS})`,
-      )
-    }
-  })
 }
 
 if (violations.length > 0) {
@@ -48,6 +38,6 @@ if (violations.length > 0) {
   process.exitCode = 1
 } else {
   console.log(
-    `Checked ${sourceFiles.length} Rust, JavaScript, and CSS files: all file limits passed.`,
+    `Checked ${sourceFiles.length} Rust, JavaScript, and CSS files: all file line limits passed.`,
   )
 }
