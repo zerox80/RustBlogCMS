@@ -38,7 +38,7 @@
 # Use the project's MSRV for reproducible builds.
 # No nightly-only features are used (MSRV 1.88 per Cargo.toml); nightly is a
 # floating, unpinned toolchain and an unnecessary supply-chain risk.
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.97-bookworm AS builder
 
 # Set working directory for all subsequent commands
 WORKDIR /app
